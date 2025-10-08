@@ -1,0 +1,459 @@
+{
+  "type": "record",
+  "name": "PowderBed",
+  "namespace": "com.pbflbm.schemas",
+  "doc": "Powder bed monitoring data schema for PBF-LB/M additive manufacturing",
+  "fields": [
+    {
+      "name": "bed_id",
+      "type": "string",
+      "doc": "Unique identifier for the powder bed record"
+    },
+    {
+      "name": "timestamp",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Monitoring timestamp in ISO format"
+    },
+    {
+      "name": "process_id",
+      "type": "string",
+      "doc": "Associated PBF process identifier"
+    },
+    {
+      "name": "layer_number",
+      "type": "int",
+      "doc": "Current layer number"
+    },
+    {
+      "name": "image_metadata",
+      "type": {
+        "type": "record",
+        "name": "ImageMetadata",
+        "fields": [
+          {
+            "name": "image_id",
+            "type": "string",
+            "doc": "Unique identifier for the powder bed image"
+          },
+          {
+            "name": "camera_id",
+            "type": "string",
+            "doc": "Camera identifier used for capture"
+          },
+          {
+            "name": "image_format",
+            "type": {
+              "type": "enum",
+              "name": "ImageFormat",
+              "symbols": ["JPEG", "PNG", "TIFF", "RAW", "BMP"]
+            },
+            "doc": "Image file format"
+          },
+          {
+            "name": "resolution",
+            "type": "string",
+            "doc": "Image resolution (e.g., 1920x1080)"
+          },
+          {
+            "name": "file_size",
+            "type": "long",
+            "doc": "Image file size in bytes"
+          },
+          {
+            "name": "file_path",
+            "type": "string",
+            "doc": "Path to the image file"
+          },
+          {
+            "name": "capture_settings",
+            "type": {
+              "type": "record",
+              "name": "CaptureSettings",
+              "fields": [
+                {
+                  "name": "exposure_time",
+                  "type": "double",
+                  "doc": "Exposure time in seconds"
+                },
+                {
+                  "name": "aperture",
+                  "type": "double",
+                  "doc": "Camera aperture value"
+                },
+                {
+                  "name": "iso",
+                  "type": "int",
+                  "doc": "ISO sensitivity"
+                },
+                {
+                  "name": "white_balance",
+                  "type": "string",
+                  "doc": "White balance setting"
+                },
+                {
+                  "name": "lighting_conditions",
+                  "type": "string",
+                  "doc": "Lighting conditions during capture"
+                }
+              ]
+            },
+            "doc": "Camera capture settings"
+          }
+        ]
+      },
+      "doc": "Powder bed image metadata"
+    },
+    {
+      "name": "powder_characteristics",
+      "type": {
+        "type": "record",
+        "name": "PowderCharacteristics",
+        "fields": [
+          {
+            "name": "material_type",
+            "type": "string",
+            "doc": "Powder material type"
+          },
+          {
+            "name": "particle_size_distribution",
+            "type": ["null", {
+              "type": "record",
+              "name": "ParticleSizeDistribution",
+              "fields": [
+                {
+                  "name": "d10",
+                  "type": "double",
+                  "doc": "10th percentile particle size in micrometers"
+                },
+                {
+                  "name": "d50",
+                  "type": "double",
+                  "doc": "50th percentile particle size in micrometers"
+                },
+                {
+                  "name": "d90",
+                  "type": "double",
+                  "doc": "90th percentile particle size in micrometers"
+                },
+                {
+                  "name": "span",
+                  "type": "double",
+                  "doc": "Particle size distribution span"
+                }
+              ]
+            }],
+            "default": null,
+            "doc": "Particle size distribution"
+          },
+          {
+            "name": "powder_density",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Powder density in g/cm³"
+          },
+          {
+            "name": "flowability",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Powder flowability index"
+          },
+          {
+            "name": "moisture_content",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Moisture content percentage"
+          }
+        ]
+      },
+      "doc": "Powder characteristics"
+    },
+    {
+      "name": "bed_quality_metrics",
+      "type": {
+        "type": "record",
+        "name": "BedQualityMetrics",
+        "fields": [
+          {
+            "name": "uniformity_score",
+            "type": "double",
+            "doc": "Powder bed uniformity score (0-100)"
+          },
+          {
+            "name": "coverage_percentage",
+            "type": "double",
+            "doc": "Powder coverage percentage"
+          },
+          {
+            "name": "thickness_consistency",
+            "type": "double",
+            "doc": "Layer thickness consistency score (0-100)"
+          },
+          {
+            "name": "surface_roughness",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Surface roughness in micrometers"
+          },
+          {
+            "name": "density_variation",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Density variation coefficient"
+          },
+          {
+            "name": "defect_density",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Defect density per cm²"
+          }
+        ]
+      },
+      "doc": "Powder bed quality metrics"
+    },
+    {
+      "name": "image_analysis",
+      "type": ["null", {
+        "type": "record",
+        "name": "ImageAnalysis",
+        "fields": [
+          {
+            "name": "brightness",
+            "type": "double",
+            "doc": "Average image brightness (0-255)"
+          },
+          {
+            "name": "contrast",
+            "type": "double",
+            "doc": "Image contrast value"
+          },
+          {
+            "name": "sharpness",
+            "type": "double",
+            "doc": "Image sharpness score"
+          },
+          {
+            "name": "noise_level",
+            "type": "double",
+            "doc": "Image noise level"
+          },
+          {
+            "name": "color_balance",
+            "type": {
+              "type": "record",
+              "name": "ColorBalance",
+              "fields": [
+                {
+                  "name": "red_channel",
+                  "type": "double",
+                  "doc": "Red channel average value"
+                },
+                {
+                  "name": "green_channel",
+                  "type": "double",
+                  "doc": "Green channel average value"
+                },
+                {
+                  "name": "blue_channel",
+                  "type": "double",
+                  "doc": "Blue channel average value"
+                }
+              ]
+            },
+            "doc": "Color balance analysis"
+          },
+          {
+            "name": "texture_analysis",
+            "type": ["null", {
+              "type": "record",
+              "name": "TextureAnalysis",
+              "fields": [
+                {
+                  "name": "homogeneity",
+                  "type": "double",
+                  "doc": "Texture homogeneity"
+                },
+                {
+                  "name": "contrast",
+                  "type": "double",
+                  "doc": "Texture contrast"
+                },
+                {
+                  "name": "energy",
+                  "type": "double",
+                  "doc": "Texture energy"
+                },
+                {
+                  "name": "entropy",
+                  "type": "double",
+                  "doc": "Texture entropy"
+                }
+              ]
+            }],
+            "default": null,
+            "doc": "Texture analysis results"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Image analysis results"
+    },
+    {
+      "name": "defect_detection",
+      "type": ["null", {
+        "type": "record",
+        "name": "DefectDetection",
+        "fields": [
+          {
+            "name": "defects_detected",
+            "type": "boolean",
+            "doc": "Whether defects were detected"
+          },
+          {
+            "name": "defect_count",
+            "type": "int",
+            "doc": "Number of detected defects"
+          },
+          {
+            "name": "defect_types",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "PowderBedDefect",
+                "fields": [
+                  {
+                    "name": "defect_id",
+                    "type": "string",
+                    "doc": "Unique defect identifier"
+                  },
+                  {
+                    "name": "type",
+                    "type": {
+                      "type": "enum",
+                      "name": "PowderBedDefectType",
+                      "symbols": ["INSUFFICIENT_POWDER", "EXCESS_POWDER", "CONTAMINATION", "AGGLOMERATION", "SEGREGATION", "SURFACE_IRREGULARITY"]
+                    },
+                    "doc": "Type of powder bed defect"
+                  },
+                  {
+                    "name": "location",
+                    "type": {
+                      "type": "record",
+                      "name": "DefectLocation",
+                      "fields": [
+                        {
+                          "name": "x_coordinate",
+                          "type": "double",
+                          "doc": "X coordinate in mm"
+                        },
+                        {
+                          "name": "y_coordinate",
+                          "type": "double",
+                          "doc": "Y coordinate in mm"
+                        },
+                        {
+                          "name": "area",
+                          "type": "double",
+                          "doc": "Defect area in mm²"
+                        }
+                      ]
+                    },
+                    "doc": "Defect location and size"
+                  },
+                  {
+                    "name": "severity",
+                    "type": {
+                      "type": "enum",
+                      "name": "DefectSeverity",
+                      "symbols": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+                    },
+                    "doc": "Defect severity level"
+                  },
+                  {
+                    "name": "confidence_score",
+                    "type": "double",
+                    "doc": "Detection confidence score (0-100)"
+                  }
+                ]
+              }
+            },
+            "doc": "Detected defects"
+          },
+          {
+            "name": "overall_quality_assessment",
+            "type": {
+              "type": "enum",
+              "name": "QualityAssessment",
+              "symbols": ["EXCELLENT", "GOOD", "ACCEPTABLE", "POOR", "UNACCEPTABLE"]
+            },
+            "doc": "Overall powder bed quality assessment"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Defect detection results"
+    },
+    {
+      "name": "environmental_conditions",
+      "type": ["null", {
+        "type": "record",
+        "name": "EnvironmentalConditions",
+        "fields": [
+          {
+            "name": "temperature",
+            "type": "double",
+            "doc": "Ambient temperature in Celsius"
+          },
+          {
+            "name": "humidity",
+            "type": "double",
+            "doc": "Relative humidity percentage"
+          },
+          {
+            "name": "pressure",
+            "type": "double",
+            "doc": "Atmospheric pressure in mbar"
+          },
+          {
+            "name": "vibration_level",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Vibration level in g"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Environmental conditions during monitoring"
+    },
+    {
+      "name": "processing_status",
+      "type": {
+        "type": "enum",
+        "name": "ProcessingStatus",
+        "symbols": ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED"]
+      },
+      "doc": "Powder bed processing status"
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "doc": "Additional metadata"
+    },
+    {
+      "name": "created_at",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Record creation timestamp"
+    },
+    {
+      "name": "updated_at",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Record last update timestamp"
+    }
+  ]
+}

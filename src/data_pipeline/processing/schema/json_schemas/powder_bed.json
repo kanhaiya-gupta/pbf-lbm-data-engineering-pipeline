@@ -1,0 +1,440 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Powder Bed Monitoring Data Schema",
+  "description": "JSON schema for powder bed monitoring data in PBF-LB/M additive manufacturing",
+  "type": "object",
+  "required": [
+    "bed_id",
+    "timestamp",
+    "process_id",
+    "layer_number",
+    "image_metadata",
+    "powder_characteristics",
+    "bed_quality_metrics",
+    "processing_status"
+  ],
+  "properties": {
+    "bed_id": {
+      "type": "string",
+      "description": "Unique identifier for the powder bed record",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Monitoring timestamp in ISO 8601 format"
+    },
+    "process_id": {
+      "type": "string",
+      "description": "Associated PBF process identifier",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "layer_number": {
+      "type": "integer",
+      "description": "Current layer number",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "image_metadata": {
+      "type": "object",
+      "description": "Powder bed image metadata",
+      "properties": {
+        "image_id": {
+          "type": "string",
+          "description": "Unique identifier for the powder bed image",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "camera_id": {
+          "type": "string",
+          "description": "Camera identifier used for capture",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "image_format": {
+          "type": "string",
+          "description": "Image file format",
+          "enum": ["JPEG", "PNG", "TIFF", "RAW", "BMP"]
+        },
+        "resolution": {
+          "type": "string",
+          "description": "Image resolution",
+          "pattern": "^\\d+x\\d+$"
+        },
+        "file_size": {
+          "type": "integer",
+          "description": "Image file size in bytes",
+          "minimum": 0
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path to the image file",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "capture_settings": {
+          "type": "object",
+          "description": "Camera capture settings",
+          "properties": {
+            "exposure_time": {
+              "type": "number",
+              "description": "Exposure time in seconds",
+              "minimum": 0.001,
+              "maximum": 60
+            },
+            "aperture": {
+              "type": "number",
+              "description": "Camera aperture value",
+              "minimum": 0.5,
+              "maximum": 32
+            },
+            "iso": {
+              "type": "integer",
+              "description": "ISO sensitivity",
+              "minimum": 50,
+              "maximum": 25600
+            },
+            "white_balance": {
+              "type": "string",
+              "description": "White balance setting",
+              "minLength": 1,
+              "maxLength": 50
+            },
+            "lighting_conditions": {
+              "type": "string",
+              "description": "Lighting conditions during capture",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          "required": ["exposure_time", "aperture", "iso", "white_balance", "lighting_conditions"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["image_id", "camera_id", "image_format", "resolution", "file_size", "file_path", "capture_settings"],
+      "additionalProperties": false
+    },
+    "powder_characteristics": {
+      "type": "object",
+      "description": "Powder characteristics",
+      "properties": {
+        "material_type": {
+          "type": "string",
+          "description": "Powder material type",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "particle_size_distribution": {
+          "type": ["object", "null"],
+          "description": "Particle size distribution",
+          "properties": {
+            "d10": {
+              "type": "number",
+              "description": "10th percentile particle size in micrometers",
+              "minimum": 0.1,
+              "maximum": 1000
+            },
+            "d50": {
+              "type": "number",
+              "description": "50th percentile particle size in micrometers",
+              "minimum": 0.1,
+              "maximum": 1000
+            },
+            "d90": {
+              "type": "number",
+              "description": "90th percentile particle size in micrometers",
+              "minimum": 0.1,
+              "maximum": 1000
+            },
+            "span": {
+              "type": "number",
+              "description": "Particle size distribution span",
+              "minimum": 0
+            }
+          },
+          "required": ["d10", "d50", "d90", "span"],
+          "additionalProperties": false
+        },
+        "powder_density": {
+          "type": ["number", "null"],
+          "description": "Powder density in g/cm³",
+          "minimum": 0.1,
+          "maximum": 20
+        },
+        "flowability": {
+          "type": ["number", "null"],
+          "description": "Powder flowability index",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "moisture_content": {
+          "type": ["number", "null"],
+          "description": "Moisture content percentage",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": ["material_type"],
+      "additionalProperties": false
+    },
+    "bed_quality_metrics": {
+      "type": "object",
+      "description": "Powder bed quality metrics",
+      "properties": {
+        "uniformity_score": {
+          "type": "number",
+          "description": "Powder bed uniformity score (0-100)",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "coverage_percentage": {
+          "type": "number",
+          "description": "Powder coverage percentage",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "thickness_consistency": {
+          "type": "number",
+          "description": "Layer thickness consistency score (0-100)",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "surface_roughness": {
+          "type": ["number", "null"],
+          "description": "Surface roughness in micrometers",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "density_variation": {
+          "type": ["number", "null"],
+          "description": "Density variation coefficient",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "defect_density": {
+          "type": ["number", "null"],
+          "description": "Defect density per cm²",
+          "minimum": 0
+        }
+      },
+      "required": ["uniformity_score", "coverage_percentage", "thickness_consistency"],
+      "additionalProperties": false
+    },
+    "image_analysis": {
+      "type": ["object", "null"],
+      "description": "Image analysis results",
+      "properties": {
+        "brightness": {
+          "type": "number",
+          "description": "Average image brightness (0-255)",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "contrast": {
+          "type": "number",
+          "description": "Image contrast value",
+          "minimum": 0
+        },
+        "sharpness": {
+          "type": "number",
+          "description": "Image sharpness score",
+          "minimum": 0
+        },
+        "noise_level": {
+          "type": "number",
+          "description": "Image noise level",
+          "minimum": 0
+        },
+        "color_balance": {
+          "type": "object",
+          "description": "Color balance analysis",
+          "properties": {
+            "red_channel": {
+              "type": "number",
+              "description": "Red channel average value",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "green_channel": {
+              "type": "number",
+              "description": "Green channel average value",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "blue_channel": {
+              "type": "number",
+              "description": "Blue channel average value",
+              "minimum": 0,
+              "maximum": 255
+            }
+          },
+          "required": ["red_channel", "green_channel", "blue_channel"],
+          "additionalProperties": false
+        },
+        "texture_analysis": {
+          "type": ["object", "null"],
+          "description": "Texture analysis results",
+          "properties": {
+            "homogeneity": {
+              "type": "number",
+              "description": "Texture homogeneity",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "contrast": {
+              "type": "number",
+              "description": "Texture contrast",
+              "minimum": 0
+            },
+            "energy": {
+              "type": "number",
+              "description": "Texture energy",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "entropy": {
+              "type": "number",
+              "description": "Texture entropy",
+              "minimum": 0
+            }
+          },
+          "required": ["homogeneity", "contrast", "energy", "entropy"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "defect_detection": {
+      "type": ["object", "null"],
+      "description": "Defect detection results",
+      "properties": {
+        "defects_detected": {
+          "type": "boolean",
+          "description": "Whether defects were detected"
+        },
+        "defect_count": {
+          "type": "integer",
+          "description": "Number of detected defects",
+          "minimum": 0
+        },
+        "defect_types": {
+          "type": "array",
+          "description": "Detected defects",
+          "items": {
+            "type": "object",
+            "properties": {
+              "defect_id": {
+                "type": "string",
+                "description": "Unique defect identifier",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "type": {
+                "type": "string",
+                "description": "Type of powder bed defect",
+                "enum": ["INSUFFICIENT_POWDER", "EXCESS_POWDER", "CONTAMINATION", "AGGLOMERATION", "SEGREGATION", "SURFACE_IRREGULARITY"]
+              },
+              "location": {
+                "type": "object",
+                "description": "Defect location and size",
+                "properties": {
+                  "x_coordinate": {
+                    "type": "number",
+                    "description": "X coordinate in mm"
+                  },
+                  "y_coordinate": {
+                    "type": "number",
+                    "description": "Y coordinate in mm"
+                  },
+                  "area": {
+                    "type": "number",
+                    "description": "Defect area in mm²",
+                    "minimum": 0
+                  }
+                },
+                "required": ["x_coordinate", "y_coordinate", "area"],
+                "additionalProperties": false
+              },
+              "severity": {
+                "type": "string",
+                "description": "Defect severity level",
+                "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+              },
+              "confidence_score": {
+                "type": "number",
+                "description": "Detection confidence score (0-100)",
+                "minimum": 0,
+                "maximum": 100
+              }
+            },
+            "required": ["defect_id", "type", "location", "severity", "confidence_score"],
+            "additionalProperties": false
+          }
+        },
+        "overall_quality_assessment": {
+          "type": "string",
+          "description": "Overall powder bed quality assessment",
+          "enum": ["EXCELLENT", "GOOD", "ACCEPTABLE", "POOR", "UNACCEPTABLE"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "environmental_conditions": {
+      "type": ["object", "null"],
+      "description": "Environmental conditions during monitoring",
+      "properties": {
+        "temperature": {
+          "type": "number",
+          "description": "Ambient temperature in Celsius",
+          "minimum": -50,
+          "maximum": 100
+        },
+        "humidity": {
+          "type": "number",
+          "description": "Relative humidity percentage",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "pressure": {
+          "type": "number",
+          "description": "Atmospheric pressure in mbar",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "vibration_level": {
+          "type": ["number", "null"],
+          "description": "Vibration level in g",
+          "minimum": 0
+        }
+      },
+      "required": ["temperature", "humidity", "pressure"],
+      "additionalProperties": false
+    },
+    "processing_status": {
+      "type": "string",
+      "description": "Powder bed processing status",
+      "enum": ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED"]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Record creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Record last update timestamp"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,188 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ISPM Monitoring Data Schema",
+  "description": "JSON schema for ISPM (In-Situ Process Monitoring) data in PBF-LB/M additive manufacturing",
+  "type": "object",
+  "required": [
+    "monitoring_id",
+    "timestamp",
+    "process_id",
+    "sensor_id",
+    "sensor_type",
+    "measurement_value",
+    "unit"
+  ],
+  "properties": {
+    "monitoring_id": {
+      "type": "string",
+      "description": "Unique identifier for the monitoring record",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Monitoring timestamp in ISO 8601 format"
+    },
+    "process_id": {
+      "type": "string",
+      "description": "Associated PBF process identifier",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "sensor_id": {
+      "type": "string",
+      "description": "Sensor identifier",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "sensor_type": {
+      "type": "string",
+      "description": "Type of sensor",
+      "enum": ["THERMAL", "OPTICAL", "ACOUSTIC", "VIBRATION", "PRESSURE", "GAS_ANALYSIS", "MELT_POOL", "LAYER_HEIGHT"]
+    },
+    "sensor_location": {
+      "type": ["object", "null"],
+      "description": "Sensor location coordinates",
+      "properties": {
+        "x_coordinate": {
+          "type": "number",
+          "description": "X coordinate in mm"
+        },
+        "y_coordinate": {
+          "type": "number",
+          "description": "Y coordinate in mm"
+        },
+        "z_coordinate": {
+          "type": "number",
+          "description": "Z coordinate in mm"
+        }
+      },
+      "required": ["x_coordinate", "y_coordinate", "z_coordinate"],
+      "additionalProperties": false
+    },
+    "measurement_value": {
+      "type": "number",
+      "description": "Primary measurement value"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measurement",
+      "minLength": 1,
+      "maxLength": 20
+    },
+    "measurement_range": {
+      "type": ["object", "null"],
+      "description": "Expected measurement range",
+      "properties": {
+        "min_value": {
+          "type": "number",
+          "description": "Minimum expected value"
+        },
+        "max_value": {
+          "type": "number",
+          "description": "Maximum expected value"
+        }
+      },
+      "required": ["min_value", "max_value"],
+      "additionalProperties": false
+    },
+    "measurement_accuracy": {
+      "type": ["number", "null"],
+      "description": "Measurement accuracy/precision",
+      "minimum": 0
+    },
+    "sampling_rate": {
+      "type": ["number", "null"],
+      "description": "Sampling rate in Hz",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "signal_quality": {
+      "type": ["string", "null"],
+      "description": "Signal quality assessment",
+      "enum": ["EXCELLENT", "GOOD", "FAIR", "POOR", "UNKNOWN"]
+    },
+    "noise_level": {
+      "type": ["number", "null"],
+      "description": "Noise level in the signal",
+      "minimum": 0
+    },
+    "calibration_status": {
+      "type": ["boolean", "null"],
+      "description": "Sensor calibration status"
+    },
+    "last_calibration_date": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Last calibration date"
+    },
+    "environmental_conditions": {
+      "type": ["object", "null"],
+      "description": "Environmental conditions during measurement",
+      "properties": {
+        "temperature": {
+          "type": ["number", "null"],
+          "description": "Ambient temperature in Celsius"
+        },
+        "humidity": {
+          "type": ["number", "null"],
+          "description": "Relative humidity percentage",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "vibration_level": {
+          "type": ["number", "null"],
+          "description": "Vibration level in g",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "anomaly_detected": {
+      "type": ["boolean", "null"],
+      "description": "Whether an anomaly was detected"
+    },
+    "anomaly_type": {
+      "type": ["string", "null"],
+      "description": "Type of detected anomaly",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "anomaly_severity": {
+      "type": ["string", "null"],
+      "description": "Severity of detected anomaly",
+      "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    },
+    "raw_data": {
+      "type": ["string", "null"],
+      "description": "Raw sensor data (base64 encoded if binary)"
+    },
+    "processed_data": {
+      "type": "object",
+      "description": "Processed sensor data as key-value pairs",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Record creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Record last update timestamp"
+    }
+  },
+  "additionalProperties": false
+}

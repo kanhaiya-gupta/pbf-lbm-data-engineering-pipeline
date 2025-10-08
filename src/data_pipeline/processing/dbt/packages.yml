@@ -1,0 +1,81 @@
+packages:
+  # Core dbt packages for enhanced functionality
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  - package: dbt-labs/codegen
+    version: 0.12.1
+    
+  - package: calogica/dbt_expectations
+    version: 0.10.1
+    
+  # Data quality and testing packages
+  - package: dbt-labs/dbt_project_evaluator
+    version: 0.8.0
+    
+  - package: dbt-labs/audit_helper
+    version: 0.9.0
+    
+  # Date and time utilities
+  - package: calogica/dbt_date
+    version: 0.7.0
+    
+  # String manipulation utilities
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  # Statistical functions
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  # JSON and array utilities
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  # Hashing and encoding utilities
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  # Data type conversion utilities
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  # Window function utilities
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  # Pivot and unpivot utilities
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  # Data validation and testing
+  - package: calogica/dbt_expectations
+    version: 0.10.1
+    
+  # Data profiling and analysis
+  - package: dbt-labs/dbt_project_evaluator
+    version: 0.8.0
+    
+  # Documentation and lineage
+  - package: dbt-labs/audit_helper
+    version: 0.9.0
+    
+  # Date and time functions
+  - package: calogica/dbt_date
+    version: 0.7.0
+    
+  # Additional utility packages for PBF-LB/M specific needs
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+    
+  # Custom macros for data quality
+  - package: calogica/dbt_expectations
+    version: 0.10.1
+    
+  # Performance monitoring
+  - package: dbt-labs/dbt_project_evaluator
+    version: 0.8.0
+    
+  # Data lineage and impact analysis
+  - package: dbt-labs/audit_helper
+    version: 0.9.0

@@ -1,0 +1,96 @@
+standard_name,standard_type,grade,min_value,max_value,description,applicable_materials,applicable_processes
+density_standard,quality,EXCELLENT,95,100,Excellent density standard for premium quality parts,ALL,ALL
+density_standard,quality,GOOD,90,94.99,Good density standard for high quality parts,ALL,ALL
+density_standard,quality,ACCEPTABLE,85,89.99,Acceptable density standard for standard quality parts,ALL,ALL
+density_standard,quality,POOR,80,84.99,Poor density standard requiring improvement,ALL,ALL
+density_standard,quality,UNACCEPTABLE,0,79.99,Unacceptable density standard,ALL,ALL
+surface_roughness_standard,quality,EXCELLENT,0,5,Excellent surface roughness standard,ALL,ALL
+surface_roughness_standard,quality,GOOD,5.01,10,Good surface roughness standard,ALL,ALL
+surface_roughness_standard,quality,ACCEPTABLE,10.01,20,Acceptable surface roughness standard,ALL,ALL
+surface_roughness_standard,quality,POOR,20.01,30,Poor surface roughness standard,ALL,ALL
+surface_roughness_standard,quality,UNACCEPTABLE,30.01,100,Unacceptable surface roughness standard,ALL,ALL
+dimensional_accuracy_standard,quality,EXCELLENT,0,0.05,Excellent dimensional accuracy standard,ALL,ALL
+dimensional_accuracy_standard,quality,GOOD,0.051,0.1,Good dimensional accuracy standard,ALL,ALL
+dimensional_accuracy_standard,quality,ACCEPTABLE,0.101,0.2,Acceptable dimensional accuracy standard,ALL,ALL
+dimensional_accuracy_standard,quality,POOR,0.201,0.5,Poor dimensional accuracy standard,ALL,ALL
+dimensional_accuracy_standard,quality,UNACCEPTABLE,0.501,1,Unacceptable dimensional accuracy standard,ALL,ALL
+defect_count_standard,quality,EXCELLENT,0,0,No defects allowed for excellent quality,ALL,ALL
+defect_count_standard,quality,GOOD,1,5,Low defect count for good quality,ALL,ALL
+defect_count_standard,quality,ACCEPTABLE,6,10,Moderate defect count for acceptable quality,ALL,ALL
+defect_count_standard,quality,POOR,11,20,High defect count for poor quality,ALL,ALL
+defect_count_standard,quality,UNACCEPTABLE,21,1000,Unacceptable defect count,ALL,ALL
+uniformity_standard,quality,EXCELLENT,90,100,Excellent powder bed uniformity,ALL,ALL
+uniformity_standard,quality,GOOD,80,89.99,Good powder bed uniformity,ALL,ALL
+uniformity_standard,quality,ACCEPTABLE,70,79.99,Acceptable powder bed uniformity,ALL,ALL
+uniformity_standard,quality,POOR,60,69.99,Poor powder bed uniformity,ALL,ALL
+uniformity_standard,quality,UNACCEPTABLE,0,59.99,Unacceptable powder bed uniformity,ALL,ALL
+coverage_standard,quality,EXCELLENT,95,100,Excellent powder coverage,ALL,ALL
+coverage_standard,quality,GOOD,90,94.99,Good powder coverage,ALL,ALL
+coverage_standard,quality,ACCEPTABLE,85,89.99,Acceptable powder coverage,ALL,ALL
+coverage_standard,quality,POOR,80,84.99,Poor powder coverage,ALL,ALL
+coverage_standard,quality,UNACCEPTABLE,0,79.99,Unacceptable powder coverage,ALL,ALL
+thickness_consistency_standard,quality,EXCELLENT,90,100,Excellent thickness consistency,ALL,ALL
+thickness_consistency_standard,quality,GOOD,80,89.99,Good thickness consistency,ALL,ALL
+thickness_consistency_standard,quality,ACCEPTABLE,70,79.99,Acceptable thickness consistency,ALL,ALL
+thickness_consistency_standard,quality,POOR,60,69.99,Poor thickness consistency,ALL,ALL
+thickness_consistency_standard,quality,UNACCEPTABLE,0,59.99,Unacceptable thickness consistency,ALL,ALL
+ct_quality_standard,quality,EXCELLENT,90,100,Excellent CT scan quality,ALL,ALL
+ct_quality_standard,quality,GOOD,80,89.99,Good CT scan quality,ALL,ALL
+ct_quality_standard,quality,ACCEPTABLE,70,79.99,Acceptable CT scan quality,ALL,ALL
+ct_quality_standard,quality,POOR,60,69.99,Poor CT scan quality,ALL,ALL
+ct_quality_standard,quality,UNACCEPTABLE,0,59.99,Unacceptable CT scan quality,ALL,ALL
+contrast_to_noise_standard,quality,EXCELLENT,15,50,Excellent contrast-to-noise ratio,ALL,ALL
+contrast_to_noise_standard,quality,GOOD,10,14.99,Good contrast-to-noise ratio,ALL,ALL
+contrast_to_noise_standard,quality,ACCEPTABLE,5,9.99,Acceptable contrast-to-noise ratio,ALL,ALL
+contrast_to_noise_standard,quality,POOR,2,4.99,Poor contrast-to-noise ratio,ALL,ALL
+contrast_to_noise_standard,quality,UNACCEPTABLE,0,1.99,Unacceptable contrast-to-noise ratio,ALL,ALL
+signal_to_noise_standard,quality,EXCELLENT,25,100,Excellent signal-to-noise ratio,ALL,ALL
+signal_to_noise_standard,quality,GOOD,20,24.99,Good signal-to-noise ratio,ALL,ALL
+signal_to_noise_standard,quality,ACCEPTABLE,15,19.99,Acceptable signal-to-noise ratio,ALL,ALL
+signal_to_noise_standard,quality,POOR,10,14.99,Poor signal-to-noise ratio,ALL,ALL
+signal_to_noise_standard,quality,UNACCEPTABLE,0,9.99,Unacceptable signal-to-noise ratio,ALL,ALL
+spatial_resolution_standard,quality,EXCELLENT,10,20,Excellent spatial resolution,ALL,ALL
+spatial_resolution_standard,quality,GOOD,5,9.99,Good spatial resolution,ALL,ALL
+spatial_resolution_standard,quality,ACCEPTABLE,2,4.99,Acceptable spatial resolution,ALL,ALL
+spatial_resolution_standard,quality,POOR,1,1.99,Poor spatial resolution,ALL,ALL
+spatial_resolution_standard,quality,UNACCEPTABLE,0,0.99,Unacceptable spatial resolution,ALL,ALL
+uniformity_ct_standard,quality,EXCELLENT,95,100,Excellent CT image uniformity,ALL,ALL
+uniformity_ct_standard,quality,GOOD,90,94.99,Good CT image uniformity,ALL,ALL
+uniformity_ct_standard,quality,ACCEPTABLE,85,89.99,Acceptable CT image uniformity,ALL,ALL
+uniformity_ct_standard,quality,POOR,80,84.99,Poor CT image uniformity,ALL,ALL
+uniformity_ct_standard,quality,UNACCEPTABLE,0,79.99,Unacceptable CT image uniformity,ALL,ALL
+flowability_standard,quality,EXCELLENT,90,100,Excellent powder flowability,ALL,ALL
+flowability_standard,quality,GOOD,80,89.99,Good powder flowability,ALL,ALL
+flowability_standard,quality,ACCEPTABLE,70,79.99,Acceptable powder flowability,ALL,ALL
+flowability_standard,quality,POOR,60,69.99,Poor powder flowability,ALL,ALL
+flowability_standard,quality,UNACCEPTABLE,0,59.99,Unacceptable powder flowability,ALL,ALL
+moisture_content_standard,quality,EXCELLENT,0,0.1,Excellent moisture content,ALL,ALL
+moisture_content_standard,quality,GOOD,0.11,0.5,Good moisture content,ALL,ALL
+moisture_content_standard,quality,ACCEPTABLE,0.51,1,Acceptable moisture content,ALL,ALL
+moisture_content_standard,quality,POOR,1.01,2,Poor moisture content,ALL,ALL
+moisture_content_standard,quality,UNACCEPTABLE,2.01,100,Unacceptable moisture content,ALL,ALL
+image_quality_standard,quality,EXCELLENT,90,100,Excellent image quality,ALL,ALL
+image_quality_standard,quality,GOOD,80,89.99,Good image quality,ALL,ALL
+image_quality_standard,quality,ACCEPTABLE,70,79.99,Acceptable image quality,ALL,ALL
+image_quality_standard,quality,POOR,60,69.99,Poor image quality,ALL,ALL
+image_quality_standard,quality,UNACCEPTABLE,0,59.99,Unacceptable image quality,ALL,ALL
+signal_quality_standard,quality,EXCELLENT,90,100,Excellent signal quality,ALL,ALL
+signal_quality_standard,quality,GOOD,80,89.99,Good signal quality,ALL,ALL
+signal_quality_standard,quality,ACCEPTABLE,70,79.99,Acceptable signal quality,ALL,ALL
+signal_quality_standard,quality,POOR,60,69.99,Poor signal quality,ALL,ALL
+signal_quality_standard,quality,UNACCEPTABLE,0,59.99,Unacceptable signal quality,ALL,ALL
+measurement_confidence_standard,quality,EXCELLENT,0.9,1,Excellent measurement confidence,ALL,ALL
+measurement_confidence_standard,quality,GOOD,0.8,0.89,Good measurement confidence,ALL,ALL
+measurement_confidence_standard,quality,ACCEPTABLE,0.7,0.79,Acceptable measurement confidence,ALL,ALL
+measurement_confidence_standard,quality,POOR,0.6,0.69,Poor measurement confidence,ALL,ALL
+measurement_confidence_standard,quality,UNACCEPTABLE,0,0.59,Unacceptable measurement confidence,ALL,ALL
+process_efficiency_standard,quality,EXCELLENT,0.9,1,Excellent process efficiency,ALL,ALL
+process_efficiency_standard,quality,GOOD,0.8,0.89,Good process efficiency,ALL,ALL
+process_efficiency_standard,quality,ACCEPTABLE,0.7,0.79,Acceptable process efficiency,ALL,ALL
+process_efficiency_standard,quality,POOR,0.6,0.69,Poor process efficiency,ALL,ALL
+process_efficiency_standard,quality,UNACCEPTABLE,0,0.59,Unacceptable process efficiency,ALL,ALL
+data_completeness_standard,quality,EXCELLENT,0.9,1,Excellent data completeness,ALL,ALL
+data_completeness_standard,quality,GOOD,0.8,0.89,Good data completeness,ALL,ALL
+data_completeness_standard,quality,ACCEPTABLE,0.7,0.79,Acceptable data completeness,ALL,ALL
+data_completeness_standard,quality,POOR,0.6,0.69,Poor data completeness,ALL,ALL
+data_completeness_standard,quality,UNACCEPTABLE,0,0.59,Unacceptable data completeness,ALL,ALL

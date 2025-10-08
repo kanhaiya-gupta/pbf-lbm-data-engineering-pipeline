@@ -1,0 +1,240 @@
+{
+  "index_name": "pbf_process_data",
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "pbf_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop", "snowball"]
+        }
+      }
+    },
+    "index": {
+      "max_result_window": 100000,
+      "refresh_interval": "30s"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "process_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "process_parameters": {
+        "type": "object",
+        "properties": {
+          "laser_power": {
+            "type": "float",
+            "index": true
+          },
+          "scan_speed": {
+            "type": "float",
+            "index": true
+          },
+          "layer_thickness": {
+            "type": "float",
+            "index": true
+          },
+          "hatch_spacing": {
+            "type": "float",
+            "index": true
+          },
+          "build_plate_temperature": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "material_info": {
+        "type": "object",
+        "properties": {
+          "material_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "powder_batch_id": {
+            "type": "keyword",
+            "index": true
+          },
+          "powder_condition": {
+            "type": "keyword",
+            "index": true
+          }
+        }
+      },
+      "quality_metrics": {
+        "type": "object",
+        "properties": {
+          "density": {
+            "type": "float",
+            "index": true
+          },
+          "surface_roughness": {
+            "type": "float",
+            "index": true
+          },
+          "dimensional_accuracy": {
+            "type": "float",
+            "index": true
+          },
+          "defect_count": {
+            "type": "integer",
+            "index": true
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "operator_id": {
+            "type": "keyword",
+            "index": true
+          },
+          "machine_id": {
+            "type": "keyword",
+            "index": true
+          },
+          "build_job_id": {
+            "type": "keyword",
+            "index": true
+          },
+          "created_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "updated_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          }
+        }
+      },
+      "full_text_search": {
+        "type": "text",
+        "analyzer": "pbf_analyzer",
+        "search_analyzer": "standard"
+      }
+    }
+  },
+  "aliases": {
+    "pbf_process_current": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-30d"
+          }
+        }
+      }
+    },
+    "pbf_process_archive": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "lt": "now-30d"
+          }
+        }
+      }
+    }
+  },
+  "index_templates": {
+    "pbf_process_template": {
+      "index_patterns": ["pbf_process_*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 2,
+          "number_of_replicas": 1
+        },
+        "mappings": {
+          "properties": {
+            "process_id": {
+              "type": "keyword"
+            },
+            "timestamp": {
+              "type": "date"
+            }
+          }
+        }
+      }
+    }
+  },
+  "search_templates": {
+    "quality_search": {
+      "source": {
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "range": {
+                  "quality_metrics.density": {
+                    "gte": "{{min_density}}"
+                  }
+                }
+              },
+              {
+                "range": {
+                  "quality_metrics.surface_roughness": {
+                    "lte": "{{max_roughness}}"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "sort": [
+          {
+            "quality_metrics.density": {
+              "order": "desc"
+            }
+          }
+        ]
+      }
+    },
+    "process_analytics": {
+      "source": {
+        "aggs": {
+          "material_types": {
+            "terms": {
+              "field": "material_info.material_type"
+            }
+          },
+          "quality_by_material": {
+            "terms": {
+              "field": "material_info.material_type"
+            },
+            "aggs": {
+              "avg_density": {
+                "avg": {
+                  "field": "quality_metrics.density"
+                }
+              },
+              "avg_roughness": {
+                "avg": {
+                  "field": "quality_metrics.surface_roughness"
+                }
+              }
+            }
+          },
+          "quality_trends": {
+            "date_histogram": {
+              "field": "timestamp",
+              "calendar_interval": "day"
+            },
+            "aggs": {
+              "avg_quality": {
+                "avg": {
+                  "field": "quality_metrics.density"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

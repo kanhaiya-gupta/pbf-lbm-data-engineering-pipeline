@@ -1,0 +1,322 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CT Scan Data Schema",
+  "description": "JSON schema for CT scan data in PBF-LB/M additive manufacturing quality assessment",
+  "type": "object",
+  "required": [
+    "scan_id",
+    "created_at",
+    "process_id",
+    "scan_type",
+    "scan_parameters",
+    "file_metadata",
+    "image_dimensions",
+    "processing_status"
+  ],
+  "properties": {
+    "scan_id": {
+      "type": "string",
+      "description": "Unique identifier for the CT scan",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Scan creation timestamp"
+    },
+    "process_id": {
+      "type": "string",
+      "description": "Associated PBF process identifier",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "part_id": {
+      "type": ["string", "null"],
+      "description": "Manufactured part identifier",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "scan_type": {
+      "type": "string",
+      "description": "Type of CT scan",
+      "enum": ["QUALITY_CONTROL", "DEFECT_ANALYSIS", "DIMENSIONAL_MEASUREMENT", "MATERIAL_ANALYSIS", "RESEARCH"]
+    },
+    "scan_parameters": {
+      "type": "object",
+      "description": "CT scan acquisition parameters",
+      "properties": {
+        "voltage": {
+          "type": "number",
+          "description": "X-ray tube voltage in kV",
+          "minimum": 10,
+          "maximum": 500
+        },
+        "current": {
+          "type": "number",
+          "description": "X-ray tube current in mA",
+          "minimum": 0.1,
+          "maximum": 1000
+        },
+        "exposure_time": {
+          "type": "number",
+          "description": "Exposure time per projection in seconds",
+          "minimum": 0.001,
+          "maximum": 60
+        },
+        "number_of_projections": {
+          "type": "integer",
+          "description": "Number of X-ray projections",
+          "minimum": 100,
+          "maximum": 10000
+        },
+        "detector_resolution": {
+          "type": "string",
+          "description": "Detector resolution",
+          "pattern": "^\\d+x\\d+$"
+        },
+        "voxel_size": {
+          "type": "number",
+          "description": "Voxel size in micrometers",
+          "minimum": 0.1,
+          "maximum": 1000
+        },
+        "scan_duration": {
+          "type": "number",
+          "description": "Total scan duration in minutes",
+          "minimum": 0.1,
+          "maximum": 1440
+        }
+      },
+      "required": ["voltage", "current", "exposure_time", "number_of_projections", "detector_resolution", "voxel_size", "scan_duration"],
+      "additionalProperties": false
+    },
+    "file_metadata": {
+      "type": "object",
+      "description": "CT scan file metadata",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "description": "Path to the CT scan file",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "file_format": {
+          "type": "string",
+          "description": "File format of the CT scan",
+          "enum": ["DICOM", "TIFF", "RAW", "NIFTI", "MHD"]
+        },
+        "file_size": {
+          "type": "integer",
+          "description": "File size in bytes",
+          "minimum": 0
+        },
+        "compression": {
+          "type": ["string", "null"],
+          "description": "Compression type if applicable",
+          "enum": ["GZIP", "LZ4", "ZSTD", "BZIP2", null]
+        },
+        "checksum": {
+          "type": ["string", "null"],
+          "description": "File checksum for integrity verification",
+          "pattern": "^[a-fA-F0-9]+$"
+        }
+      },
+      "required": ["file_path", "file_format", "file_size"],
+      "additionalProperties": false
+    },
+    "image_dimensions": {
+      "type": "object",
+      "description": "CT scan image dimensions",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "description": "Image width in pixels",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "height": {
+          "type": "integer",
+          "description": "Image height in pixels",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "depth": {
+          "type": "integer",
+          "description": "Number of slices",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "physical_width": {
+          "type": "number",
+          "description": "Physical width in mm",
+          "minimum": 0.1,
+          "maximum": 1000
+        },
+        "physical_height": {
+          "type": "number",
+          "description": "Physical height in mm",
+          "minimum": 0.1,
+          "maximum": 1000
+        },
+        "physical_depth": {
+          "type": "number",
+          "description": "Physical depth in mm",
+          "minimum": 0.1,
+          "maximum": 1000
+        }
+      },
+      "required": ["width", "height", "depth", "physical_width", "physical_height", "physical_depth"],
+      "additionalProperties": false
+    },
+    "quality_metrics": {
+      "type": ["object", "null"],
+      "description": "CT scan quality metrics",
+      "properties": {
+        "contrast_to_noise_ratio": {
+          "type": ["number", "null"],
+          "description": "Contrast-to-noise ratio",
+          "minimum": 0
+        },
+        "signal_to_noise_ratio": {
+          "type": ["number", "null"],
+          "description": "Signal-to-noise ratio",
+          "minimum": 0
+        },
+        "spatial_resolution": {
+          "type": ["number", "null"],
+          "description": "Spatial resolution in line pairs per mm",
+          "minimum": 0
+        },
+        "uniformity": {
+          "type": ["number", "null"],
+          "description": "Image uniformity percentage",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "artifacts_detected": {
+          "type": ["boolean", "null"],
+          "description": "Whether artifacts were detected"
+        },
+        "artifact_severity": {
+          "type": ["string", "null"],
+          "description": "Severity of detected artifacts",
+          "enum": ["NONE", "MINIMAL", "MODERATE", "SEVERE"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "defect_analysis": {
+      "type": ["object", "null"],
+      "description": "Defect analysis results",
+      "properties": {
+        "total_defects": {
+          "type": "integer",
+          "description": "Total number of detected defects",
+          "minimum": 0
+        },
+        "defect_types": {
+          "type": "array",
+          "description": "Analysis of different defect types",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Type of defect",
+                "enum": ["POROSITY", "CRACK", "INCLUSION", "DELAMINATION", "WARPAGE", "SHRINKAGE", "UNMELTED_POWDER"]
+              },
+              "count": {
+                "type": "integer",
+                "description": "Number of defects of this type",
+                "minimum": 0
+              },
+              "average_size": {
+                "type": "number",
+                "description": "Average defect size in mm",
+                "minimum": 0
+              },
+              "max_size": {
+                "type": "number",
+                "description": "Maximum defect size in mm",
+                "minimum": 0
+              },
+              "severity": {
+                "type": "string",
+                "description": "Defect severity level",
+                "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+              }
+            },
+            "required": ["type", "count", "average_size", "max_size", "severity"],
+            "additionalProperties": false
+          }
+        },
+        "overall_quality_score": {
+          "type": "number",
+          "description": "Overall quality score (0-100)",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "acceptance_status": {
+          "type": "string",
+          "description": "Part acceptance status based on CT analysis",
+          "enum": ["ACCEPTED", "REJECTED", "CONDITIONAL", "REQUIRES_REVIEW"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "dimensional_analysis": {
+      "type": ["object", "null"],
+      "description": "Dimensional analysis results",
+      "properties": {
+        "measured_dimensions": {
+          "type": "object",
+          "description": "Measured dimensions in mm",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "tolerance_deviations": {
+          "type": "object",
+          "description": "Tolerance deviations in mm",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "dimensional_accuracy": {
+          "type": "number",
+          "description": "Overall dimensional accuracy percentage",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "processing_status": {
+      "type": "string",
+      "description": "CT scan processing status",
+      "enum": ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED"]
+    },
+    "processing_metadata": {
+      "type": ["object", "null"],
+      "description": "Processing metadata and parameters",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Record last update timestamp"
+    }
+  },
+  "additionalProperties": false
+}

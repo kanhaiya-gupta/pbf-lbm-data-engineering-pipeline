@@ -1,0 +1,152 @@
+pbf_lbm_data_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: pbf_lbm_user
+      password: "{{ env_var('DBT_PASSWORD') }}"
+      port: 5432
+      dbname: pbf_lbm_dev
+      schema: dev_pbf_lbm
+      threads: 4
+      keepalives_idle: 0
+      search_path: "dev_pbf_lbm,public"
+      sslmode: prefer
+      
+    staging:
+      type: postgres
+      host: "{{ env_var('STAGING_DB_HOST') }}"
+      user: "{{ env_var('STAGING_DB_USER') }}"
+      password: "{{ env_var('STAGING_DB_PASSWORD') }}"
+      port: "{{ env_var('STAGING_DB_PORT', 5432) }}"
+      dbname: pbf_lbm_staging
+      schema: staging_pbf_lbm
+      threads: 8
+      keepalives_idle: 0
+      search_path: "staging_pbf_lbm,public"
+      sslmode: require
+      
+    prod:
+      type: postgres
+      host: "{{ env_var('PROD_DB_HOST') }}"
+      user: "{{ env_var('PROD_DB_USER') }}"
+      password: "{{ env_var('PROD_DB_PASSWORD') }}"
+      port: "{{ env_var('PROD_DB_PORT', 5432) }}"
+      dbname: pbf_lbm_prod
+      schema: prod_pbf_lbm
+      threads: 16
+      keepalives_idle: 0
+      search_path: "prod_pbf_lbm,public"
+      sslmode: require
+      
+    # Snowflake configuration for data warehouse
+    snowflake_dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'DBT_ROLE') }}"
+      database: pbf_lbm_dev
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'DBT_WH') }}"
+      schema: dev_pbf_lbm
+      threads: 4
+      client_session_keep_alive: false
+      query_tag: "pbf_lbm_dbt_dev"
+      
+    snowflake_staging:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'DBT_ROLE') }}"
+      database: pbf_lbm_staging
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'DBT_WH') }}"
+      schema: staging_pbf_lbm
+      threads: 8
+      client_session_keep_alive: false
+      query_tag: "pbf_lbm_dbt_staging"
+      
+    snowflake_prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'DBT_ROLE') }}"
+      database: pbf_lbm_prod
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'DBT_WH') }}"
+      schema: prod_pbf_lbm
+      threads: 16
+      client_session_keep_alive: false
+      query_tag: "pbf_lbm_dbt_prod"
+      
+    # BigQuery configuration for cloud data warehouse
+    bigquery_dev:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('BIGQUERY_PROJECT') }}"
+      dataset: pbf_lbm_dev
+      keyfile: "{{ env_var('BIGQUERY_KEYFILE') }}"
+      location: "{{ env_var('BIGQUERY_LOCATION', 'US') }}"
+      priority: interactive
+      threads: 4
+      timeout_seconds: 300
+      
+    bigquery_staging:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('BIGQUERY_PROJECT') }}"
+      dataset: pbf_lbm_staging
+      keyfile: "{{ env_var('BIGQUERY_KEYFILE') }}"
+      location: "{{ env_var('BIGQUERY_LOCATION', 'US') }}"
+      priority: interactive
+      threads: 8
+      timeout_seconds: 300
+      
+    bigquery_prod:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('BIGQUERY_PROJECT') }}"
+      dataset: pbf_lbm_prod
+      keyfile: "{{ env_var('BIGQUERY_KEYFILE') }}"
+      location: "{{ env_var('BIGQUERY_LOCATION', 'US') }}"
+      priority: batch
+      threads: 16
+      timeout_seconds: 600
+      
+    # Redshift configuration for data warehouse
+    redshift_dev:
+      type: redshift
+      host: "{{ env_var('REDSHIFT_HOST') }}"
+      user: "{{ env_var('REDSHIFT_USER') }}"
+      password: "{{ env_var('REDSHIFT_PASSWORD') }}"
+      port: "{{ env_var('REDSHIFT_PORT', 5439) }}"
+      dbname: pbf_lbm_dev
+      schema: dev_pbf_lbm
+      threads: 4
+      keepalives_idle: 0
+      sslmode: require
+      
+    redshift_staging:
+      type: redshift
+      host: "{{ env_var('REDSHIFT_HOST') }}"
+      user: "{{ env_var('REDSHIFT_USER') }}"
+      password: "{{ env_var('REDSHIFT_PASSWORD') }}"
+      port: "{{ env_var('REDSHIFT_PORT', 5439) }}"
+      dbname: pbf_lbm_staging
+      schema: staging_pbf_lbm
+      threads: 8
+      keepalives_idle: 0
+      sslmode: require
+      
+    redshift_prod:
+      type: redshift
+      host: "{{ env_var('REDSHIFT_HOST') }}"
+      user: "{{ env_var('REDSHIFT_USER') }}"
+      password: "{{ env_var('REDSHIFT_PASSWORD') }}"
+      port: "{{ env_var('REDSHIFT_PORT', 5439) }}"
+      dbname: pbf_lbm_prod
+      schema: prod_pbf_lbm
+      threads: 16
+      keepalives_idle: 0
+      sslmode: require

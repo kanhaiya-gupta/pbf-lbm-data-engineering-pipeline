@@ -1,0 +1,157 @@
+{
+  "collection_name": "pbf_process_data",
+  "database": "pbf_manufacturing",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "string",
+        "description": "MongoDB ObjectId"
+      },
+      "process_id": {
+        "type": "string",
+        "description": "Unique process identifier"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Process timestamp"
+      },
+      "process_parameters": {
+        "type": "object",
+        "properties": {
+          "laser_power": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Laser power in watts"
+          },
+          "scan_speed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "Scan speed in mm/s"
+          },
+          "layer_thickness": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 0.5,
+            "description": "Layer thickness in mm"
+          },
+          "hatch_spacing": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 1.0,
+            "description": "Hatch spacing in mm"
+          },
+          "build_plate_temperature": {
+            "type": "number",
+            "minimum": 20,
+            "maximum": 200,
+            "description": "Build plate temperature in Celsius"
+          }
+        },
+        "required": ["laser_power", "scan_speed", "layer_thickness"]
+      },
+      "material_info": {
+        "type": "object",
+        "properties": {
+          "material_type": {
+            "type": "string",
+            "enum": ["Ti6Al4V", "Inconel718", "StainlessSteel316L", "AlSi10Mg"],
+            "description": "Material type"
+          },
+          "powder_batch_id": {
+            "type": "string",
+            "description": "Powder batch identifier"
+          },
+          "powder_condition": {
+            "type": "string",
+            "enum": ["fresh", "recycled", "mixed"],
+            "description": "Powder condition"
+          }
+        },
+        "required": ["material_type"]
+      },
+      "quality_metrics": {
+        "type": "object",
+        "properties": {
+          "density": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Part density ratio"
+          },
+          "surface_roughness": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Surface roughness in micrometers"
+          },
+          "dimensional_accuracy": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Dimensional accuracy in micrometers"
+          },
+          "defect_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of defects detected"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "operator_id": {
+            "type": "string",
+            "description": "Operator identifier"
+          },
+          "machine_id": {
+            "type": "string",
+            "description": "Machine identifier"
+          },
+          "build_job_id": {
+            "type": "string",
+            "description": "Build job identifier"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Document creation timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Document last update timestamp"
+          }
+        }
+      }
+    },
+    "required": ["process_id", "timestamp", "process_parameters", "material_info"]
+  },
+  "indexes": [
+    {
+      "keys": {"process_id": 1},
+      "options": {"unique": true}
+    },
+    {
+      "keys": {"timestamp": 1}
+    },
+    {
+      "keys": {"material_info.material_type": 1}
+    },
+    {
+      "keys": {"metadata.machine_id": 1}
+    },
+    {
+      "keys": {"quality_metrics.density": 1}
+    }
+  ],
+  "validation_rules": {
+    "quality_thresholds": {
+      "density": {"min": 0.95, "max": 1.0},
+      "surface_roughness": {"max": 10.0},
+      "dimensional_accuracy": {"max": 50.0}
+    }
+  }
+}

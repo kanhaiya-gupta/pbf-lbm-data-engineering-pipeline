@@ -1,0 +1,172 @@
+{
+  "collection_name": "ispm_monitoring_data",
+  "database": "pbf_manufacturing",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "string",
+        "description": "MongoDB ObjectId"
+      },
+      "sensor_id": {
+        "type": "string",
+        "description": "ISPM sensor identifier"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Measurement timestamp"
+      },
+      "process_id": {
+        "type": "string",
+        "description": "Associated process identifier"
+      },
+      "sensor_info": {
+        "type": "object",
+        "properties": {
+          "sensor_type": {
+            "type": "string",
+            "enum": ["temperature", "pressure", "optical", "acoustic", "vibration"],
+            "description": "Type of sensor"
+          },
+          "sensor_location": {
+            "type": "string",
+            "description": "Physical location of sensor"
+          },
+          "calibration_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Last calibration date"
+          },
+          "sensor_model": {
+            "type": "string",
+            "description": "Sensor model and manufacturer"
+          }
+        },
+        "required": ["sensor_type", "sensor_location"]
+      },
+      "measurement_data": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "description": "Measured value"
+          },
+          "unit": {
+            "type": "string",
+            "description": "Measurement unit"
+          },
+          "accuracy": {
+            "type": "number",
+            "description": "Measurement accuracy"
+          },
+          "resolution": {
+            "type": "number",
+            "description": "Sensor resolution"
+          },
+          "sampling_rate": {
+            "type": "number",
+            "description": "Sampling rate in Hz"
+          }
+        },
+        "required": ["value", "unit"]
+      },
+      "signal_quality": {
+        "type": "object",
+        "properties": {
+          "signal_to_noise_ratio": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Signal-to-noise ratio in dB"
+          },
+          "noise_level": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Noise level"
+          },
+          "signal_strength": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Normalized signal strength"
+          },
+          "data_quality_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Overall data quality score"
+          }
+        }
+      },
+      "anomaly_detection": {
+        "type": "object",
+        "properties": {
+          "is_anomaly": {
+            "type": "boolean",
+            "description": "Whether this measurement is anomalous"
+          },
+          "anomaly_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Anomaly detection score"
+          },
+          "anomaly_type": {
+            "type": "string",
+            "enum": ["spike", "drift", "noise", "missing", "out_of_range"],
+            "description": "Type of anomaly detected"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence in anomaly detection"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "measurement_sequence": {
+            "type": "integer",
+            "description": "Sequence number in measurement series"
+          },
+          "data_source": {
+            "type": "string",
+            "description": "Data source identifier"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Document creation timestamp"
+          }
+        }
+      }
+    },
+    "required": ["sensor_id", "timestamp", "sensor_info", "measurement_data"]
+  },
+  "indexes": [
+    {
+      "keys": {"sensor_id": 1, "timestamp": 1}
+    },
+    {
+      "keys": {"process_id": 1}
+    },
+    {
+      "keys": {"sensor_info.sensor_type": 1}
+    },
+    {
+      "keys": {"anomaly_detection.is_anomaly": 1}
+    },
+    {
+      "keys": {"signal_quality.data_quality_score": 1}
+    }
+  ],
+  "validation_rules": {
+    "quality_thresholds": {
+      "signal_to_noise_ratio": {"min": 20.0},
+      "data_quality_score": {"min": 0.8},
+      "anomaly_score": {"max": 0.3}
+    }
+  }
+}

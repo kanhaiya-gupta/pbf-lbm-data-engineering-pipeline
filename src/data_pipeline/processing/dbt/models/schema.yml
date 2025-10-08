@@ -1,0 +1,468 @@
+version: 2
+
+models:
+  # Staging Models
+  - name: stg_pbf_process_data
+    description: "Staging model for PBF process data with data quality flags and validation"
+    columns:
+      - name: process_id
+        description: "Unique identifier for the PBF process"
+        tests:
+          - unique
+          - not_null
+      - name: machine_id
+        description: "Identifier of the PBF machine"
+        tests:
+          - not_null
+      - name: build_id
+        description: "Build identifier for the manufacturing job"
+      - name: timestamp
+        description: "Process timestamp in ISO format"
+        tests:
+          - not_null
+      - name: layer_number
+        description: "Current layer number being processed"
+      - name: temperature
+        description: "Process temperature in Celsius"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 2000
+      - name: pressure
+        description: "Chamber pressure in mbar"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000
+      - name: laser_power
+        description: "Laser power in watts"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000
+      - name: scan_speed
+        description: "Laser scan speed in mm/s"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+      - name: layer_height
+        description: "Layer height in mm"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.01
+              max_value: 1.0
+      - name: quality_grade
+        description: "Calculated quality grade based on metrics"
+      - name: process_efficiency
+        description: "Calculated process efficiency score"
+      - name: data_completeness_score
+        description: "Data completeness score (0-1)"
+
+  - name: stg_ispm_monitoring_data
+    description: "Staging model for ISPM monitoring data with signal quality analysis"
+    columns:
+      - name: monitoring_id
+        description: "Unique identifier for the monitoring record"
+        tests:
+          - unique
+          - not_null
+      - name: process_id
+        description: "Associated PBF process identifier"
+        tests:
+          - not_null
+      - name: sensor_id
+        description: "Sensor identifier"
+        tests:
+          - not_null
+      - name: timestamp
+        description: "Monitoring timestamp in ISO format"
+        tests:
+          - not_null
+      - name: sensor_type
+        description: "Type of sensor"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['THERMAL', 'OPTICAL', 'ACOUSTIC', 'VIBRATION', 'PRESSURE', 'GAS_ANALYSIS', 'MELT_POOL', 'LAYER_HEIGHT']
+      - name: measurement_value
+        description: "Primary measurement value"
+        tests:
+          - not_null
+      - name: unit
+        description: "Unit of measurement"
+        tests:
+          - not_null
+      - name: signal_quality_score
+        description: "Numeric signal quality score (0-100)"
+      - name: anomaly_severity_score
+        description: "Numeric anomaly severity score (0-100)"
+      - name: risk_score
+        description: "Calculated risk score"
+      - name: measurement_confidence
+        description: "Measurement confidence score (0-1)"
+
+  - name: stg_ct_scan_data
+    description: "Staging model for CT scan data with quality assessment"
+    columns:
+      - name: scan_id
+        description: "Unique identifier for the CT scan"
+        tests:
+          - unique
+          - not_null
+      - name: process_id
+        description: "Associated PBF process identifier"
+        tests:
+          - not_null
+      - name: part_id
+        description: "Manufactured part identifier"
+      - name: scan_type
+        description: "Type of CT scan"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['QUALITY_CONTROL', 'DEFECT_ANALYSIS', 'DIMENSIONAL_MEASUREMENT', 'MATERIAL_ANALYSIS', 'RESEARCH']
+      - name: processing_status
+        description: "CT scan processing status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED']
+      - name: voltage
+        description: "X-ray tube voltage in kV"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 10
+              max_value: 500
+      - name: current
+        description: "X-ray tube current in mA"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.1
+              max_value: 1000
+      - name: overall_quality_score
+        description: "Overall quality score (0-100)"
+      - name: total_defects
+        description: "Total number of detected defects"
+      - name: acceptance_status
+        description: "Part acceptance status"
+        tests:
+          - accepted_values:
+              values: ['ACCEPTED', 'REJECTED', 'CONDITIONAL', 'REQUIRES_REVIEW']
+
+  - name: stg_powder_bed_data
+    description: "Staging model for powder bed monitoring data with quality metrics"
+    columns:
+      - name: bed_id
+        description: "Unique identifier for the powder bed record"
+        tests:
+          - unique
+          - not_null
+      - name: process_id
+        description: "Associated PBF process identifier"
+        tests:
+          - not_null
+      - name: layer_number
+        description: "Current layer number"
+        tests:
+          - not_null
+      - name: timestamp
+        description: "Monitoring timestamp in ISO format"
+        tests:
+          - not_null
+      - name: material_type
+        description: "Powder material type"
+        tests:
+          - not_null
+      - name: uniformity_score
+        description: "Powder bed uniformity score (0-100)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: coverage_percentage
+        description: "Powder coverage percentage"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: thickness_consistency
+        description: "Layer thickness consistency score (0-100)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: overall_quality_assessment
+        description: "Overall powder bed quality assessment"
+        tests:
+          - accepted_values:
+              values: ['EXCELLENT', 'GOOD', 'ACCEPTABLE', 'POOR', 'UNACCEPTABLE']
+
+  # Intermediate Models
+  - name: int_process_parameters
+    description: "Intermediate model combining PBF process parameters with ISPM sensor data"
+    columns:
+      - name: process_id
+        description: "Unique identifier for the process"
+        tests:
+          - unique
+          - not_null
+      - name: machine_id
+        description: "Machine identifier"
+        tests:
+          - not_null
+      - name: temperature
+        description: "Process temperature in Celsius"
+        tests:
+          - not_null
+      - name: pressure
+        description: "Chamber pressure in mbar"
+        tests:
+          - not_null
+      - name: laser_power
+        description: "Laser power in watts"
+        tests:
+          - not_null
+      - name: scan_speed
+        description: "Laser scan speed in mm/s"
+        tests:
+          - not_null
+      - name: layer_height
+        description: "Layer height in mm"
+        tests:
+          - not_null
+      - name: process_efficiency
+        description: "Calculated process efficiency score"
+      - name: parameter_optimization_score
+        description: "Parameter optimization score"
+
+  - name: int_quality_metrics
+    description: "Intermediate model aggregating quality metrics across all data sources"
+    columns:
+      - name: process_id
+        description: "Unique identifier for the process"
+        tests:
+          - unique
+          - not_null
+      - name: avg_density
+        description: "Average density across all layers"
+      - name: avg_surface_roughness
+        description: "Average surface roughness across all layers"
+      - name: avg_dimensional_accuracy
+        description: "Average dimensional accuracy across all layers"
+      - name: total_defects
+        description: "Total defects across all sources"
+      - name: overall_quality_score
+        description: "Overall quality score calculation"
+      - name: quality_consistency_score
+        description: "Quality consistency score"
+      - name: defect_rate_percentage
+        description: "Defect rate percentage"
+      - name: acceptance_rate_percentage
+        description: "Acceptance rate percentage"
+
+  - name: int_defect_analysis
+    description: "Intermediate model analyzing defects across all data sources"
+    columns:
+      - name: process_id
+        description: "Unique identifier for the process"
+        tests:
+          - unique
+          - not_null
+      - name: total_pbf_defects
+        description: "Total defects from PBF process data"
+      - name: total_ct_defects
+        description: "Total defects from CT scan data"
+      - name: total_pb_defects
+        description: "Total defects from powder bed data"
+      - name: overall_defect_severity_score
+        description: "Overall defect severity score"
+      - name: defect_pattern_type
+        description: "Type of defect pattern identified"
+
+  # Marts Models
+  - name: fct_process_analytics
+    description: "Fact table providing comprehensive process analytics for business intelligence"
+    columns:
+      - name: process_id
+        description: "Unique identifier for the process"
+        tests:
+          - unique
+          - not_null
+      - name: machine_id
+        description: "Machine identifier"
+        tests:
+          - not_null
+      - name: process_performance_score
+        description: "Overall process performance score"
+      - name: process_efficiency_rating
+        description: "Process efficiency rating"
+        tests:
+          - accepted_values:
+              values: ['EXCELLENT', 'GOOD', 'ACCEPTABLE', 'POOR', 'UNACCEPTABLE']
+      - name: quality_rating
+        description: "Quality rating"
+        tests:
+          - accepted_values:
+              values: ['EXCELLENT', 'GOOD', 'ACCEPTABLE', 'POOR', 'UNACCEPTABLE']
+      - name: defect_risk_rating
+        description: "Defect risk rating"
+        tests:
+          - accepted_values:
+              values: ['NO_RISK', 'LOW_RISK', 'MODERATE_RISK', 'HIGH_RISK', 'CRITICAL_RISK']
+      - name: process_stability_rating
+        description: "Process stability rating"
+        tests:
+          - accepted_values:
+              values: ['HIGHLY_STABLE', 'STABLE', 'MODERATELY_STABLE', 'UNSTABLE', 'HIGHLY_UNSTABLE']
+      - name: overall_process_rating
+        description: "Overall process rating"
+        tests:
+          - accepted_values:
+              values: ['EXCELLENT', 'GOOD', 'ACCEPTABLE', 'POOR', 'UNACCEPTABLE']
+      - name: process_duration_hours
+        description: "Process duration in hours"
+      - name: layer_processing_rate
+        description: "Layer processing rate (layers per hour)"
+      - name: energy_per_layer_kwh
+        description: "Energy consumption per layer in kWh"
+      - name: quality_yield_percentage
+        description: "Quality yield percentage"
+      - name: defect_rate_percentage
+        description: "Defect rate percentage"
+      - name: acceptance_rate_percentage
+        description: "Acceptance rate percentage"
+      - name: optimization_recommendation
+        description: "Process optimization recommendation"
+      - name: process_status
+        description: "Overall process status"
+        tests:
+          - accepted_values:
+              values: ['OPTIMAL', 'SATISFACTORY', 'NEEDS_IMPROVEMENT', 'REQUIRES_ATTENTION', 'CRITICAL_ISSUES']
+
+  - name: dim_process_parameters
+    description: "Dimension table for process parameters with standardized categories"
+    columns:
+      - name: process_id
+        description: "Unique identifier for the process"
+        tests:
+          - unique
+          - not_null
+      - name: machine_id
+        description: "Machine identifier"
+        tests:
+          - not_null
+      - name: temperature_category
+        description: "Temperature category classification"
+        tests:
+          - accepted_values:
+              values: ['LOW_TEMPERATURE', 'MEDIUM_TEMPERATURE', 'HIGH_TEMPERATURE', 'VERY_HIGH_TEMPERATURE', 'UNKNOWN_TEMPERATURE']
+      - name: pressure_category
+        description: "Pressure category classification"
+        tests:
+          - accepted_values:
+              values: ['ULTRA_LOW_PRESSURE', 'LOW_PRESSURE', 'MEDIUM_PRESSURE', 'HIGH_PRESSURE', 'VERY_HIGH_PRESSURE', 'UNKNOWN_PRESSURE']
+      - name: laser_power_category
+        description: "Laser power category classification"
+        tests:
+          - accepted_values:
+              values: ['LOW_POWER', 'MEDIUM_POWER', 'HIGH_POWER', 'VERY_HIGH_POWER', 'ULTRA_HIGH_POWER', 'UNKNOWN_POWER']
+      - name: scan_speed_category
+        description: "Scan speed category classification"
+        tests:
+          - accepted_values:
+              values: ['LOW_SPEED', 'MEDIUM_SPEED', 'HIGH_SPEED', 'VERY_HIGH_SPEED', 'ULTRA_HIGH_SPEED', 'UNKNOWN_SPEED']
+      - name: material_category
+        description: "Material category classification"
+        tests:
+          - accepted_values:
+              values: ['TITANIUM_ALLOY', 'NICKEL_ALLOY', 'STEEL_ALLOY', 'ALUMINUM_ALLOY', 'COPPER_ALLOY', 'COBALT_ALLOY', 'OTHER_MATERIAL']
+      - name: atmosphere_category
+        description: "Atmosphere category classification"
+        tests:
+          - accepted_values:
+              values: ['INERT_GAS', 'VACUUM', 'REACTIVE_ATMOSPHERE', 'UNKNOWN_ATMOSPHERE']
+      - name: optimization_level
+        description: "Parameter optimization level"
+        tests:
+          - accepted_values:
+              values: ['OPTIMIZED', 'WELL_TUNED', 'ADEQUATE', 'NEEDS_OPTIMIZATION', 'POORLY_OPTIMIZED']
+      - name: parameter_stability_level
+        description: "Parameter stability level"
+        tests:
+          - accepted_values:
+              values: ['HIGHLY_STABLE', 'MODERATELY_STABLE', 'UNSTABLE', 'UNKNOWN_STABILITY']
+      - name: process_complexity_level
+        description: "Process complexity level"
+        tests:
+          - accepted_values:
+              values: ['HIGH_COMPLEXITY', 'MEDIUM_COMPLEXITY', 'LOW_COMPLEXITY', 'VARIABLE_COMPLEXITY']
+      - name: process_maturity_level
+        description: "Process maturity level"
+        tests:
+          - accepted_values:
+              values: ['MATURE_PROCESS', 'DEVELOPING_PROCESS', 'EMERGING_PROCESS']
+
+  - name: dim_quality_standards
+    description: "Dimension table for quality standards and thresholds"
+    columns:
+      - name: process_id
+        description: "Unique identifier for the process"
+        tests:
+          - unique
+          - not_null
+      - name: density_grade
+        description: "Density quality grade"
+        tests:
+          - accepted_values:
+              values: ['EXCELLENT_DENSITY', 'GOOD_DENSITY', 'ACCEPTABLE_DENSITY', 'POOR_DENSITY', 'UNACCEPTABLE_DENSITY']
+      - name: surface_roughness_grade
+        description: "Surface roughness quality grade"
+        tests:
+          - accepted_values:
+              values: ['EXCELLENT_SURFACE', 'GOOD_SURFACE', 'ACCEPTABLE_SURFACE', 'POOR_SURFACE', 'UNACCEPTABLE_SURFACE']
+      - name: dimensional_accuracy_grade
+        description: "Dimensional accuracy quality grade"
+        tests:
+          - accepted_values:
+              values: ['EXCELLENT_DIMENSIONAL', 'GOOD_DIMENSIONAL', 'ACCEPTABLE_DIMENSIONAL', 'POOR_DIMENSIONAL', 'UNACCEPTABLE_DIMENSIONAL']
+      - name: defect_level_grade
+        description: "Defect level grade"
+        tests:
+          - accepted_values:
+              values: ['NO_DEFECTS', 'LOW_DEFECTS', 'MODERATE_DEFECTS', 'HIGH_DEFECTS', 'CRITICAL_DEFECTS']
+      - name: quality_standard_compliance
+        description: "Quality standard compliance level"
+        tests:
+          - accepted_values:
+              values: ['MEETS_PREMIUM_STANDARDS', 'MEETS_GOOD_STANDARDS', 'MEETS_ACCEPTABLE_STANDARDS', 'MEETS_MINIMUM_STANDARDS', 'BELOW_STANDARDS']
+      - name: quality_risk_level
+        description: "Quality risk level"
+        tests:
+          - accepted_values:
+              values: ['LOW_QUALITY_RISK', 'MODERATE_QUALITY_RISK', 'HIGH_QUALITY_RISK', 'CRITICAL_QUALITY_RISK']
+      - name: quality_improvement_priority
+        description: "Quality improvement priority"
+        tests:
+          - accepted_values:
+              values: ['HIGH_PRIORITY', 'MEDIUM_PRIORITY', 'LOW_PRIORITY', 'MAINTAIN_CURRENT']
+      - name: quality_tier
+        description: "Quality tier classification"
+        tests:
+          - accepted_values:
+              values: ['PREMIUM_TIER', 'GOOD_TIER', 'ACCEPTABLE_TIER', 'MINIMUM_TIER', 'BELOW_TIER']
+      - name: quality_certification_level
+        description: "Quality certification level"
+        tests:
+          - accepted_values:
+              values: ['CERTIFIED_PREMIUM', 'CERTIFIED_GOOD', 'CERTIFIED_ACCEPTABLE', 'NOT_CERTIFIED']

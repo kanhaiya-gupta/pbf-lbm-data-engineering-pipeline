@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PBF Process Data Schema",
+  "description": "JSON schema for PBF-LB/M process data in additive manufacturing",
+  "type": "object",
+  "required": [
+    "process_id",
+    "timestamp",
+    "machine_id",
+    "temperature",
+    "pressure",
+    "laser_power",
+    "scan_speed",
+    "layer_height"
+  ],
+  "properties": {
+    "process_id": {
+      "type": "string",
+      "description": "Unique identifier for the PBF process",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Process timestamp in ISO 8601 format"
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "Identifier of the PBF machine",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "build_id": {
+      "type": ["string", "null"],
+      "description": "Build identifier for the manufacturing job",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "layer_number": {
+      "type": ["integer", "null"],
+      "description": "Current layer number being processed",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Process temperature in Celsius",
+      "minimum": 0,
+      "maximum": 2000
+    },
+    "pressure": {
+      "type": "number",
+      "description": "Chamber pressure in mbar",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "laser_power": {
+      "type": "number",
+      "description": "Laser power in watts",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "scan_speed": {
+      "type": "number",
+      "description": "Laser scan speed in mm/s",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "layer_height": {
+      "type": "number",
+      "description": "Layer height in mm",
+      "minimum": 0.01,
+      "maximum": 1.0
+    },
+    "hatch_spacing": {
+      "type": ["number", "null"],
+      "description": "Hatch spacing in mm",
+      "minimum": 0.01,
+      "maximum": 1.0
+    },
+    "exposure_time": {
+      "type": ["number", "null"],
+      "description": "Exposure time per layer in seconds",
+      "minimum": 0,
+      "maximum": 3600
+    },
+    "atmosphere": {
+      "type": ["string", "null"],
+      "description": "Atmosphere type",
+      "enum": ["argon", "nitrogen", "helium", "vacuum", "air"]
+    },
+    "powder_material": {
+      "type": ["string", "null"],
+      "description": "Powder material type",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "powder_batch_id": {
+      "type": ["string", "null"],
+      "description": "Powder batch identifier",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "process_parameters": {
+      "type": "object",
+      "description": "Additional process parameters as key-value pairs",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "quality_metrics": {
+      "type": ["object", "null"],
+      "description": "Quality metrics for the process",
+      "properties": {
+        "density": {
+          "type": ["number", "null"],
+          "description": "Part density percentage",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "surface_roughness": {
+          "type": ["number", "null"],
+          "description": "Surface roughness in micrometers",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "dimensional_accuracy": {
+          "type": ["number", "null"],
+          "description": "Dimensional accuracy in mm",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "defect_count": {
+          "type": ["integer", "null"],
+          "description": "Number of detected defects",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Record creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Record last update timestamp"
+    }
+  },
+  "additionalProperties": false
+}

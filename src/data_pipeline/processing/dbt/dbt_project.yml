@@ -1,0 +1,284 @@
+name: 'pbf_lbm_data_pipeline'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'pbf_lbm_data_pipeline'
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"  # directory which will store compiled SQL files
+clean-targets:         # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/reference/model-configs
+models:
+  pbf_lbm_data_pipeline:
+    # Config indicated by + and applies to all files under models/example/
+    staging:
+      +materialized: view
+      +tags: ["staging"]
+      +docs:
+        node_color: "lightblue"
+    
+    intermediate:
+      +materialized: table
+      +tags: ["intermediate"]
+      +docs:
+        node_color: "lightgreen"
+    
+    marts:
+      +materialized: table
+      +tags: ["marts"]
+      +docs:
+        node_color: "lightcoral"
+
+# Configuring seeds
+seeds:
+  pbf_lbm_data_pipeline:
+    +column_types:
+      parameter_name: varchar(100)
+      parameter_type: varchar(50)
+      min_value: decimal(10,3)
+      max_value: decimal(10,3)
+      optimal_value: decimal(10,3)
+      unit: varchar(20)
+      description: text
+      material_type: varchar(50)
+      atmosphere_type: varchar(50)
+      standard_name: varchar(100)
+      standard_type: varchar(50)
+      grade: varchar(20)
+      applicable_materials: varchar(50)
+      applicable_processes: varchar(50)
+      defect_type: varchar(50)
+      defect_category: varchar(50)
+      severity_level: varchar(20)
+      typical_causes: text
+      prevention_methods: text
+      detection_methods: text
+      remediation_actions: text
+
+# Configuring tests
+tests:
+  pbf_lbm_data_pipeline:
+    +store_failures: true
+    +fail_calc: "count(*)"
+    +warn_if: "> 0"
+    +error_if: "> 10"
+
+# Configuring snapshots
+snapshots:
+  pbf_lbm_data_pipeline:
+    +target_schema: snapshots
+    +strategy: timestamp
+    +updated_at: updated_at
+
+# Configuring sources
+sources:
+  pbf_lbm_data_pipeline:
+    raw_data:
+      +schema: raw_data
+      +tables:
+        pbf_process_data:
+          +description: "Raw PBF process data from manufacturing systems"
+          +columns:
+            process_id:
+              +description: "Unique identifier for the PBF process"
+              +tests:
+                - unique
+                - not_null
+            machine_id:
+              +description: "Identifier of the PBF machine"
+              +tests:
+                - not_null
+            timestamp:
+              +description: "Process timestamp"
+              +tests:
+                - not_null
+            temperature:
+              +description: "Process temperature in Celsius"
+              +tests:
+                - not_null
+            pressure:
+              +description: "Chamber pressure in mbar"
+              +tests:
+                - not_null
+            laser_power:
+              +description: "Laser power in watts"
+              +tests:
+                - not_null
+            scan_speed:
+              +description: "Laser scan speed in mm/s"
+              +tests:
+                - not_null
+            layer_height:
+              +description: "Layer height in mm"
+              +tests:
+                - not_null
+        
+        ispm_monitoring_data:
+          +description: "Raw ISPM monitoring data from sensors"
+          +columns:
+            monitoring_id:
+              +description: "Unique identifier for the monitoring record"
+              +tests:
+                - unique
+                - not_null
+            process_id:
+              +description: "Associated PBF process identifier"
+              +tests:
+                - not_null
+            sensor_id:
+              +description: "Sensor identifier"
+              +tests:
+                - not_null
+            timestamp:
+              +description: "Monitoring timestamp"
+              +tests:
+                - not_null
+            sensor_type:
+              +description: "Type of sensor"
+              +tests:
+                - not_null
+            measurement_value:
+              +description: "Primary measurement value"
+              +tests:
+                - not_null
+            unit:
+              +description: "Unit of measurement"
+              +tests:
+                - not_null
+        
+        ct_scan_data:
+          +description: "Raw CT scan data from quality control systems"
+          +columns:
+            scan_id:
+              +description: "Unique identifier for the CT scan"
+              +tests:
+                - unique
+                - not_null
+            process_id:
+              +description: "Associated PBF process identifier"
+              +tests:
+                - not_null
+            scan_type:
+              +description: "Type of CT scan"
+              +tests:
+                - not_null
+            processing_status:
+              +description: "CT scan processing status"
+              +tests:
+                - not_null
+            voltage:
+              +description: "X-ray tube voltage in kV"
+              +tests:
+                - not_null
+            current:
+              +description: "X-ray tube current in mA"
+              +tests:
+                - not_null
+            exposure_time:
+              +description: "Exposure time per projection in seconds"
+              +tests:
+                - not_null
+            number_of_projections:
+              +description: "Number of X-ray projections"
+              +tests:
+                - not_null
+            voxel_size:
+              +description: "Voxel size in micrometers"
+              +tests:
+                - not_null
+            file_size:
+              +description: "File size in bytes"
+              +tests:
+                - not_null
+        
+        powder_bed_data:
+          +description: "Raw powder bed monitoring data from imaging systems"
+          +columns:
+            bed_id:
+              +description: "Unique identifier for the powder bed record"
+              +tests:
+                - unique
+                - not_null
+            process_id:
+              +description: "Associated PBF process identifier"
+              +tests:
+                - not_null
+            layer_number:
+              +description: "Current layer number"
+              +tests:
+                - not_null
+            timestamp:
+              +description: "Monitoring timestamp"
+              +tests:
+                - not_null
+            material_type:
+              +description: "Powder material type"
+              +tests:
+                - not_null
+            uniformity_score:
+              +description: "Powder bed uniformity score (0-100)"
+              +tests:
+                - not_null
+            coverage_percentage:
+              +description: "Powder coverage percentage"
+              +tests:
+                - not_null
+            thickness_consistency:
+              +description: "Layer thickness consistency score (0-100)"
+              +tests:
+                - not_null
+            processing_status:
+              +description: "Powder bed processing status"
+              +tests:
+                - not_null
+
+# Configuring variables
+vars:
+  # Default values for variables
+  default_material_type: "Ti6Al4V"
+  default_atmosphere: "argon"
+  default_quality_threshold: 80
+  default_defect_threshold: 5
+  default_efficiency_threshold: 0.8
+  
+  # Environment-specific variables
+  dev:
+    target_schema: "dev_pbf_lbm"
+    target_database: "pbf_lbm_dev"
+  
+  staging:
+    target_schema: "staging_pbf_lbm"
+    target_database: "pbf_lbm_staging"
+  
+  prod:
+    target_schema: "prod_pbf_lbm"
+    target_database: "pbf_lbm_prod"
+
+# Configuring on-run-start and on-run-end hooks
+on-run-start:
+  - "{{ log('Starting PBF-LB/M Data Pipeline DBT run', info=true) }}"
+
+on-run-end:
+  - "{{ log('Completed PBF-LB/M Data Pipeline DBT run', info=true) }}"
+
+# Configuring query comments
+query-comment: "PBF-LB/M Data Pipeline - {{ invocation_id }}"
+
+# Configuring documentation
+docs:
+  +show: true
+  +node_color: "lightblue"

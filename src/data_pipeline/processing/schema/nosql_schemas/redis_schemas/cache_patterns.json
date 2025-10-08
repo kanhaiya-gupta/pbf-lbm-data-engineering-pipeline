@@ -1,0 +1,139 @@
+{
+  "cache_patterns": {
+    "process_cache": {
+      "pattern": "process:{process_id}:*",
+      "description": "Process-related cache entries",
+      "ttl": 3600,
+      "structure": {
+        "process:{process_id}:parameters": {
+          "type": "hash",
+          "description": "Process parameters cache",
+          "fields": {
+            "laser_power": "string",
+            "scan_speed": "string",
+            "layer_thickness": "string",
+            "hatch_spacing": "string",
+            "build_plate_temperature": "string"
+          }
+        },
+        "process:{process_id}:status": {
+          "type": "string",
+          "description": "Process status",
+          "values": ["pending", "running", "completed", "failed", "cancelled"]
+        },
+        "process:{process_id}:quality": {
+          "type": "hash",
+          "description": "Quality metrics cache",
+          "fields": {
+            "density": "string",
+            "surface_roughness": "string",
+            "dimensional_accuracy": "string",
+            "defect_count": "string"
+          }
+        }
+      }
+    },
+    "sensor_cache": {
+      "pattern": "sensor:{sensor_id}:*",
+      "description": "Sensor data cache",
+      "ttl": 300,
+      "structure": {
+        "sensor:{sensor_id}:latest": {
+          "type": "hash",
+          "description": "Latest sensor reading",
+          "fields": {
+            "value": "string",
+            "timestamp": "string",
+            "unit": "string",
+            "quality_score": "string"
+          }
+        },
+        "sensor:{sensor_id}:history": {
+          "type": "list",
+          "description": "Recent sensor readings",
+          "max_length": 100
+        },
+        "sensor:{sensor_id}:alerts": {
+          "type": "set",
+          "description": "Active alerts for sensor"
+        }
+      }
+    },
+    "session_cache": {
+      "pattern": "session:{session_id}:*",
+      "description": "User session cache",
+      "ttl": 1800,
+      "structure": {
+        "session:{session_id}:user": {
+          "type": "hash",
+          "description": "User session data",
+          "fields": {
+            "user_id": "string",
+            "username": "string",
+            "role": "string",
+            "permissions": "string"
+          }
+        },
+        "session:{session_id}:preferences": {
+          "type": "hash",
+          "description": "User preferences",
+          "fields": {
+            "dashboard_layout": "string",
+            "default_filters": "string",
+            "notification_settings": "string"
+          }
+        }
+      }
+    },
+    "analytics_cache": {
+      "pattern": "analytics:{type}:*",
+      "description": "Analytics result cache",
+      "ttl": 7200,
+      "structure": {
+        "analytics:quality:trends": {
+          "type": "string",
+          "description": "Quality trend analysis results"
+        },
+        "analytics:performance:summary": {
+          "type": "hash",
+          "description": "Performance summary",
+          "fields": {
+            "avg_quality": "string",
+            "total_processes": "string",
+            "success_rate": "string",
+            "avg_duration": "string"
+          }
+        },
+        "analytics:defects:patterns": {
+          "type": "list",
+          "description": "Defect pattern analysis"
+        }
+      }
+    }
+  },
+  "key_naming_conventions": {
+    "separator": ":",
+    "case": "lowercase",
+    "format": "{namespace}:{entity}:{identifier}:{attribute}",
+    "examples": [
+      "process:12345:parameters",
+      "sensor:temp_001:latest",
+      "session:abc123:user",
+      "analytics:quality:trends"
+    ]
+  },
+  "ttl_policies": {
+    "default": 3600,
+    "short_term": 300,
+    "medium_term": 3600,
+    "long_term": 86400,
+    "persistent": -1
+  },
+  "data_types": {
+    "string": "Simple string values",
+    "hash": "Key-value pairs within a key",
+    "list": "Ordered collection of strings",
+    "set": "Unordered collection of unique strings",
+    "sorted_set": "Ordered collection with scores"
+  }
+}

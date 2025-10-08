@@ -1,0 +1,41 @@
+parameter_name,parameter_type,min_value,max_value,optimal_value,unit,description,material_type,atmosphere_type
+temperature,process,800,1600,1200,Celsius,Process temperature for PBF-LB/M,ALL,ALL
+pressure,process,0.1,100,1.0,mbar,Chamber pressure during process,ALL,ALL
+laser_power,process,50,500,200,watts,Laser power for melting powder,ALL,ALL
+scan_speed,process,100,5000,1000,mm/s,Laser scan speed across powder bed,ALL,ALL
+layer_height,process,0.02,0.2,0.05,mm,Height of each powder layer,ALL,ALL
+hatch_spacing,process,0.05,0.2,0.1,mm,Spacing between laser scan lines,ALL,ALL
+exposure_time,process,0.1,300,120,seconds,Exposure time per layer,ALL,ALL
+voltage,ct_scan,10,500,120,kV,X-ray tube voltage for CT scanning,ALL,ALL
+current,ct_scan,0.1,1000,100,mA,X-ray tube current for CT scanning,ALL,ALL
+ct_exposure_time,ct_scan,0.001,60,0.5,seconds,Exposure time per projection,ALL,ALL
+number_of_projections,ct_scan,100,10000,1000,count,Number of X-ray projections,ALL,ALL
+voxel_size,ct_scan,0.1,1000,50,microseconds,Voxel size for CT reconstruction,ALL,ALL
+exposure_time_camera,powder_bed,0.001,60,0.1,seconds,Camera exposure time for powder bed imaging,ALL,ALL
+aperture,powder_bed,0.5,32,5.6,f-stop,Camera aperture setting,ALL,ALL
+iso,powder_bed,50,25600,400,ISO,Camera ISO sensitivity,ALL,ALL
+particle_size_d10,powder,5,50,15,microseconds,10th percentile particle size,ALL,ALL
+particle_size_d50,powder,10,100,25,microseconds,50th percentile particle size,ALL,ALL
+particle_size_d90,powder,20,200,40,microseconds,90th percentile particle size,ALL,ALL
+powder_density,powder,1.0,20,4.43,g/cm³,Powder material density,ALL,ALL
+flowability,powder,0,100,85,index,Powder flowability index,ALL,ALL
+moisture_content,powder,0,5,0.1,percentage,Moisture content in powder,ALL,ALL
+uniformity_score,quality,0,100,90,score,Powder bed uniformity score,ALL,ALL
+coverage_percentage,quality,0,100,95,percentage,Powder coverage percentage,ALL,ALL
+thickness_consistency,quality,0,100,85,score,Layer thickness consistency score,ALL,ALL
+surface_roughness,quality,0,100,10,microseconds,Surface roughness measurement,ALL,ALL
+density,quality,0,100,95,percentage,Part density percentage,ALL,ALL
+dimensional_accuracy,quality,0,1,0.1,mm,Dimensional accuracy measurement,ALL,ALL
+defect_count,quality,0,1000,0,count,Number of detected defects,ALL,ALL
+contrast_to_noise_ratio,ct_quality,0,50,15,ratio,Contrast-to-noise ratio for CT images,ALL,ALL
+signal_to_noise_ratio,ct_quality,0,100,25,ratio,Signal-to-noise ratio for CT images,ALL,ALL
+spatial_resolution,ct_quality,0,20,10,lp/mm,Spatial resolution of CT images,ALL,ALL
+uniformity,ct_quality,0,100,95,percentage,Image uniformity percentage,ALL,ALL
+sampling_rate,ispm,1,1000000,100,Hz,Sensor sampling rate,ALL,ALL
+noise_level,ispm,0,10,0.05,level,Signal noise level,ALL,ALL
+signal_quality,ispm,0,100,80,score,Signal quality score,ALL,ALL
+measurement_accuracy,ispm,0,100,0.1,percentage,Measurement accuracy percentage,ALL,ALL
+ambient_temperature,environmental,-50,100,22.5,Celsius,Ambient temperature,ALL,ALL
+relative_humidity,environmental,0,100,45,percentage,Relative humidity percentage,ALL,ALL
+vibration_level,environmental,0,10,0.01,g,Vibration level in g,ALL,ALL
+atmospheric_pressure,environmental,0,2000,1013.25,mbar,Atmospheric pressure,ALL,ALL

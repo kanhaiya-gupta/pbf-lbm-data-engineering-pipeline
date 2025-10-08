@@ -1,0 +1,221 @@
+{
+  "type": "record",
+  "name": "ISPMMonitoring",
+  "namespace": "com.pbflbm.schemas",
+  "doc": "ISPM (In-Situ Process Monitoring) data schema for PBF-LB/M additive manufacturing",
+  "fields": [
+    {
+      "name": "monitoring_id",
+      "type": "string",
+      "doc": "Unique identifier for the monitoring record"
+    },
+    {
+      "name": "timestamp",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Monitoring timestamp in ISO format"
+    },
+    {
+      "name": "process_id",
+      "type": "string",
+      "doc": "Associated PBF process identifier"
+    },
+    {
+      "name": "sensor_id",
+      "type": "string",
+      "doc": "Sensor identifier"
+    },
+    {
+      "name": "sensor_type",
+      "type": {
+        "type": "enum",
+        "name": "SensorType",
+        "symbols": ["THERMAL", "OPTICAL", "ACOUSTIC", "VIBRATION", "PRESSURE", "GAS_ANALYSIS", "MELT_POOL", "LAYER_HEIGHT"]
+      },
+      "doc": "Type of sensor"
+    },
+    {
+      "name": "sensor_location",
+      "type": ["null", {
+        "type": "record",
+        "name": "SensorLocation",
+        "fields": [
+          {
+            "name": "x_coordinate",
+            "type": "double",
+            "doc": "X coordinate in mm"
+          },
+          {
+            "name": "y_coordinate",
+            "type": "double",
+            "doc": "Y coordinate in mm"
+          },
+          {
+            "name": "z_coordinate",
+            "type": "double",
+            "doc": "Z coordinate in mm"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Sensor location coordinates"
+    },
+    {
+      "name": "measurement_value",
+      "type": "double",
+      "doc": "Primary measurement value"
+    },
+    {
+      "name": "unit",
+      "type": "string",
+      "doc": "Unit of measurement"
+    },
+    {
+      "name": "measurement_range",
+      "type": ["null", {
+        "type": "record",
+        "name": "MeasurementRange",
+        "fields": [
+          {
+            "name": "min_value",
+            "type": "double",
+            "doc": "Minimum expected value"
+          },
+          {
+            "name": "max_value",
+            "type": "double",
+            "doc": "Maximum expected value"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Expected measurement range"
+    },
+    {
+      "name": "measurement_accuracy",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Measurement accuracy/precision"
+    },
+    {
+      "name": "sampling_rate",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Sampling rate in Hz"
+    },
+    {
+      "name": "signal_quality",
+      "type": ["null", {
+        "type": "enum",
+        "name": "SignalQuality",
+        "symbols": ["EXCELLENT", "GOOD", "FAIR", "POOR", "UNKNOWN"]
+      }],
+      "default": null,
+      "doc": "Signal quality assessment"
+    },
+    {
+      "name": "noise_level",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Noise level in the signal"
+    },
+    {
+      "name": "calibration_status",
+      "type": ["null", "boolean"],
+      "default": null,
+      "doc": "Sensor calibration status"
+    },
+    {
+      "name": "last_calibration_date",
+      "type": ["null", "string"],
+      "logicalType": "timestamp-millis",
+      "default": null,
+      "doc": "Last calibration date"
+    },
+    {
+      "name": "environmental_conditions",
+      "type": ["null", {
+        "type": "record",
+        "name": "EnvironmentalConditions",
+        "fields": [
+          {
+            "name": "temperature",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Ambient temperature in Celsius"
+          },
+          {
+            "name": "humidity",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Relative humidity percentage"
+          },
+          {
+            "name": "vibration_level",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Vibration level in g"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Environmental conditions during measurement"
+    },
+    {
+      "name": "anomaly_detected",
+      "type": ["null", "boolean"],
+      "default": null,
+      "doc": "Whether an anomaly was detected"
+    },
+    {
+      "name": "anomaly_type",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Type of detected anomaly"
+    },
+    {
+      "name": "anomaly_severity",
+      "type": ["null", {
+        "type": "enum",
+        "name": "AnomalySeverity",
+        "symbols": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+      }],
+      "default": null,
+      "doc": "Severity of detected anomaly"
+    },
+    {
+      "name": "raw_data",
+      "type": ["null", "bytes"],
+      "default": null,
+      "doc": "Raw sensor data (if available)"
+    },
+    {
+      "name": "processed_data",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "doc": "Processed sensor data as key-value pairs"
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "doc": "Additional metadata"
+    },
+    {
+      "name": "created_at",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Record creation timestamp"
+    },
+    {
+      "name": "updated_at",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Record last update timestamp"
+    }
+  ]
+}

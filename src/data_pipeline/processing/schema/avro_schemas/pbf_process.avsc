@@ -1,0 +1,154 @@
+{
+  "type": "record",
+  "name": "PBFProcess",
+  "namespace": "com.pbflbm.schemas",
+  "doc": "PBF-LB/M process data schema for additive manufacturing",
+  "fields": [
+    {
+      "name": "process_id",
+      "type": "string",
+      "doc": "Unique identifier for the PBF process"
+    },
+    {
+      "name": "timestamp",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Process timestamp in ISO format"
+    },
+    {
+      "name": "machine_id",
+      "type": "string",
+      "doc": "Identifier of the PBF machine"
+    },
+    {
+      "name": "build_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Build identifier for the manufacturing job"
+    },
+    {
+      "name": "layer_number",
+      "type": ["null", "int"],
+      "default": null,
+      "doc": "Current layer number being processed"
+    },
+    {
+      "name": "temperature",
+      "type": "double",
+      "doc": "Process temperature in Celsius"
+    },
+    {
+      "name": "pressure",
+      "type": "double",
+      "doc": "Chamber pressure in mbar"
+    },
+    {
+      "name": "laser_power",
+      "type": "double",
+      "doc": "Laser power in watts"
+    },
+    {
+      "name": "scan_speed",
+      "type": "double",
+      "doc": "Laser scan speed in mm/s"
+    },
+    {
+      "name": "layer_height",
+      "type": "double",
+      "doc": "Layer height in mm"
+    },
+    {
+      "name": "hatch_spacing",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Hatch spacing in mm"
+    },
+    {
+      "name": "exposure_time",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Exposure time per layer in seconds"
+    },
+    {
+      "name": "atmosphere",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Atmosphere type (e.g., argon, nitrogen)"
+    },
+    {
+      "name": "powder_material",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Powder material type"
+    },
+    {
+      "name": "powder_batch_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Powder batch identifier"
+    },
+    {
+      "name": "process_parameters",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "doc": "Additional process parameters as key-value pairs"
+    },
+    {
+      "name": "quality_metrics",
+      "type": ["null", {
+        "type": "record",
+        "name": "QualityMetrics",
+        "fields": [
+          {
+            "name": "density",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Part density percentage"
+          },
+          {
+            "name": "surface_roughness",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Surface roughness in micrometers"
+          },
+          {
+            "name": "dimensional_accuracy",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Dimensional accuracy in mm"
+          },
+          {
+            "name": "defect_count",
+            "type": ["null", "int"],
+            "default": null,
+            "doc": "Number of detected defects"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Quality metrics for the process"
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "doc": "Additional metadata"
+    },
+    {
+      "name": "created_at",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Record creation timestamp"
+    },
+    {
+      "name": "updated_at",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Record last update timestamp"
+    }
+  ]
+}

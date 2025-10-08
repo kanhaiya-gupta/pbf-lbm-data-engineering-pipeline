@@ -1,0 +1,356 @@
+{
+  "type": "record",
+  "name": "CTScan",
+  "namespace": "com.pbflbm.schemas",
+  "doc": "CT scan data schema for PBF-LB/M additive manufacturing quality assessment",
+  "fields": [
+    {
+      "name": "scan_id",
+      "type": "string",
+      "doc": "Unique identifier for the CT scan"
+    },
+    {
+      "name": "created_at",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Scan creation timestamp"
+    },
+    {
+      "name": "process_id",
+      "type": "string",
+      "doc": "Associated PBF process identifier"
+    },
+    {
+      "name": "part_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Manufactured part identifier"
+    },
+    {
+      "name": "scan_type",
+      "type": {
+        "type": "enum",
+        "name": "ScanType",
+        "symbols": ["QUALITY_CONTROL", "DEFECT_ANALYSIS", "DIMENSIONAL_MEASUREMENT", "MATERIAL_ANALYSIS", "RESEARCH"]
+      },
+      "doc": "Type of CT scan"
+    },
+    {
+      "name": "scan_parameters",
+      "type": {
+        "type": "record",
+        "name": "ScanParameters",
+        "fields": [
+          {
+            "name": "voltage",
+            "type": "double",
+            "doc": "X-ray tube voltage in kV"
+          },
+          {
+            "name": "current",
+            "type": "double",
+            "doc": "X-ray tube current in mA"
+          },
+          {
+            "name": "exposure_time",
+            "type": "double",
+            "doc": "Exposure time per projection in seconds"
+          },
+          {
+            "name": "number_of_projections",
+            "type": "int",
+            "doc": "Number of X-ray projections"
+          },
+          {
+            "name": "detector_resolution",
+            "type": "string",
+            "doc": "Detector resolution (e.g., 2048x2048)"
+          },
+          {
+            "name": "voxel_size",
+            "type": "double",
+            "doc": "Voxel size in micrometers"
+          },
+          {
+            "name": "scan_duration",
+            "type": "double",
+            "doc": "Total scan duration in minutes"
+          }
+        ]
+      },
+      "doc": "CT scan acquisition parameters"
+    },
+    {
+      "name": "file_metadata",
+      "type": {
+        "type": "record",
+        "name": "FileMetadata",
+        "fields": [
+          {
+            "name": "file_path",
+            "type": "string",
+            "doc": "Path to the CT scan file"
+          },
+          {
+            "name": "file_format",
+            "type": {
+              "type": "enum",
+              "name": "FileFormat",
+              "symbols": ["DICOM", "TIFF", "RAW", "NIFTI", "MHD"]
+            },
+            "doc": "File format of the CT scan"
+          },
+          {
+            "name": "file_size",
+            "type": "long",
+            "doc": "File size in bytes"
+          },
+          {
+            "name": "compression",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Compression type if applicable"
+          },
+          {
+            "name": "checksum",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "File checksum for integrity verification"
+          }
+        ]
+      },
+      "doc": "CT scan file metadata"
+    },
+    {
+      "name": "image_dimensions",
+      "type": {
+        "type": "record",
+        "name": "ImageDimensions",
+        "fields": [
+          {
+            "name": "width",
+            "type": "int",
+            "doc": "Image width in pixels"
+          },
+          {
+            "name": "height",
+            "type": "int",
+            "doc": "Image height in pixels"
+          },
+          {
+            "name": "depth",
+            "type": "int",
+            "doc": "Number of slices"
+          },
+          {
+            "name": "physical_width",
+            "type": "double",
+            "doc": "Physical width in mm"
+          },
+          {
+            "name": "physical_height",
+            "type": "double",
+            "doc": "Physical height in mm"
+          },
+          {
+            "name": "physical_depth",
+            "type": "double",
+            "doc": "Physical depth in mm"
+          }
+        ]
+      },
+      "doc": "CT scan image dimensions"
+    },
+    {
+      "name": "quality_metrics",
+      "type": ["null", {
+        "type": "record",
+        "name": "CTQualityMetrics",
+        "fields": [
+          {
+            "name": "contrast_to_noise_ratio",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Contrast-to-noise ratio"
+          },
+          {
+            "name": "signal_to_noise_ratio",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Signal-to-noise ratio"
+          },
+          {
+            "name": "spatial_resolution",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Spatial resolution in line pairs per mm"
+          },
+          {
+            "name": "uniformity",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Image uniformity percentage"
+          },
+          {
+            "name": "artifacts_detected",
+            "type": ["null", "boolean"],
+            "default": null,
+            "doc": "Whether artifacts were detected"
+          },
+          {
+            "name": "artifact_severity",
+            "type": ["null", {
+              "type": "enum",
+              "name": "ArtifactSeverity",
+              "symbols": ["NONE", "MINIMAL", "MODERATE", "SEVERE"]
+            }],
+            "default": null,
+            "doc": "Severity of detected artifacts"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "CT scan quality metrics"
+    },
+    {
+      "name": "defect_analysis",
+      "type": ["null", {
+        "type": "record",
+        "name": "DefectAnalysis",
+        "fields": [
+          {
+            "name": "total_defects",
+            "type": "int",
+            "doc": "Total number of detected defects"
+          },
+          {
+            "name": "defect_types",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "DefectType",
+                "fields": [
+                  {
+                    "name": "type",
+                    "type": {
+                      "type": "enum",
+                      "name": "DefectTypeEnum",
+                      "symbols": ["POROSITY", "CRACK", "INCLUSION", "DELAMINATION", "WARPAGE", "SHRINKAGE", "UNMELTED_POWDER"]
+                    },
+                    "doc": "Type of defect"
+                  },
+                  {
+                    "name": "count",
+                    "type": "int",
+                    "doc": "Number of defects of this type"
+                  },
+                  {
+                    "name": "average_size",
+                    "type": "double",
+                    "doc": "Average defect size in mm"
+                  },
+                  {
+                    "name": "max_size",
+                    "type": "double",
+                    "doc": "Maximum defect size in mm"
+                  },
+                  {
+                    "name": "severity",
+                    "type": {
+                      "type": "enum",
+                      "name": "DefectSeverity",
+                      "symbols": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+                    },
+                    "doc": "Defect severity level"
+                  }
+                ]
+              }
+            },
+            "doc": "Analysis of different defect types"
+          },
+          {
+            "name": "overall_quality_score",
+            "type": "double",
+            "doc": "Overall quality score (0-100)"
+          },
+          {
+            "name": "acceptance_status",
+            "type": {
+              "type": "enum",
+              "name": "AcceptanceStatus",
+              "symbols": ["ACCEPTED", "REJECTED", "CONDITIONAL", "REQUIRES_REVIEW"]
+            },
+            "doc": "Part acceptance status based on CT analysis"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Defect analysis results"
+    },
+    {
+      "name": "dimensional_analysis",
+      "type": ["null", {
+        "type": "record",
+        "name": "DimensionalAnalysis",
+        "fields": [
+          {
+            "name": "measured_dimensions",
+            "type": {
+              "type": "map",
+              "values": "double"
+            },
+            "doc": "Measured dimensions in mm"
+          },
+          {
+            "name": "tolerance_deviations",
+            "type": {
+              "type": "map",
+              "values": "double"
+            },
+            "doc": "Tolerance deviations in mm"
+          },
+          {
+            "name": "dimensional_accuracy",
+            "type": "double",
+            "doc": "Overall dimensional accuracy percentage"
+          }
+        ]
+      }],
+      "default": null,
+      "doc": "Dimensional analysis results"
+    },
+    {
+      "name": "processing_status",
+      "type": {
+        "type": "enum",
+        "name": "ProcessingStatus",
+        "symbols": ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED"]
+      },
+      "doc": "CT scan processing status"
+    },
+    {
+      "name": "processing_metadata",
+      "type": ["null", {
+        "type": "map",
+        "values": "string"
+      }],
+      "default": null,
+      "doc": "Processing metadata and parameters"
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "doc": "Additional metadata"
+    },
+    {
+      "name": "updated_at",
+      "type": "string",
+      "logicalType": "timestamp-millis",
+      "doc": "Record last update timestamp"
+    }
+  ]
+}

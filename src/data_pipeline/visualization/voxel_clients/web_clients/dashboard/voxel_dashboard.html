@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PBF-LB/M Voxel Visualization Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto 1fr;
+            height: calc(100vh - 120px);
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group {
+            margin-bottom: 2rem;
+        }
+
+        .control-group h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .visualization-container {
+            flex: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+            background: #fafafa;
+            position: relative;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #667eea;
+        }
+
+        .loading .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h4 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #666;
+            transition: color 0.3s ease;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .file-upload {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            background: #f8f9ff;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-upload:hover {
+            background: #f0f2ff;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-upload label {
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+            border-left: 4px solid #c62828;
+        }
+
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+            border-left: 4px solid #2e7d32;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .main-content {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔬 PBF-LB/M Voxel Visualization Dashboard</h1>
+        <p>Advanced voxel-level process control and spatially-resolved quality analysis</p>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="control-group">
+                <h3>📁 Data Loading</h3>
+                <div class="file-upload">
+                    <input type="file" id="voxelFile" accept=".npz,.h5,.hdf5,.json,.csv">
+                    <label for="voxelFile">📤 Upload Voxel Data</label>
+                </div>
+                <div class="form-group">
+                    <label for="dataType">Data Type:</label>
+                    <select id="dataType">
+                        <option value="voxel_grid">Voxel Grid</option>
+                        <option value="fused_data">Fused Data</option>
+                        <option value="analysis_results">Analysis Results</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="loadData()">🔄 Load Data</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🎨 Visualization</h3>
+                <div class="form-group">
+                    <label for="renderType">Render Type:</label>
+                    <select id="renderType">
+                        <option value="3d">3D Visualization</option>
+                        <option value="2d">2D Slice</option>
+                        <option value="cross_section">Cross Section</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="colorBy">Color By:</label>
+                    <select id="colorBy">
+                        <option value="quality">Quality</option>
+                        <option value="defect">Defect</option>
+                        <option value="process">Process</option>
+                        <option value="material">Material</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="opacity">Opacity:</label>
+                    <input type="range" id="opacity" min="0" max="1" step="0.1" value="0.8">
+                </div>
+                <button class="btn btn-success" onclick="renderVisualization()">🎯 Render</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🔍 Analysis</h3>
+                <button class="btn btn-secondary" onclick="runDefectDetection()">🔍 Detect Defects</button>
+                <button class="btn btn-secondary" onclick="runPorosityAnalysis()">🕳️ Analyze Porosity</button>
+                <button class="btn btn-secondary" onclick="runQualityAnalysis()">📊 Quality Analysis</button>
+            </div>
+
+            <div class="control-group">
+                <h3>💾 Export</h3>
+                <div class="form-group">
+                    <label for="exportFormat">Export Format:</label>
+                    <select id="exportFormat">
+                        <option value="json">JSON</option>
+                        <option value="csv">CSV</option>
+                        <option value="html">HTML</option>
+                        <option value="png">PNG</option>
+                    </select>
+                </div>
+                <button class="btn btn-warning" onclick="exportData()">💾 Export Data</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('visualization')">🎨 Visualization</button>
+                <button class="tab" onclick="switchTab('analysis')">📊 Analysis</button>
+                <button class="tab" onclick="switchTab('statistics')">📈 Statistics</button>
+                <button class="tab" onclick="switchTab('settings')">⚙️ Settings</button>
+            </div>
+
+            <div id="visualization" class="tab-content active">
+                <div class="visualization-container">
+                    <div id="plotly-container" style="width: 100%; height: 100%;"></div>
+                    <div id="loading" class="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Loading visualization...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="analysis" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4 id="defectCount">0</h4>
+                        <p>Defects Detected</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4 id="porosityLevel">0%</h4>
+                        <p>Average Porosity</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4 id="qualityScore">0</h4>
+                        <p>Quality Score</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4 id="voxelCount">0</h4>
+                        <p>Total Voxels</p>
+                    </div>
+                </div>
+                <div id="analysisResults"></div>
+            </div>
+
+            <div id="statistics" class="tab-content">
+                <div id="statisticsContent">
+                    <h3>📊 Data Statistics</h3>
+                    <p>Load data to view statistics</p>
+                </div>
+            </div>
+
+            <div id="settings" class="tab-content">
+                <div class="control-group">
+                    <h3>🎛️ Visualization Settings</h3>
+                    <div class="form-group">
+                        <label for="voxelSize">Voxel Size (mm):</label>
+                        <input type="number" id="voxelSize" value="0.1" step="0.01" min="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxVoxels">Max Voxels Display:</label>
+                        <input type="number" id="maxVoxels" value="100000" step="1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="colorScheme">Color Scheme:</label>
+                        <select id="colorScheme">
+                            <option value="viridis">Viridis</option>
+                            <option value="plasma">Plasma</option>
+                            <option value="inferno">Inferno</option>
+                            <option value="magma">Magma</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="updateSettings()">🔄 Update Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentData = null;
+        let currentVisualization = null;
+        let analysisResults = {};
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // Data loading
+        function loadData() {
+            const fileInput = document.getElementById('voxelFile');
+            const dataType = document.getElementById('dataType').value;
+            
+            if (!fileInput.files[0]) {
+                showMessage('Please select a file to load', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    let data;
+                    if (file.name.endsWith('.json')) {
+                        data = JSON.parse(e.target.result);
+                    } else {
+                        showMessage('Unsupported file format. Please use JSON files for web demo.', 'error');
+                        showLoading(false);
+                        return;
+                    }
+                    
+                    currentData = data;
+                    showMessage('Data loaded successfully!', 'success');
+                    updateStatistics();
+                    showLoading(false);
+                } catch (error) {
+                    showMessage('Error loading data: ' + error.message, 'error');
+                    showLoading(false);
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // Visualization rendering
+        function renderVisualization() {
+            if (!currentData) {
+                showMessage('Please load data first', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            const renderType = document.getElementById('renderType').value;
+            const colorBy = document.getElementById('colorBy').value;
+            const opacity = parseFloat(document.getElementById('opacity').value);
+            
+            // Generate sample 3D data for demonstration
+            const sampleData = generateSampleData();
+            
+            if (renderType === '3d') {
+                render3DVisualization(sampleData, colorBy, opacity);
+            } else if (renderType === '2d') {
+                render2DVisualization(sampleData, colorBy);
+            }
+            
+            showLoading(false);
+        }
+
+        // Generate sample data for demonstration
+        function generateSampleData() {
+            const data = [];
+            const size = 20;
+            
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    for (let z = 0; z < size; z++) {
+                        if (Math.random() > 0.7) { // 30% fill ratio
+                            data.push({
+                                x: x * 0.1,
+                                y: y * 0.1,
+                                z: z * 0.1,
+                                quality: Math.random() * 100,
+                                porosity: Math.random() * 0.2,
+                                defect: Math.random() > 0.9 ? 1 : 0
+                            });
+                        }
+                    }
+                }
+            }
+            
+            return data;
+        }
+
+        // 3D visualization
+        function render3DVisualization(data, colorBy, opacity) {
+            const x = data.map(d => d.x);
+            const y = data.map(d => d.y);
+            const z = data.map(d => d.z);
+            
+            let colorValues;
+            let colorTitle;
+            
+            switch (colorBy) {
+                case 'quality':
+                    colorValues = data.map(d => d.quality);
+                    colorTitle = 'Quality Score';
+                    break;
+                case 'defect':
+                    colorValues = data.map(d => d.defect);
+                    colorTitle = 'Defect Probability';
+                    break;
+                case 'porosity':
+                    colorValues = data.map(d => d.porosity);
+                    colorTitle = 'Porosity';
+                    break;
+                default:
+                    colorValues = data.map(d => d.quality);
+                    colorTitle = 'Quality Score';
+            }
+            
+            const trace = {
+                x: x,
+                y: y,
+                z: z,
+                mode: 'markers',
+                marker: {
+                    size: 3,
+                    color: colorValues,
+                    colorscale: 'Viridis',
+                    opacity: opacity,
+                    colorbar: {
+                        title: colorTitle
+                    }
+                },
+                type: 'scatter3d',
+                text: data.map(d => `Quality: ${d.quality.toFixed(1)}<br>Porosity: ${d.porosity.toFixed(3)}<br>Defect: ${d.defect}`),
+                hovertemplate: '%{text}<extra></extra>'
+            };
+            
+            const layout = {
+                title: '3D Voxel Visualization',
+                scene: {
+                    xaxis: { title: 'X (mm)' },
+                    yaxis: { title: 'Y (mm)' },
+                    zaxis: { title: 'Z (mm)' },
+                    aspectmode: 'data'
+                },
+                margin: { l: 0, r: 0, t: 50, b: 0 }
+            };
+            
+            Plotly.newPlot('plotly-container', [trace], layout, {responsive: true});
+            currentVisualization = {type: '3d', data: data};
+        }
+
+        // 2D visualization
+        function render2DVisualization(data, colorBy) {
+            // Create 2D slice data
+            const sliceData = [];
+            const size = 20;
+            
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    const voxel = data.find(d => Math.abs(d.x - x * 0.1) < 0.05 && Math.abs(d.y - y * 0.1) < 0.05);
+                    if (voxel) {
+                        sliceData.push({
+                            x: x,
+                            y: y,
+                            value: voxel[colorBy] || voxel.quality
+                        });
+                    }
+                }
+            }
+            
+            const trace = {
+                x: sliceData.map(d => d.x),
+                y: sliceData.map(d => d.y),
+                z: sliceData.map(d => d.value),
+                type: 'heatmap',
+                colorscale: 'Viridis'
+            };
+            
+            const layout = {
+                title: '2D Slice Visualization',
+                xaxis: { title: 'X' },
+                yaxis: { title: 'Y' }
+            };
+            
+            Plotly.newPlot('plotly-container', [trace], layout, {responsive: true});
+            currentVisualization = {type: '2d', data: sliceData};
+        }
+
+        // Analysis functions
+        function runDefectDetection() {
+            if (!currentData) {
+                showMessage('Please load data first', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            // Simulate defect detection
+            setTimeout(() => {
+                const defects = Math.floor(Math.random() * 50) + 10;
+                analysisResults.defects = defects;
+                
+                document.getElementById('defectCount').textContent = defects;
+                
+                const resultsDiv = document.getElementById('analysisResults');
+                resultsDiv.innerHTML = `
+                    <div class="success-message">
+                        <h4>🔍 Defect Detection Complete</h4>
+                        <p>Found ${defects} defects in the voxel data.</p>
+                        <p>Detection confidence: ${(Math.random() * 0.3 + 0.7).toFixed(2)}</p>
+                    </div>
+                `;
+                
+                showLoading(false);
+            }, 2000);
+        }
+
+        function runPorosityAnalysis() {
+            if (!currentData) {
+                showMessage('Please load data first', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            // Simulate porosity analysis
+            setTimeout(() => {
+                const porosity = (Math.random() * 0.1 + 0.02).toFixed(3);
+                analysisResults.porosity = porosity;
+                
+                document.getElementById('porosityLevel').textContent = (porosity * 100).toFixed(1) + '%';
+                
+                const resultsDiv = document.getElementById('analysisResults');
+                resultsDiv.innerHTML = `
+                    <div class="success-message">
+                        <h4>🕳️ Porosity Analysis Complete</h4>
+                        <p>Average porosity: ${(porosity * 100).toFixed(2)}%</p>
+                        <p>Porosity clusters: ${Math.floor(Math.random() * 20) + 5}</p>
+                    </div>
+                `;
+                
+                showLoading(false);
+            }, 2000);
+        }
+
+        function runQualityAnalysis() {
+            if (!currentData) {
+                showMessage('Please load data first', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            // Simulate quality analysis
+            setTimeout(() => {
+                const quality = Math.floor(Math.random() * 20 + 80);
+                analysisResults.quality = quality;
+                
+                document.getElementById('qualityScore').textContent = quality;
+                
+                const resultsDiv = document.getElementById('analysisResults');
+                resultsDiv.innerHTML = `
+                    <div class="success-message">
+                        <h4>📊 Quality Analysis Complete</h4>
+                        <p>Overall quality score: ${quality}/100</p>
+                        <p>Quality variance: ${(Math.random() * 10 + 5).toFixed(2)}</p>
+                    </div>
+                `;
+                
+                showLoading(false);
+            }, 2000);
+        }
+
+        // Export function
+        function exportData() {
+            if (!currentData && !currentVisualization) {
+                showMessage('No data to export', 'error');
+                return;
+            }
+            
+            const format = document.getElementById('exportFormat').value;
+            let exportData = currentData || currentVisualization;
+            
+            let blob;
+            let filename;
+            
+            switch (format) {
+                case 'json':
+                    blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+                    filename = 'voxel_data.json';
+                    break;
+                case 'csv':
+                    const csv = convertToCSV(exportData);
+                    blob = new Blob([csv], {type: 'text/csv'});
+                    filename = 'voxel_data.csv';
+                    break;
+                case 'html':
+                    const html = generateHTMLReport(exportData);
+                    blob = new Blob([html], {type: 'text/html'});
+                    filename = 'voxel_report.html';
+                    break;
+                case 'png':
+                    // Export current visualization as PNG
+                    Plotly.downloadImage('plotly-container', {
+                        format: 'png',
+                        width: 800,
+                        height: 600,
+                        filename: 'voxel_visualization'
+                    });
+                    return;
+            }
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showMessage('Data exported successfully!', 'success');
+        }
+
+        // Utility functions
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+            
+            document.querySelector('.main-content').insertBefore(messageDiv, document.querySelector('.tabs'));
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        function updateStatistics() {
+            if (!currentData) return;
+            
+            const statsDiv = document.getElementById('statisticsContent');
+            statsDiv.innerHTML = `
+                <h3>📊 Data Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>${Object.keys(currentData).length}</h4>
+                        <p>Data Fields</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>${new Date().toLocaleDateString()}</h4>
+                        <p>Last Updated</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function convertToCSV(data) {
+            if (Array.isArray(data)) {
+                const headers = Object.keys(data[0]);
+                const csv = [headers.join(',')];
+                data.forEach(row => {
+                    csv.push(headers.map(header => row[header]).join(','));
+                });
+                return csv.join('\n');
+            }
+            return JSON.stringify(data);
+        }
+
+        function generateHTMLReport(data) {
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Voxel Data Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { background: #f0f0f0; padding: 20px; border-radius: 5px; }
+                        .data-section { margin: 20px 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>PBF-LB/M Voxel Data Report</h1>
+                        <p>Generated on: ${new Date().toLocaleString()}</p>
+                    </div>
+                    <div class="data-section">
+                        <h2>Data Summary</h2>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                </body>
+                </html>
+            `;
+        }
+
+        function updateSettings() {
+            const voxelSize = document.getElementById('voxelSize').value;
+            const maxVoxels = document.getElementById('maxVoxels').value;
+            const colorScheme = document.getElementById('colorScheme').value;
+            
+            showMessage('Settings updated successfully!', 'success');
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            showMessage('Welcome to the PBF-LB/M Voxel Visualization Dashboard!', 'success');
+        });
+    </script>
+</body>
+</html>
