@@ -1,0 +1,453 @@
+# Predictive Maintenance Training Pipeline Configuration
+# Pipeline for training predictive maintenance models
+
+pipeline:
+  name: "predictive_maintenance_training_pipeline"
+  version: "1.0.0"
+  description: "Training pipeline for predictive maintenance models"
+  
+  stages:
+    - name: "data_ingestion"
+      description: "Ingest equipment sensor data and maintenance records"
+      component: "data_ingestion"
+      inputs:
+        - source: "iot_sensors"
+          endpoint: "mqtt://sensor-broker:1883"
+          topics:
+            - "equipment/laser/+/sensors"
+            - "equipment/galvo/+/sensors"
+            - "equipment/powder/+/sensors"
+            - "equipment/platform/+/sensors"
+            - "equipment/chamber/+/sensors"
+        - source: "maintenance_database"
+          connection: "postgresql://maintenance-db:5432/maintenance"
+          tables:
+            - "maintenance_records"
+            - "equipment_status"
+            - "failure_logs"
+            - "repair_history"
+        - source: "data_lake"
+          path: "/data/maintenance/historical/"
+          format: "parquet"
+      outputs:
+        - name: "raw_sensor_data"
+          path: "/data/pipeline/maintenance/raw/sensors/"
+          format: "parquet"
+        - name: "raw_maintenance_data"
+          path: "/data/pipeline/maintenance/raw/maintenance/"
+          format: "parquet"
+      parameters:
+        batch_size: 50000
+        parallel_workers: 8
+        timeout_minutes: 120
+        data_retention_days: 365
+        
+    - name: "data_validation"
+      description: "Validate and clean sensor and maintenance data"
+      component: "data_validation"
+      inputs:
+        - name: "raw_sensor_data"
+          from_stage: "data_ingestion"
+        - name: "raw_maintenance_data"
+          from_stage: "data_ingestion"
+      outputs:
+        - name: "validated_sensor_data"
+          path: "/data/pipeline/maintenance/validated/sensors/"
+          format: "parquet"
+        - name: "validated_maintenance_data"
+          path: "/data/pipeline/maintenance/validated/maintenance/"
+          format: "parquet"
+      parameters:
+        validation_rules:
+          sensor_data:
+            - name: "sensor_range_check"
+              method: "range_validation"
+              parameters:
+                laser_power: [0, 1000]
+                laser_temperature: [20, 80]
+                galvo_position: [-200, 200]
+                chamber_temperature: [20, 200]
+            - name: "sensor_continuity_check"
+              method: "gap_detection"
+              max_gap_minutes: 5
+            - name: "sensor_anomaly_detection"
+              method: "isolation_forest"
+              contamination: 0.1
+          maintenance_data:
+            - name: "maintenance_record_completeness"
+              threshold: 0.95
+            - name: "failure_log_validation"
+              required_fields: ["equipment_id", "failure_time", "failure_type", "severity"]
+        error_handling: "interpolate_missing"
+        max_error_rate: 0.02
+        
+    - name: "data_fusion"
+      description: "Fuse sensor data with maintenance records"
+      component: "data_fusion"
+      inputs:
+        - name: "validated_sensor_data"
+          from_stage: "data_validation"
+        - name: "validated_maintenance_data"
+          from_stage: "data_validation"
+      outputs:
+        - name: "fused_data"
+          path: "/data/pipeline/maintenance/fused/"
+          format: "parquet"
+      parameters:
+        fusion_strategy: "temporal_alignment"
+        time_window: "1_hour"
+        alignment_method: "nearest_neighbor"
+        feature_engineering:
+          - name: "equipment_health_index"
+            formula: "weighted_average(sensor_values)"
+            weights: "expert_defined"
+          - name: "maintenance_urgency_score"
+            formula: "days_since_maintenance / recommended_interval"
+          - name: "failure_probability"
+            formula: "logistic_regression(sensor_features)"
+            
+    - name: "feature_engineering"
+      description: "Engineer features for predictive maintenance"
+      component: "feature_engineering"
+      inputs:
+        - name: "fused_data"
+          from_stage: "data_fusion"
+      outputs:
+        - name: "features"
+          path: "/data/pipeline/maintenance/features/"
+          format: "parquet"
+      parameters:
+        feature_groups:
+          - name: "temporal_features"
+            config_file: "config/ml/features/temporal_features/time_series_features.yaml"
+            parameters:
+              window_sizes: [1, 6, 24, 168]  # 1h, 6h, 1d, 1w
+              aggregation_functions: ["mean", "std", "min", "max", "trend"]
+          - name: "frequency_features"
+            parameters:
+              fft_components: 50
+              spectral_centroid: true
+              spectral_rolloff: true
+          - name: "statistical_features"
+            parameters:
+              moments: [1, 2, 3, 4]  # mean, variance, skewness, kurtosis
+              percentiles: [10, 25, 50, 75, 90]
+          - name: "domain_features"
+            parameters:
+              equipment_specific: true
+              maintenance_history: true
+              environmental_factors: true
+        feature_selection:
+          method: "mutual_info_classif"
+          k_best: 100
+        scaling:
+          method: "robust_scaler"
+        encoding:
+          method: "label_encoding"
+          
+    - name: "data_splitting"
+      description: "Split data into train/validation/test sets with temporal consideration"
+      component: "data_splitting"
+      inputs:
+        - name: "features"
+          from_stage: "feature_engineering"
+      outputs:
+        - name: "train_data"
+          path: "/data/pipeline/maintenance/splits/train/"
+        - name: "validation_data"
+          path: "/data/pipeline/maintenance/splits/validation/"
+        - name: "test_data"
+          path: "/data/pipeline/maintenance/splits/test/"
+      parameters:
+        splitting_strategy: "temporal"
+        train_ratio: 0.6
+        validation_ratio: 0.2
+        test_ratio: 0.2
+        stratification_column: "failure_class"
+        random_state: 42
+        time_column: "timestamp"
+        
+    - name: "model_training"
+      description: "Train predictive maintenance models"
+      component: "model_training"
+      inputs:
+        - name: "train_data"
+          from_stage: "data_splitting"
+        - name: "validation_data"
+          from_stage: "data_splitting"
+      outputs:
+        - name: "trained_models"
+          path: "/models/predictive_maintenance/"
+      parameters:
+        models:
+          - name: "equipment_health_monitor"
+            config_file: "config/ml/models/predictive_maintenance/equipment_health_monitor.yaml"
+            algorithm: "IsolationForest"
+            hyperparameters:
+              contamination: [0.05, 0.1, 0.15]
+              n_estimators: [100, 200, 300]
+              max_samples: [0.8, 1.0]
+          - name: "failure_predictor"
+            config_file: "config/ml/models/predictive_maintenance/failure_predictor.yaml"
+            algorithm: "XGBClassifier"
+            hyperparameters:
+              n_estimators: [300, 500, 700]
+              max_depth: [8, 10, 12]
+              learning_rate: [0.05, 0.1, 0.15]
+              scale_pos_weight: [5, 10, 15]
+          - name: "maintenance_scheduler"
+            config_file: "config/ml/models/predictive_maintenance/maintenance_scheduler.yaml"
+            algorithm: "GradientBoostingRegressor"
+            hyperparameters:
+              n_estimators: [200, 300, 400]
+              max_depth: [6, 8, 10]
+              learning_rate: [0.05, 0.1, 0.15]
+          - name: "cost_optimizer"
+            config_file: "config/ml/models/predictive_maintenance/cost_optimizer.yaml"
+            algorithm: "XGBRegressor"
+            hyperparameters:
+              n_estimators: [300, 400, 500]
+              max_depth: [8, 10, 12]
+              learning_rate: [0.05, 0.1, 0.15]
+        optimization:
+          method: "bayesian_optimization"
+          cv_folds: 5
+          scoring: "f1_weighted"
+          n_trials: 50
+          n_jobs: -1
+        early_stopping:
+          enabled: true
+          patience: 15
+          monitor: "val_f1_weighted"
+        class_balance:
+          method: "smote"
+          sampling_strategy: "auto"
+          
+    - name: "model_evaluation"
+      description: "Evaluate trained models with time-series specific metrics"
+      component: "model_evaluation"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "test_data"
+          from_stage: "data_splitting"
+      outputs:
+        - name: "evaluation_results"
+          path: "/data/pipeline/maintenance/evaluation/"
+        - name: "model_metrics"
+          path: "/data/pipeline/maintenance/metrics/"
+      parameters:
+        metrics:
+          classification:
+            - "accuracy"
+            - "precision"
+            - "recall"
+            - "f1_score"
+            - "auc_roc"
+            - "precision_recall_curve"
+            - "confusion_matrix"
+          regression:
+            - "mse"
+            - "mae"
+            - "r2"
+            - "explained_variance"
+          time_series:
+            - "mean_absolute_scaled_error"
+            - "symmetric_mean_absolute_percentage_error"
+            - "mean_absolute_percentage_error"
+        cross_validation:
+          enabled: true
+          method: "time_series_split"
+          n_splits: 5
+          scoring: "f1_weighted"
+        statistical_tests:
+          enabled: true
+          tests: ["mcnemar_test", "wilcoxon_test"]
+        confidence_intervals:
+          enabled: true
+          confidence_level: 0.95
+        business_metrics:
+          - name: "false_positive_rate"
+            threshold: 0.05
+          - name: "false_negative_rate"
+            threshold: 0.02
+          - name: "early_warning_accuracy"
+            threshold: 0.8
+            time_horizon: "24_hours"
+          
+    - name: "model_validation"
+      description: "Validate models against maintenance domain rules"
+      component: "model_validation"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "evaluation_results"
+          from_stage: "model_evaluation"
+      outputs:
+        - name: "validation_report"
+          path: "/data/pipeline/maintenance/validation/"
+      parameters:
+        business_rules:
+          - name: "minimum_precision"
+            condition: "precision >= 0.85"
+            severity: "error"
+          - name: "maximum_false_positive_rate"
+            condition: "false_positive_rate <= 0.05"
+            severity: "error"
+          - name: "early_warning_capability"
+            condition: "early_warning_accuracy >= 0.8"
+            severity: "warning"
+          - name: "cost_benefit_ratio"
+            condition: "cost_benefit_ratio >= 3.0"
+            severity: "info"
+        domain_validation:
+          - name: "equipment_specific_validation"
+            enabled: true
+            equipment_types: ["laser", "galvo", "powder_system", "platform", "chamber"]
+          - name: "maintenance_interval_validation"
+            enabled: true
+            min_interval_days: 7
+            max_interval_days: 365
+        explainability:
+          enabled: true
+          method: "shap"
+          sample_size: 2000
+          feature_importance_threshold: 0.01
+        drift_detection:
+          enabled: true
+          method: "psi"
+          threshold: 0.1
+          features: ["sensor_values", "equipment_age", "maintenance_history"]
+          
+    - name: "model_registration"
+      description: "Register validated models in MLflow"
+      component: "model_registration"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "validation_report"
+          from_stage: "model_validation"
+      outputs:
+        - name: "registered_models"
+          path: "/models/registry/predictive_maintenance/"
+      parameters:
+        registry:
+          type: "mlflow"
+          tracking_uri: "http://mlflow-server:5000"
+          experiment_name: "predictive_maintenance_training"
+        model_staging:
+          stages: ["staging", "production"]
+          auto_promotion: false
+          promotion_criteria:
+            - "validation_score >= 0.85"
+            - "false_positive_rate <= 0.05"
+            - "business_validation_passed == true"
+        metadata:
+          tags:
+            - "predictive_maintenance"
+            - "equipment_monitoring"
+            - "failure_prediction"
+          description: "Predictive maintenance models for PBF-LBM equipment"
+        versioning:
+          enabled: true
+          auto_increment: true
+          semantic_versioning: true
+          
+    - name: "pipeline_monitoring"
+      description: "Monitor pipeline execution and model performance"
+      component: "pipeline_monitoring"
+      inputs:
+        - name: "all_stages"
+          from_stage: "*"
+      outputs:
+        - name: "monitoring_metrics"
+          path: "/data/pipeline/maintenance/monitoring/"
+      parameters:
+        metrics:
+          - "pipeline_execution_time"
+          - "data_processing_throughput"
+          - "model_training_time"
+          - "model_performance_metrics"
+          - "resource_utilization"
+          - "data_quality_score"
+          - "feature_importance_stability"
+        alerts:
+          - name: "pipeline_failure"
+            condition: "status == 'failed'"
+            severity: "critical"
+          - name: "performance_degradation"
+            condition: "model_performance < 0.8"
+            severity: "warning"
+          - name: "data_drift"
+            condition: "data_drift_score > 0.1"
+            severity: "warning"
+          - name: "high_false_positive_rate"
+            condition: "false_positive_rate > 0.1"
+            severity: "critical"
+        notifications:
+          channels: ["email", "slack", "dashboard", "sms"]
+          recipients: ["ml_team", "maintenance_team", "operations_team"]
+
+  scheduling:
+    trigger: "schedule"
+    schedule: "0 3 * * 2"  # Every Tuesday at 3 AM
+    timezone: "UTC"
+    retry_policy:
+      max_retries: 3
+      retry_delay_minutes: 60
+      exponential_backoff: true
+      
+  resources:
+    compute:
+      type: "spark_cluster"
+      nodes: 6
+      cores_per_node: 12
+      memory_per_node: "64GB"
+      storage: "500GB"
+    gpu:
+      enabled: false
+    storage:
+      type: "s3"
+      bucket: "ml-pipeline-data"
+      region: "us-west-2"
+      
+  environment:
+    python_version: "3.9"
+    dependencies:
+      - "scikit-learn==1.3.0"
+      - "xgboost==1.7.6"
+      - "pandas==2.0.3"
+      - "numpy==1.24.3"
+      - "mlflow==2.5.0"
+      - "shap==0.42.1"
+      - "evidently==0.2.8"
+      - "imbalanced-learn==0.11.0"
+      - "optuna==3.2.0"
+    environment_variables:
+      MLFLOW_TRACKING_URI: "http://mlflow-server:5000"
+      AWS_DEFAULT_REGION: "us-west-2"
+      LOG_LEVEL: "INFO"
+      MQTT_BROKER_URL: "mqtt://sensor-broker:1883"
+      
+  monitoring:
+    enabled: true
+    metrics_collection:
+      - "pipeline_execution_time"
+      - "data_processing_throughput"
+      - "model_training_time"
+      - "model_performance_metrics"
+      - "resource_utilization"
+      - "sensor_data_quality"
+      - "maintenance_record_completeness"
+    logging:
+      level: "INFO"
+      format: "json"
+      retention_days: 90
+    alerting:
+      enabled: true
+      channels: ["email", "slack", "sms"]
+      thresholds:
+        execution_time_hours: 12
+        failure_rate_percent: 2
+        data_quality_score: 0.95
+        false_positive_rate: 0.05

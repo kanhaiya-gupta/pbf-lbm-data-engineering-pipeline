@@ -1,0 +1,236 @@
+# PBF-LB/M Data Pipeline - ISPM Monitoring Data Source Configuration
+# This file contains ISPM monitoring data source specific configurations
+
+ispm_monitoring:
+  # Data source information
+  source_info:
+    name: "ISPM Monitoring Data"
+    description: "In-Situ Process Monitoring data from Kafka streams"
+    type: "kafka"
+    priority: "high"
+    enabled: true
+    
+  # Connection configuration
+  connection:
+    bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+    topic: "ispm_monitoring_events"
+    consumer_group: "ispm_monitoring_etl_consumer"
+    security_protocol: "PLAINTEXT"
+    sasl_mechanism: null
+    sasl_username: null
+    sasl_password: null
+    
+  # Data extraction settings
+  extraction:
+    batch_size: 50000
+    timeout_minutes: 30
+    retry_attempts: 3
+    retry_delay_seconds: 5
+    
+    # Streaming extraction
+    streaming:
+      enabled: true
+      trigger_processing_time: "10 seconds"
+      output_mode: "append"
+      checkpoint_location: "/tmp/spark-checkpoints/ispm_monitoring"
+      
+    # Batch extraction
+    batch:
+      enabled: false
+      schedule: "0 */15 * * *"  # Every 15 minutes
+      
+  # Data schema
+  schema:
+    columns:
+      - name: "monitoring_id"
+        type: "VARCHAR"
+        nullable: false
+        primary_key: true
+        
+      - name: "process_id"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "sensor_id"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "timestamp"
+        type: "TIMESTAMP"
+        nullable: false
+        
+      - name: "sensor_type"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "sensor_value"
+        type: "DECIMAL"
+        nullable: false
+        
+      - name: "unit"
+        type: "VARCHAR"
+        nullable: true
+        
+      - name: "layer_number"
+        type: "INTEGER"
+        nullable: true
+        
+      - name: "scan_vector_id"
+        type: "VARCHAR"
+        nullable: true
+        
+      - name: "metadata"
+        type: "JSON"
+        nullable: true
+        
+  # Data quality rules
+  quality_rules:
+    - name: "monitoring_id_not_null"
+      type: "not_null"
+      column: "monitoring_id"
+      severity: "error"
+      
+    - name: "process_id_not_null"
+      type: "not_null"
+      column: "process_id"
+      severity: "error"
+      
+    - name: "sensor_id_not_null"
+      type: "not_null"
+      column: "sensor_id"
+      severity: "error"
+      
+    - name: "timestamp_not_null"
+      type: "not_null"
+      column: "timestamp"
+      severity: "error"
+      
+    - name: "sensor_type_not_null"
+      type: "not_null"
+      column: "sensor_type"
+      severity: "error"
+      
+    - name: "sensor_value_not_null"
+      type: "not_null"
+      column: "sensor_value"
+      severity: "error"
+      
+    - name: "sensor_type_valid"
+      type: "in_list"
+      column: "sensor_type"
+      values: ["temperature", "pressure", "laser_power", "scan_speed", "vibration", "acoustic", "optical"]
+      severity: "error"
+      
+    - name: "sensor_value_range"
+      type: "range"
+      column: "sensor_value"
+      min_value: 0
+      max_value: 10000
+      severity: "warning"
+      
+    - name: "layer_number_positive"
+      type: "greater_than_or_equal"
+      column: "layer_number"
+      value: 0
+      severity: "warning"
+      
+  # Data transformation rules
+  transformations:
+    - name: "parse_kafka_message"
+      type: "json_parse"
+      source_column: "value"
+      target_columns:
+        - "monitoring_id"
+        - "process_id"
+        - "sensor_id"
+        - "timestamp"
+        - "sensor_type"
+        - "sensor_value"
+        - "unit"
+        - "layer_number"
+        - "scan_vector_id"
+        - "metadata"
+        
+    - name: "validate_sensor_data"
+      type: "sql"
+      query: |
+        SELECT *
+        FROM parsed_data
+        WHERE sensor_value IS NOT NULL
+          AND sensor_value >= 0
+          AND timestamp IS NOT NULL
+          AND sensor_type IS NOT NULL
+          
+    - name: "calculate_derived_metrics"
+      type: "sql"
+      query: |
+        SELECT *,
+          CASE 
+            WHEN sensor_type = 'temperature' AND sensor_value > 2000 THEN 'high'
+            WHEN sensor_type = 'temperature' AND sensor_value < 20 THEN 'low'
+            ELSE 'normal'
+          END as temperature_status,
+          CASE 
+            WHEN sensor_type = 'pressure' AND sensor_value > 1000 THEN 'high'
+            WHEN sensor_type = 'pressure' AND sensor_value < 0 THEN 'low'
+            ELSE 'normal'
+          END as pressure_status,
+          CASE 
+            WHEN sensor_type = 'laser_power' AND sensor_value > 1000 THEN 'high'
+            WHEN sensor_type = 'laser_power' AND sensor_value < 0 THEN 'low'
+            ELSE 'normal'
+          END as laser_power_status
+        FROM validated_data
+        
+  # Data target configuration
+  target:
+    database: "PBF_LBM_DW"
+    schema: "PUBLIC"
+    table: "fct_ispm_monitoring"
+    write_mode: "append"
+    
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    health_check_interval: 60  # 1 minute
+    metrics_collection: true
+    alert_thresholds:
+      message_lag_seconds: 300  # 5 minutes
+      processing_timeout: 60  # 1 minute
+      quality_score_threshold: 0.9
+      
+  # Security configuration
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: false  # Will be enabled in production
+    audit_logging: true
+    
+  # Anomaly detection configuration
+  anomaly_detection:
+    enabled: true
+    algorithms:
+      - name: "statistical_outlier"
+        enabled: true
+        threshold: 3.0  # 3 standard deviations
+        
+      - name: "threshold_based"
+        enabled: true
+        thresholds:
+          temperature:
+            min: 20
+            max: 3000
+          pressure:
+            min: 0
+            max: 1000
+          laser_power:
+            min: 0
+            max: 1000
+          scan_speed:
+            min: 0
+            max: 5000
+            
+    alerting:
+      enabled: true
+      channels: ["email", "slack"]
+      severity_threshold: 0.8

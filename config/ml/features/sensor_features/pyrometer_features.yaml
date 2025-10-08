@@ -1,0 +1,403 @@
+# Pyrometer Sensor Features Configuration
+# ======================================
+
+features:
+  name: "pyrometer_features"
+  version: "1.0.0"
+  description: "Features extracted from pyrometer sensor data for PBF-LB/M process monitoring"
+  
+  # Feature metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["pyrometer", "temperature", "sensor", "ispm"]
+
+# Data Sources
+data_sources:
+  primary:
+    type: "kafka"
+    topic: "pyrometer_data"
+    schema:
+      timestamp: "datetime"
+      temperature: "float"
+      intensity: "float"
+      wavelength: "float"
+      position_x: "float"
+      position_y: "float"
+      position_z: "float"
+      laser_power: "float"
+      scan_speed: "float"
+      layer_number: "integer"
+      process_id: "string"
+  
+  secondary:
+    type: "postgresql"
+    table: "process_parameters"
+    join_key: "process_id"
+    fields:
+      - "material_type"
+      - "build_parameters"
+      - "environmental_conditions"
+
+# Feature Definitions
+feature_definitions:
+  # Basic temperature features
+  - name: "temperature_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "temperature"
+    description: "Mean temperature over 1-minute window"
+    
+  - name: "temperature_std"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "std"
+    source_field: "temperature"
+    description: "Standard deviation of temperature over 1-minute window"
+    
+  - name: "temperature_max"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "max"
+    source_field: "temperature"
+    description: "Maximum temperature over 1-minute window"
+    
+  - name: "temperature_min"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "min"
+    source_field: "temperature"
+    description: "Minimum temperature over 1-minute window"
+    
+  - name: "temperature_range"
+    type: "derived"
+    formula: "temperature_max - temperature_min"
+    dependencies: ["temperature_max", "temperature_min"]
+    description: "Temperature range over 1-minute window"
+
+  # Temperature trend features
+  - name: "temperature_trend"
+    type: "temporal"
+    method: "linear_regression"
+    window: "5min"
+    source_field: "temperature"
+    description: "Linear trend of temperature over 5-minute window"
+    
+  - name: "temperature_acceleration"
+    type: "temporal"
+    method: "second_derivative"
+    window: "3min"
+    source_field: "temperature"
+    description: "Temperature acceleration (second derivative)"
+    
+  - name: "temperature_volatility"
+    type: "temporal"
+    method: "rolling_std"
+    window: "2min"
+    source_field: "temperature"
+    description: "Temperature volatility over 2-minute window"
+
+  # Intensity features
+  - name: "intensity_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "intensity"
+    description: "Mean intensity over 1-minute window"
+    
+  - name: "intensity_std"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "std"
+    source_field: "intensity"
+    description: "Standard deviation of intensity over 1-minute window"
+    
+  - name: "intensity_ratio"
+    type: "derived"
+    formula: "intensity / max_intensity"
+    dependencies: ["intensity"]
+    description: "Intensity ratio relative to maximum intensity"
+    
+  - name: "intensity_trend"
+    type: "temporal"
+    method: "linear_regression"
+    window: "3min"
+    source_field: "intensity"
+    description: "Linear trend of intensity over 3-minute window"
+
+  # Position features
+  - name: "position_variance"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "var"
+    source_field: ["position_x", "position_y", "position_z"]
+    description: "Variance of position coordinates over 1-minute window"
+    
+  - name: "position_stability"
+    type: "derived"
+    formula: "1 / (1 + position_variance)"
+    dependencies: ["position_variance"]
+    description: "Position stability metric (inverse of variance)"
+    
+  - name: "scan_pattern_consistency"
+    type: "temporal"
+    method: "pattern_analysis"
+    window: "5min"
+    source_field: ["position_x", "position_y"]
+    description: "Consistency of scan pattern over 5-minute window"
+
+  # Wavelength features
+  - name: "wavelength_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "wavelength"
+    description: "Mean wavelength over 1-minute window"
+    
+  - name: "wavelength_std"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "std"
+    source_field: "wavelength"
+    description: "Standard deviation of wavelength over 1-minute window"
+    
+  - name: "wavelength_drift"
+    type: "temporal"
+    method: "drift_detection"
+    window: "10min"
+    source_field: "wavelength"
+    description: "Wavelength drift over 10-minute window"
+
+  # Cross-feature interactions
+  - name: "temperature_intensity_correlation"
+    type: "correlation"
+    fields: ["temperature", "intensity"]
+    window: "2min"
+    description: "Correlation between temperature and intensity"
+    
+  - name: "power_efficiency"
+    type: "derived"
+    formula: "temperature / laser_power"
+    dependencies: ["temperature", "laser_power"]
+    description: "Temperature per unit laser power (efficiency metric)"
+    
+  - name: "scan_efficiency"
+    type: "derived"
+    formula: "temperature / scan_speed"
+    dependencies: ["temperature", "scan_speed"]
+    description: "Temperature per unit scan speed"
+
+  # Lag features
+  - name: "temperature_lag_1"
+    type: "lag"
+    source_field: "temperature"
+    lag: 1
+    description: "Temperature value from 1 time step ago"
+    
+  - name: "temperature_lag_5"
+    type: "lag"
+    source_field: "temperature"
+    lag: 5
+    description: "Temperature value from 5 time steps ago"
+    
+  - name: "temperature_lag_10"
+    type: "lag"
+    source_field: "temperature"
+    lag: 10
+    description: "Temperature value from 10 time steps ago"
+
+  # Rolling features
+  - name: "temperature_rolling_mean_5"
+    type: "rolling"
+    source_field: "temperature"
+    window: 5
+    aggregation: "mean"
+    description: "5-point rolling mean of temperature"
+    
+  - name: "temperature_rolling_std_5"
+    type: "rolling"
+    source_field: "temperature"
+    window: 5
+    aggregation: "std"
+    description: "5-point rolling standard deviation of temperature"
+    
+  - name: "temperature_rolling_max_10"
+    type: "rolling"
+    source_field: "temperature"
+    window: 10
+    aggregation: "max"
+    description: "10-point rolling maximum of temperature"
+
+  # Frequency domain features
+  - name: "temperature_fft_peak"
+    type: "frequency"
+    method: "fft_peak"
+    source_field: "temperature"
+    window: "5min"
+    description: "Peak frequency component of temperature FFT"
+    
+  - name: "temperature_spectral_centroid"
+    type: "frequency"
+    method: "spectral_centroid"
+    source_field: "temperature"
+    window: "3min"
+    description: "Spectral centroid of temperature signal"
+
+# Feature Validation
+validation:
+  temperature:
+    min_value: 0
+    max_value: 3000
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  intensity:
+    min_value: 0
+    max_value: 1.0
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  wavelength:
+    min_value: 400
+    max_value: 1100
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  position_x:
+    min_value: -100
+    max_value: 100
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  position_y:
+    min_value: -100
+    max_value: 100
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  position_z:
+    min_value: 0
+    max_value: 200
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+
+# Feature Storage
+storage:
+  online_store:
+    type: "redis"
+    host: "redis"
+    port: 6379
+    db: 2
+    ttl: "1h"
+    key_prefix: "pyrometer_features:"
+    
+  offline_store:
+    type: "parquet"
+    path: "s3://pbf-data-lake/features/pyrometer_features"
+    partitioning: ["year", "month", "day", "hour"]
+    compression: "snappy"
+    
+  # Feature caching
+  caching:
+    enabled: true
+    cache_size: 10000
+    ttl: "30m"
+    eviction_policy: "lru"
+
+# Feature Engineering Pipeline
+pipeline:
+  # Processing steps
+  steps:
+    - name: "data_validation"
+      type: "validator"
+      config:
+        validation_rules: "validation"
+        
+    - name: "missing_value_handling"
+      type: "imputer"
+      config:
+        strategy: "interpolate"
+        method: "linear"
+        
+    - name: "outlier_detection"
+      type: "outlier_detector"
+      config:
+        method: "iqr"
+        threshold: 3.0
+        
+    - name: "feature_computation"
+      type: "feature_computer"
+      config:
+        features: "feature_definitions"
+        
+    - name: "feature_validation"
+      type: "feature_validator"
+      config:
+        validation_rules: "validation"
+        
+    - name: "feature_storage"
+      type: "feature_storer"
+      config:
+        storage: "storage"
+  
+  # Pipeline scheduling
+  scheduling:
+    trigger: "streaming"  # streaming, batch, cron
+    batch_size: 1000
+    processing_interval: "1s"
+    
+  # Error handling
+  error_handling:
+    retry_policy:
+      max_retries: 3
+      backoff_factor: 2
+    failure_notification:
+      channels: ["email", "slack"]
+      recipients: ["ml-team@company.com"]
+
+# Feature Monitoring
+monitoring:
+  # Feature quality monitoring
+  quality:
+    enabled: true
+    metrics:
+      - "completeness"
+      - "accuracy"
+      - "consistency"
+      - "timeliness"
+    thresholds:
+      completeness: 0.95
+      accuracy: 0.98
+      consistency: 0.90
+      timeliness: 60  # seconds
+  
+  # Feature drift monitoring
+  drift:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+    methods:
+      - "statistical"
+      - "distribution"
+      - "correlation"
+  
+  # Feature performance monitoring
+  performance:
+    enabled: true
+    metrics:
+      - "computation_time"
+      - "memory_usage"
+      - "throughput"
+    thresholds:
+      computation_time: 100  # milliseconds
+      memory_usage: 512  # MB
+      throughput: 1000  # features per second

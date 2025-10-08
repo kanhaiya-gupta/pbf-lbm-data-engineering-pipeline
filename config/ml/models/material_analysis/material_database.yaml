@@ -1,0 +1,504 @@
+# Material Database Configuration
+# Configuration for material property database and management
+
+model:
+  name: "material_database"
+  version: "1.0.0"
+  type: "database"
+  framework: "postgresql"
+  
+  architecture:
+    database_type: "relational"
+    engine: "postgresql"
+    version: "13.0"
+    connection_pool_size: 20
+    max_connections: 100
+    
+  schema:
+    tables:
+      - name: "materials"
+        description: "Base material information"
+        columns:
+          - name: "material_id"
+            type: "uuid"
+            primary_key: true
+            description: "Unique material identifier"
+          - name: "material_name"
+            type: "varchar(100)"
+            not_null: true
+            description: "Material name"
+          - name: "material_type"
+            type: "varchar(50)"
+            not_null: true
+            description: "Material type/category"
+          - name: "manufacturer"
+            type: "varchar(100)"
+            description: "Material manufacturer"
+          - name: "grade"
+            type: "varchar(50)"
+            description: "Material grade"
+          - name: "composition"
+            type: "jsonb"
+            description: "Chemical composition"
+          - name: "created_at"
+            type: "timestamp"
+            default: "CURRENT_TIMESTAMP"
+          - name: "updated_at"
+            type: "timestamp"
+            default: "CURRENT_TIMESTAMP"
+            
+      - name: "material_properties"
+        description: "Material physical and mechanical properties"
+        columns:
+          - name: "property_id"
+            type: "uuid"
+            primary_key: true
+          - name: "material_id"
+            type: "uuid"
+            foreign_key: "materials.material_id"
+          - name: "property_type"
+            type: "varchar(50)"
+            not_null: true
+            description: "Type of property (mechanical, thermal, physical)"
+          - name: "property_name"
+            type: "varchar(100)"
+            not_null: true
+            description: "Property name"
+          - name: "property_value"
+            type: "numeric"
+            not_null: true
+            description: "Property value"
+          - name: "unit"
+            type: "varchar(20)"
+            not_null: true
+            description: "Property unit"
+          - name: "temperature"
+            type: "numeric"
+            description: "Temperature at which property was measured"
+          - name: "test_method"
+            type: "varchar(100)"
+            description: "Test method used"
+          - name: "test_standard"
+            type: "varchar(50)"
+            description: "Test standard followed"
+          - name: "confidence_level"
+            type: "numeric"
+            description: "Confidence level of measurement"
+          - name: "created_at"
+            type: "timestamp"
+            default: "CURRENT_TIMESTAMP"
+            
+      - name: "powder_properties"
+        description: "Powder-specific properties"
+        columns:
+          - name: "powder_id"
+            type: "uuid"
+            primary_key: true
+          - name: "material_id"
+            type: "uuid"
+            foreign_key: "materials.material_id"
+          - name: "particle_size_d10"
+            type: "numeric"
+            description: "10th percentile particle size (μm)"
+          - name: "particle_size_d50"
+            type: "numeric"
+            description: "50th percentile particle size (μm)"
+          - name: "particle_size_d90"
+            type: "numeric"
+            description: "90th percentile particle size (μm)"
+          - name: "particle_size_distribution"
+            type: "varchar(20)"
+            description: "Particle size distribution type"
+          - name: "sphericity"
+            type: "numeric"
+            description: "Particle sphericity"
+          - name: "flowability"
+            type: "numeric"
+            description: "Powder flowability index"
+          - name: "apparent_density"
+            type: "numeric"
+            description: "Apparent density (g/cm³)"
+          - name: "tap_density"
+            type: "numeric"
+            description: "Tap density (g/cm³)"
+          - name: "hausner_ratio"
+            type: "numeric"
+            description: "Hausner ratio"
+          - name: "carr_index"
+            type: "numeric"
+            description: "Carr index"
+          - name: "angle_of_repose"
+            type: "numeric"
+            description: "Angle of repose (degrees)"
+          - name: "moisture_content"
+            type: "numeric"
+            description: "Moisture content (%)"
+          - name: "oxygen_content"
+            type: "numeric"
+            description: "Oxygen content (ppm)"
+          - name: "nitrogen_content"
+            type: "numeric"
+            description: "Nitrogen content (ppm)"
+          - name: "created_at"
+            type: "timestamp"
+            default: "CURRENT_TIMESTAMP"
+            
+      - name: "process_parameters"
+        description: "Optimal process parameters for each material"
+        columns:
+          - name: "parameter_id"
+            type: "uuid"
+            primary_key: true
+          - name: "material_id"
+            type: "uuid"
+            foreign_key: "materials.material_id"
+          - name: "parameter_type"
+            type: "varchar(50)"
+            not_null: true
+            description: "Type of parameter (laser, build, post-processing)"
+          - name: "parameter_name"
+            type: "varchar(100)"
+            not_null: true
+            description: "Parameter name"
+          - name: "parameter_value"
+            type: "numeric"
+            not_null: true
+            description: "Parameter value"
+          - name: "unit"
+            type: "varchar(20)"
+            not_null: true
+            description: "Parameter unit"
+          - name: "min_value"
+            type: "numeric"
+            description: "Minimum recommended value"
+          - name: "max_value"
+            type: "numeric"
+            description: "Maximum recommended value"
+          - name: "optimal_value"
+            type: "numeric"
+            description: "Optimal value"
+          - name: "confidence_level"
+            type: "numeric"
+            description: "Confidence level of recommendation"
+          - name: "created_at"
+            type: "timestamp"
+            default: "CURRENT_TIMESTAMP"
+            
+      - name: "quality_standards"
+        description: "Quality standards and specifications"
+        columns:
+          - name: "standard_id"
+            type: "uuid"
+            primary_key: true
+          - name: "material_id"
+            type: "uuid"
+            foreign_key: "materials.material_id"
+          - name: "standard_name"
+            type: "varchar(100)"
+            not_null: true
+            description: "Standard name"
+          - name: "standard_organization"
+            type: "varchar(100)"
+            description: "Standard organization"
+          - name: "standard_number"
+            type: "varchar(50)"
+            description: "Standard number"
+          - name: "standard_version"
+            type: "varchar(20)"
+            description: "Standard version"
+          - name: "requirements"
+            type: "jsonb"
+            description: "Standard requirements"
+          - name: "test_methods"
+            type: "jsonb"
+            description: "Required test methods"
+          - name: "valid_from"
+            type: "date"
+            description: "Standard valid from date"
+          - name: "valid_to"
+            type: "date"
+            description: "Standard valid to date"
+          - name: "created_at"
+            type: "timestamp"
+            default: "CURRENT_TIMESTAMP"
+            
+      - name: "material_tests"
+        description: "Test results and measurements"
+        columns:
+          - name: "test_id"
+            type: "uuid"
+            primary_key: true
+          - name: "material_id"
+            type: "uuid"
+            foreign_key: "materials.material_id"
+          - name: "test_type"
+            type: "varchar(50)"
+            not_null: true
+            description: "Type of test"
+          - name: "test_name"
+            type: "varchar(100)"
+            not_null: true
+            description: "Test name"
+          - name: "test_date"
+            type: "date"
+            not_null: true
+            description: "Test date"
+          - name: "test_lab"
+            type: "varchar(100)"
+            description: "Testing laboratory"
+          - name: "test_operator"
+            type: "varchar(100)"
+            description: "Test operator"
+          - name: "test_conditions"
+            type: "jsonb"
+            description: "Test conditions"
+          - name: "test_results"
+            type: "jsonb"
+            description: "Test results"
+          - name: "test_notes"
+            type: "text"
+            description: "Test notes and observations"
+          - name: "certificate_number"
+            type: "varchar(100)"
+            description: "Test certificate number"
+          - name: "created_at"
+            type: "timestamp"
+            default: "CURRENT_TIMESTAMP"
+            
+      - name: "material_suppliers"
+        description: "Material supplier information"
+        columns:
+          - name: "supplier_id"
+            type: "uuid"
+            primary_key: true
+          - name: "material_id"
+            type: "uuid"
+            foreign_key: "materials.material_id"
+          - name: "supplier_name"
+            type: "varchar(100)"
+            not_null: true
+            description: "Supplier name"
+          - name: "supplier_contact"
+            type: "varchar(100)"
+            description: "Supplier contact person"
+          - name: "supplier_email"
+            type: "varchar(100)"
+            description: "Supplier email"
+          - name: "supplier_phone"
+            type: "varchar(20)"
+            description: "Supplier phone"
+          - name: "supplier_address"
+            type: "text"
+            description: "Supplier address"
+          - name: "price_per_kg"
+            type: "numeric"
+            description: "Price per kilogram"
+          - name: "currency"
+            type: "varchar(3)"
+            description: "Currency code"
+          - name: "minimum_order"
+            type: "numeric"
+            description: "Minimum order quantity"
+          - name: "lead_time_days"
+            type: "integer"
+            description: "Lead time in days"
+          - name: "quality_rating"
+            type: "numeric"
+            description: "Quality rating (1-10)"
+          - name: "is_active"
+            type: "boolean"
+            default: true
+            description: "Is supplier active"
+          - name: "created_at"
+            type: "timestamp"
+            default: "CURRENT_TIMESTAMP"
+
+  indexes:
+    - name: "idx_materials_type"
+      table: "materials"
+      columns: ["material_type"]
+    - name: "idx_materials_name"
+      table: "materials"
+      columns: ["material_name"]
+    - name: "idx_properties_material"
+      table: "material_properties"
+      columns: ["material_id"]
+    - name: "idx_properties_type"
+      table: "material_properties"
+      columns: ["property_type"]
+    - name: "idx_powder_material"
+      table: "powder_properties"
+      columns: ["material_id"]
+    - name: "idx_parameters_material"
+      table: "process_parameters"
+      columns: ["material_id"]
+    - name: "idx_parameters_type"
+      table: "process_parameters"
+      columns: ["parameter_type"]
+    - name: "idx_tests_material"
+      table: "material_tests"
+      columns: ["material_id"]
+    - name: "idx_tests_date"
+      table: "material_tests"
+      columns: ["test_date"]
+    - name: "idx_suppliers_material"
+      table: "material_suppliers"
+      columns: ["material_id"]
+    - name: "idx_suppliers_active"
+      table: "material_suppliers"
+      columns: ["is_active"]
+
+  views:
+    - name: "material_summary"
+      description: "Summary view of all material information"
+      query: |
+        SELECT 
+          m.material_id,
+          m.material_name,
+          m.material_type,
+          m.manufacturer,
+          m.grade,
+          COUNT(DISTINCT mp.property_id) as property_count,
+          COUNT(DISTINCT pp.parameter_id) as parameter_count,
+          COUNT(DISTINCT mt.test_id) as test_count,
+          COUNT(DISTINCT ms.supplier_id) as supplier_count
+        FROM materials m
+        LEFT JOIN material_properties mp ON m.material_id = mp.material_id
+        LEFT JOIN process_parameters pp ON m.material_id = pp.material_id
+        LEFT JOIN material_tests mt ON m.material_id = mt.material_id
+        LEFT JOIN material_suppliers ms ON m.material_id = ms.material_id
+        GROUP BY m.material_id, m.material_name, m.material_type, m.manufacturer, m.grade
+        
+    - name: "powder_summary"
+      description: "Summary view of powder properties"
+      query: |
+        SELECT 
+          m.material_id,
+          m.material_name,
+          pp.particle_size_d50,
+          pp.sphericity,
+          pp.flowability,
+          pp.apparent_density,
+          pp.oxygen_content,
+          pp.nitrogen_content
+        FROM materials m
+        JOIN powder_properties pp ON m.material_id = pp.material_id
+        WHERE m.material_type = 'powder'
+
+  api_endpoints:
+    - name: "get_materials"
+      method: "GET"
+      path: "/api/materials"
+      description: "Get all materials with optional filtering"
+      parameters:
+        - name: "material_type"
+          type: "string"
+          required: false
+        - name: "manufacturer"
+          type: "string"
+          required: false
+        - name: "limit"
+          type: "integer"
+          required: false
+          default: 100
+        - name: "offset"
+          type: "integer"
+          required: false
+          default: 0
+          
+    - name: "get_material_by_id"
+      method: "GET"
+      path: "/api/materials/{material_id}"
+      description: "Get specific material by ID"
+      parameters:
+        - name: "material_id"
+          type: "uuid"
+          required: true
+          
+    - name: "get_material_properties"
+      method: "GET"
+      path: "/api/materials/{material_id}/properties"
+      description: "Get properties for specific material"
+      parameters:
+        - name: "material_id"
+          type: "uuid"
+          required: true
+        - name: "property_type"
+          type: "string"
+          required: false
+          
+    - name: "get_process_parameters"
+      method: "GET"
+      path: "/api/materials/{material_id}/parameters"
+      description: "Get process parameters for specific material"
+      parameters:
+        - name: "material_id"
+          type: "uuid"
+          required: true
+        - name: "parameter_type"
+          type: "string"
+          required: false
+          
+    - name: "search_materials"
+      method: "POST"
+      path: "/api/materials/search"
+      description: "Search materials by criteria"
+      body:
+        type: "json"
+        schema:
+          type: "object"
+          properties:
+            material_type:
+              type: "string"
+            property_filters:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  property_name:
+                    type: "string"
+                  min_value:
+                    type: "number"
+                  max_value:
+                    type: "number"
+
+  data_validation:
+    enabled: true
+    rules:
+      - name: "material_name_unique"
+        type: "unique"
+        table: "materials"
+        column: "material_name"
+      - name: "property_value_positive"
+        type: "check"
+        table: "material_properties"
+        condition: "property_value > 0"
+      - name: "particle_size_ordering"
+        type: "check"
+        table: "powder_properties"
+        condition: "particle_size_d10 <= particle_size_d50 AND particle_size_d50 <= particle_size_d90"
+      - name: "parameter_value_range"
+        type: "check"
+        table: "process_parameters"
+        condition: "parameter_value >= min_value AND parameter_value <= max_value"
+
+  backup_strategy:
+    enabled: true
+    frequency: "daily"
+    retention_days: 30
+    compression: true
+    encryption: true
+    
+  security:
+    enabled: true
+    authentication: "jwt"
+    authorization: "rbac"
+    roles:
+      - name: "admin"
+        permissions: ["read", "write", "delete", "admin"]
+      - name: "engineer"
+        permissions: ["read", "write"]
+      - name: "viewer"
+        permissions: ["read"]
+    audit_logging: true
+    data_encryption: true

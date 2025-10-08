@@ -1,0 +1,94 @@
+# PBF-LB/M Data Pipeline - Development Environment Configuration
+# This file contains development-specific settings
+
+environment:
+  name: "development"
+  description: "Development environment for PBF-LB/M data pipeline"
+  
+  # Environment-specific settings
+  settings:
+    debug_mode: true
+    log_level: "DEBUG"
+    data_retention_days: 7
+    max_concurrent_jobs: 2
+    
+  # Development-specific configurations
+  development:
+    hot_reload: true
+    auto_restart: true
+    mock_external_services: true
+    
+  # Resource allocation (reduced for development)
+  resources:
+    memory:
+      driver_memory: "1g"
+      executor_memory: "2g"
+      executor_cores: 1
+      
+    parallelism:
+      default_parallelism: 50
+      max_parallelism: 100
+      
+  # Development databases
+  databases:
+    postgres:
+      host: "localhost"
+      port: 5432
+      database: "pbf_lbm_dev"
+      username: "dev_user"
+      password: "dev_password"
+      
+    snowflake:
+      account: "dev_account"
+      warehouse: "DEV_WH"
+      database: "PBF_LBM_DEV"
+      schema: "PUBLIC"
+      
+    s3:
+      bucket: "pbf-lbm-dev-data"
+      region: "us-east-1"
+      endpoint: "http://localhost:9000"  # MinIO for development
+      
+  # Development services
+  services:
+    kafka:
+      bootstrap_servers: "localhost:9092"
+      auto_create_topics: true
+      
+    airflow:
+      webserver_url: "http://localhost:8080"
+      dag_folder: "/opt/airflow/dags"
+      
+    spark:
+      master: "local[*]"
+      app_name: "PBF_LB_M_DEV"
+      
+  # Development monitoring
+  monitoring:
+    metrics:
+      enabled: false  # Disabled in development
+      
+    logging:
+      enabled: true
+      level: "DEBUG"
+      console_output: true
+      
+    alerting:
+      enabled: false  # Disabled in development
+      
+  # Development security (relaxed)
+  security:
+    encryption:
+      enabled: false
+      
+    authentication:
+      enabled: false
+      
+    authorization:
+      enabled: false
+      
+  # Development backup (minimal)
+  backup:
+    enabled: false
+    frequency: "weekly"
+    retention_days: 7

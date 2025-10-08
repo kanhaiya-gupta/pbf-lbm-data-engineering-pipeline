@@ -1,0 +1,49 @@
+# Feast Online Store Configuration
+# Online store configuration for real-time feature serving
+
+online_store:
+  type: "redis"
+  connection_string: "redis://redis-feature-store:6379"
+  database: 0
+  key_prefix: "feast:"
+  key_ttl: 3600
+  max_connections: 100
+  retry_attempts: 3
+  retry_delay: 1000
+  timeout: 5000
+  ssl_enabled: false
+  ssl_cert_path: null
+  ssl_key_path: null
+  ssl_ca_path: null
+  ssl_verify_mode: "none"
+  ssl_check_hostname: false
+  ssl_ciphers: null
+  ssl_protocols: null
+  ssl_options: null
+  ssl_context: null
+  ssl_handshake_timeout: null
+  ssl_shutdown_timeout: null
+  ssl_max_version: null
+  ssl_min_version: null
+  ssl_verify_flags: null
+  ssl_verify_depth: null
+  ssl_cert_reqs: null
+  ssl_ca_certs: null
+  ssl_certfile: null
+  ssl_keyfile: null
+  ssl_password: null
+  ssl_ciphers: null
+  ssl_protocols: null
+  ssl_options: null
+  ssl_context: null
+  ssl_handshake_timeout: null
+  ssl_shutdown_timeout: null
+  ssl_max_version: null
+  ssl_min_version: null
+  ssl_verify_flags: null
+  ssl_verify_depth: null
+  ssl_cert_reqs: null
+  ssl_ca_certs: null
+  ssl_certfile: null
+  ssl_keyfile: null
+  ssl_password: null

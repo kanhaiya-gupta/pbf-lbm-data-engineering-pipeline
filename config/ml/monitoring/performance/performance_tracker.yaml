@@ -1,0 +1,441 @@
+# Performance Tracker Configuration
+# =================================
+
+monitor:
+  name: "performance_tracker"
+  version: "1.0.0"
+  description: "ML model performance tracking and monitoring"
+  
+  # Monitor metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["performance", "monitoring", "ml_metrics", "tracking"]
+
+# Performance Metrics Configuration
+performance_metrics:
+  # Classification metrics
+  classification:
+    enabled: true
+    metrics:
+      - name: "accuracy"
+        threshold: 0.90
+        weight: 0.3
+        description: "Overall accuracy of the model"
+      - name: "precision_macro"
+        threshold: 0.85
+        weight: 0.2
+        description: "Macro-averaged precision"
+      - name: "recall_macro"
+        threshold: 0.85
+        weight: 0.2
+        description: "Macro-averaged recall"
+      - name: "f1_macro"
+        threshold: 0.85
+        weight: 0.2
+        description: "Macro-averaged F1 score"
+      - name: "roc_auc"
+        threshold: 0.90
+        weight: 0.1
+        description: "Area under ROC curve"
+  
+  # Regression metrics
+  regression:
+    enabled: true
+    metrics:
+      - name: "mse"
+        threshold: 0.1
+        weight: 0.3
+        description: "Mean Squared Error"
+      - name: "rmse"
+        threshold: 0.3
+        weight: 0.3
+        description: "Root Mean Squared Error"
+      - name: "mae"
+        threshold: 0.2
+        weight: 0.2
+        description: "Mean Absolute Error"
+      - name: "r2_score"
+        threshold: 0.85
+        weight: 0.2
+        description: "R-squared score"
+  
+  # Business metrics
+  business:
+    enabled: true
+    metrics:
+      - name: "defect_detection_rate"
+        threshold: 0.95
+        weight: 0.4
+        description: "Rate of correctly detected defects"
+      - name: "false_positive_rate"
+        threshold: 0.05
+        weight: 0.3
+        description: "Rate of false positive predictions"
+      - name: "false_negative_rate"
+        threshold: 0.05
+        weight: 0.3
+        description: "Rate of false negative predictions"
+  
+  # Latency metrics
+  latency:
+    enabled: true
+    metrics:
+      - name: "p50_latency"
+        threshold: 100
+        weight: 0.2
+        description: "50th percentile latency in milliseconds"
+      - name: "p95_latency"
+        threshold: 200
+        weight: 0.3
+        description: "95th percentile latency in milliseconds"
+      - name: "p99_latency"
+        threshold: 500
+        weight: 0.3
+        description: "99th percentile latency in milliseconds"
+      - name: "max_latency"
+        threshold: 1000
+        weight: 0.2
+        description: "Maximum latency in milliseconds"
+  
+  # Throughput metrics
+  throughput:
+    enabled: true
+    metrics:
+      - name: "requests_per_second"
+        threshold: 1000
+        weight: 0.4
+        description: "Requests processed per second"
+      - name: "predictions_per_second"
+        threshold: 1000
+        weight: 0.3
+        description: "Predictions generated per second"
+      - name: "batch_throughput"
+        threshold: 10000
+        weight: 0.3
+        description: "Batch processing throughput"
+
+# Data Sources Configuration
+data_sources:
+  # Model predictions
+  predictions:
+    type: "kafka"
+    topic: "ml_predictions"
+    consumer_group: "performance_tracker"
+    window_size: "1h"
+    sampling:
+      enabled: true
+      method: "systematic"
+      interval: "1min"
+      size: 1000
+  
+  # Ground truth data
+  ground_truth:
+    type: "postgresql"
+    table: "ground_truth_data"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    filters:
+      date_range: "last_7_days"
+      quality_threshold: 0.98
+    sampling:
+      enabled: true
+      method: "random"
+      size: 5000
+      seed: 42
+  
+  # Performance logs
+  performance_logs:
+    type: "postgresql"
+    table: "performance_logs"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    filters:
+      date_range: "last_24_hours"
+    sampling:
+      enabled: false
+
+# Model Configuration
+models:
+  # Models to monitor
+  monitored_models:
+    - name: "defect_detector"
+      type: "classification"
+      version: "latest"
+      stage: "production"
+      metrics: ["classification", "business", "latency", "throughput"]
+    - name: "process_optimizer"
+      type: "regression"
+      version: "latest"
+      stage: "production"
+      metrics: ["regression", "latency", "throughput"]
+    - name: "quality_assessor"
+      type: "classification"
+      version: "latest"
+      stage: "production"
+      metrics: ["classification", "business", "latency", "throughput"]
+  
+  # Model comparison
+  comparison:
+    enabled: true
+    baseline_model: "previous_version"
+    comparison_metrics: ["accuracy", "precision", "recall", "f1_score"]
+    statistical_significance: 0.05
+
+# Tracking Configuration
+tracking:
+  # Tracking frequency
+  frequency: "1h"
+  timezone: "UTC"
+  
+  # Tracking window
+  window_size: "1h"
+  overlap: "0.5h"
+  
+  # Tracking thresholds
+  thresholds:
+    performance_degradation: 0.05
+    severe_degradation: 0.15
+    critical_degradation: 0.25
+  
+  # Tracking sensitivity
+  sensitivity:
+    level: "medium"  # low, medium, high
+    adjustment_factor: 1.0
+    seasonal_adjustment: true
+    trend_adjustment: true
+
+# Alerting Configuration
+alerting:
+  # Alert channels
+  channels:
+    - type: "email"
+      recipients: ["ml-team@company.com"]
+      template: "performance_alert_email"
+    - type: "slack"
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#ml-alerts"
+      template: "performance_alert_slack"
+    - type: "pagerduty"
+      integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+      severity: "critical"
+  
+  # Alert thresholds
+  thresholds:
+    - level: "warning"
+      performance_degradation: 0.05
+      duration: "30m"
+      cooldown: "1h"
+    - level: "critical"
+      performance_degradation: 0.15
+      duration: "10m"
+      cooldown: "30m"
+    - level: "emergency"
+      performance_degradation: 0.25
+      duration: "5m"
+      cooldown: "15m"
+  
+  # Alert suppression
+  suppression:
+    enabled: true
+    maintenance_windows: true
+    business_hours_only: false
+    max_alerts_per_hour: 10
+
+# Storage Configuration
+storage:
+  # Results storage
+  results:
+    type: "postgresql"
+    table: "performance_tracking_results"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    retention_days: 90
+    partitioning: ["year", "month", "day"]
+  
+  # Artifacts storage
+  artifacts:
+    type: "s3"
+    bucket: "pbf-ml-artifacts"
+    path: "performance_tracking/artifacts"
+    compression: "gzip"
+    retention_days: 30
+  
+  # Cache storage
+  cache:
+    type: "redis"
+    host: "redis"
+    port: 6379
+    db: 4
+    ttl: "1h"
+    max_size: 10000
+
+# Performance Configuration
+performance:
+  # Processing performance
+  processing:
+    parallel_processing: true
+    max_workers: 4
+    batch_size: 1000
+    timeout: "10m"
+  
+  # Memory management
+  memory:
+    target: 2  # GB
+    max: 4
+    gc_threshold: 0.8
+  
+  # CPU requirements
+  cpu:
+    target: 1
+    max: 2
+
+# Monitoring Configuration
+monitoring:
+  # Health checks
+  health_check:
+    path: "/health"
+    interval: "60s"
+    timeout: "10s"
+    failure_threshold: 3
+    success_threshold: 1
+  
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: "5m"
+    retention_days: 30
+    
+    # Custom metrics
+    custom_metrics:
+      - "performance_tracking_latency"
+      - "metric_calculation_time"
+      - "data_processing_time"
+      - "alert_frequency"
+      - "false_positive_rate"
+      - "true_positive_rate"
+      - "memory_usage"
+      - "cpu_usage"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    
+    # Alert thresholds
+    thresholds:
+      - metric: "performance_tracking_latency"
+        threshold: 600  # 10 minutes
+        operator: ">"
+        severity: "warning"
+        duration: "5m"
+      - metric: "false_positive_rate"
+        threshold: 0.1
+        operator: ">"
+        severity: "warning"
+        duration: "10m"
+      - metric: "memory_usage"
+        threshold: 0.9
+        operator: ">"
+        severity: "critical"
+        duration: "5m"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/performance_tracker.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+  
+  # Performance logging
+  performance_logging:
+    enabled: true
+    log_metrics: true
+    log_alerts: true
+    log_performance: true
+    log_comparisons: true
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "numpy==1.24.3"
+    - "pandas==2.0.3"
+    - "scipy==1.11.4"
+    - "scikit-learn==1.3.0"
+    - "kafka-python==2.0.2"
+    - "psycopg2-binary==2.9.9"
+    - "redis==5.0.1"
+    - "boto3==1.34.0"
+    - "matplotlib==3.7.2"
+    - "seaborn==0.12.2"
+  
+  # Environment variables
+  env_vars:
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+    POSTGRES_URL: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    REDIS_URL: "redis://redis:6379/4"
+    S3_BUCKET: "pbf-ml-artifacts"
+    LOG_LEVEL: "INFO"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Error responses
+  error_responses:
+    format: "json"
+    include_stack_trace: false
+    include_request_id: true
+    log_errors: true
+  
+  # Retry policy
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: "5m"
+  
+  # Failure handling
+  failure_handling:
+    strategy: "continue_on_failure"
+    dead_letter_queue: true
+    error_notification: true
+
+# Deployment Configuration
+deployment:
+  # Deployment strategy
+  strategy: "rolling"
+  replicas: 2
+  max_unavailable: 1
+  max_surge: 1
+  progress_deadline: 600  # 10 minutes
+  
+  # Resource requirements
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  
+  # Health checks
+  health_checks:
+    liveness:
+      enabled: true
+      path: "/health"
+      initial_delay: 30
+      period: 10
+      timeout: 5
+      success_threshold: 1
+      failure_threshold: 3
+    readiness:
+      enabled: true
+      path: "/health"
+      initial_delay: 15
+      period: 5
+      timeout: 3
+      success_threshold: 1
+      failure_threshold: 3

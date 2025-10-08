@@ -1,0 +1,303 @@
+# Maintenance Scheduler Configuration
+# Model for optimizing maintenance scheduling in PBF-LBM systems
+
+model:
+  name: "maintenance_scheduler"
+  version: "1.0.0"
+  type: "regression"
+  framework: "scikit-learn"
+  
+  architecture:
+    algorithm: "GradientBoostingRegressor"
+    parameters:
+      n_estimators: 300
+      max_depth: 8
+      learning_rate: 0.1
+      subsample: 0.8
+      min_samples_split: 10
+      min_samples_leaf: 4
+      random_state: 42
+      loss: "huber"
+    
+  input_features:
+    # Equipment Health Metrics
+    - name: "laser_operating_hours"
+      type: "numerical"
+      description: "Laser system operating hours"
+      range: [0.0, 50000.0]
+    - name: "laser_power_degradation"
+      type: "numerical"
+      description: "Laser power degradation percentage (%)"
+      range: [0.0, 20.0]
+    - name: "laser_beam_quality_degradation"
+      type: "numerical"
+      description: "Laser beam quality degradation (M² increase)"
+      range: [0.0, 2.0]
+    - name: "laser_cooling_efficiency"
+      type: "numerical"
+      description: "Laser cooling system efficiency (%)"
+      range: [50.0, 100.0]
+    - name: "laser_temperature_trend"
+      type: "numerical"
+      description: "Laser temperature trend (°C/hour)"
+      range: [-5.0, 5.0]
+    
+    - name: "galvo_operating_hours"
+      type: "numerical"
+      description: "Galvanometer system operating hours"
+      range: [0.0, 50000.0]
+    - name: "galvo_positioning_accuracy"
+      type: "numerical"
+      description: "Galvanometer positioning accuracy (μm)"
+      range: [0.0, 100.0]
+    - name: "galvo_vibration_level"
+      type: "numerical"
+      description: "Galvanometer vibration level (g)"
+      range: [0.0, 10.0]
+    - name: "galvo_temperature_trend"
+      type: "numerical"
+      description: "Galvanometer temperature trend (°C/hour)"
+      range: [-2.0, 2.0]
+    
+    - name: "powder_system_operating_hours"
+      type: "numerical"
+      description: "Powder handling system operating hours"
+      range: [0.0, 50000.0]
+    - name: "powder_feeder_consistency"
+      type: "numerical"
+      description: "Powder feeder consistency (coefficient of variation)"
+      range: [0.0, 0.3]
+    - name: "powder_contamination_level"
+      type: "numerical"
+      description: "Powder contamination level (ppm)"
+      range: [0.0, 2000.0]
+    - name: "powder_sieving_efficiency"
+      type: "numerical"
+      description: "Powder sieving efficiency (%)"
+      range: [0.0, 100.0]
+    
+    - name: "platform_operating_hours"
+      type: "numerical"
+      description: "Build platform system operating hours"
+      range: [0.0, 50000.0]
+    - name: "platform_positioning_accuracy"
+      type: "numerical"
+      description: "Platform positioning accuracy (μm)"
+      range: [0.0, 50.0]
+    - name: "platform_vibration_level"
+      type: "numerical"
+      description: "Platform vibration level (g)"
+      range: [0.0, 5.0]
+    - name: "platform_leveling_accuracy"
+      type: "numerical"
+      description: "Platform leveling accuracy (μm)"
+      range: [0.0, 100.0]
+    
+    - name: "chamber_system_operating_hours"
+      type: "numerical"
+      description: "Chamber system operating hours"
+      range: [0.0, 50000.0]
+    - name: "chamber_temperature_stability"
+      type: "numerical"
+      description: "Chamber temperature stability (°C standard deviation)"
+      range: [0.0, 10.0]
+    - name: "gas_filtration_efficiency"
+      type: "numerical"
+      description: "Gas filtration efficiency (%)"
+      range: [0.0, 100.0]
+    - name: "chamber_pressure_stability"
+      type: "numerical"
+      description: "Chamber pressure stability (mbar standard deviation)"
+      range: [0.0, 50.0]
+    
+    # Usage Patterns
+    - name: "average_build_duration"
+      type: "numerical"
+      description: "Average build duration (hours)"
+      range: [1.0, 200.0]
+    - name: "build_frequency"
+      type: "numerical"
+      description: "Builds per week"
+      range: [0.0, 50.0]
+    - name: "system_utilization"
+      type: "numerical"
+      description: "System utilization percentage (%)"
+      range: [0.0, 100.0]
+    - name: "peak_usage_hours"
+      type: "numerical"
+      description: "Peak usage hours per day"
+      range: [0.0, 24.0]
+    
+    # Environmental Factors
+    - name: "facility_temperature"
+      type: "numerical"
+      description: "Facility ambient temperature (°C)"
+      range: [15.0, 35.0]
+    - name: "facility_humidity"
+      type: "numerical"
+      description: "Facility relative humidity (%)"
+      range: [20.0, 80.0]
+    - name: "power_quality_index"
+      type: "numerical"
+      description: "Power quality index"
+      range: [0.0, 1.0]
+    - name: "vibration_environment"
+      type: "numerical"
+      description: "Environmental vibration level (g)"
+      range: [0.0, 2.0]
+    
+    # Maintenance History
+    - name: "days_since_last_maintenance"
+      type: "numerical"
+      description: "Days since last maintenance"
+      range: [0.0, 365.0]
+    - name: "maintenance_frequency"
+      type: "numerical"
+      description: "Maintenance events per year"
+      range: [0.0, 12.0]
+    - name: "last_maintenance_type"
+      type: "categorical"
+      description: "Type of last maintenance"
+      categories: ["preventive", "corrective", "emergency", "upgrade"]
+    - name: "maintenance_cost_trend"
+      type: "numerical"
+      description: "Maintenance cost trend (USD/month)"
+      range: [0.0, 10000.0]
+    
+    # Business Factors
+    - name: "production_demand"
+      type: "numerical"
+      description: "Production demand level (1-10 scale)"
+      range: [1.0, 10.0]
+    - name: "maintenance_budget"
+      type: "numerical"
+      description: "Available maintenance budget (USD)"
+      range: [0.0, 100000.0]
+    - name: "criticality_level"
+      type: "categorical"
+      description: "Equipment criticality level"
+      categories: ["low", "medium", "high", "critical"]
+    - name: "backup_equipment_available"
+      type: "boolean"
+      description: "Backup equipment available"
+      values: [true, false]
+
+  output_targets:
+    - name: "optimal_maintenance_interval"
+      description: "Optimal maintenance interval in days"
+      range: [1.0, 365.0]
+    - name: "maintenance_priority_score"
+      description: "Maintenance priority score (0-100)"
+      range: [0.0, 100.0]
+    - name: "estimated_maintenance_cost"
+      description: "Estimated maintenance cost (USD)"
+      range: [100.0, 50000.0]
+    - name: "downtime_risk_score"
+      description: "Risk of unplanned downtime (0-100)"
+      range: [0.0, 100.0]
+    - name: "performance_impact_score"
+      description: "Performance impact if maintenance delayed (0-100)"
+      range: [0.0, 100.0]
+
+  training:
+    dataset_path: "/data/training/maintenance_scheduling_dataset.csv"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "kfold"
+      n_splits: 5
+    metrics:
+      primary: "neg_mean_squared_error"
+      secondary: ["neg_mean_absolute_error", "r2", "explained_variance"]
+    early_stopping:
+      enabled: true
+      patience: 20
+      monitor: "val_neg_mean_squared_error"
+    
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["laser_operating_hours", "laser_power_degradation", "laser_beam_quality_degradation",
+                "laser_cooling_efficiency", "laser_temperature_trend", "galvo_operating_hours",
+                "galvo_positioning_accuracy", "galvo_vibration_level", "galvo_temperature_trend",
+                "powder_system_operating_hours", "powder_feeder_consistency", "powder_contamination_level",
+                "powder_sieving_efficiency", "platform_operating_hours", "platform_positioning_accuracy",
+                "platform_vibration_level", "platform_leveling_accuracy", "chamber_system_operating_hours",
+                "chamber_temperature_stability", "gas_filtration_efficiency", "chamber_pressure_stability",
+                "average_build_duration", "build_frequency", "system_utilization", "peak_usage_hours",
+                "facility_temperature", "facility_humidity", "power_quality_index", "vibration_environment",
+                "days_since_last_maintenance", "maintenance_frequency", "maintenance_cost_trend",
+                "production_demand", "maintenance_budget"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["last_maintenance_type", "criticality_level"]
+    feature_engineering:
+      - name: "equipment_age_factor"
+        formula: "laser_operating_hours / 10000 + galvo_operating_hours / 10000 + powder_system_operating_hours / 10000"
+      - name: "degradation_index"
+        formula: "laser_power_degradation + laser_beam_quality_degradation * 10 + galvo_positioning_accuracy / 10"
+      - name: "usage_intensity"
+        formula: "system_utilization * build_frequency * average_build_duration / 24"
+      - name: "environmental_stress"
+        formula: "abs(facility_temperature - 25) / 10 + abs(facility_humidity - 50) / 50 + vibration_environment * 10"
+      - name: "maintenance_urgency"
+        formula: "days_since_last_maintenance / 30 + degradation_index / 10"
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 35
+      
+  validation:
+    business_rules:
+      - rule: "critical_equipment_priority"
+        condition: "criticality_level == 'critical' AND predicted_priority_score < 80"
+        action: "escalate_priority"
+      - rule: "high_downtime_risk_alert"
+        condition: "predicted_downtime_risk_score > 70 AND predicted_interval > 30"
+        action: "schedule_immediate_maintenance"
+      - rule: "budget_constraint_check"
+        condition: "predicted_cost > maintenance_budget * 0.8"
+        action: "suggest_phased_maintenance"
+
+  deployment:
+    inference_mode: "batch"
+    batch_size: 32
+    max_latency_ms: 5000
+    model_format: "joblib"
+    artifact_path: "/models/maintenance_scheduler/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "ks_test"
+      threshold: 0.05
+      features: ["laser_operating_hours", "system_utilization", "days_since_last_maintenance"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["mse", "mae", "r2", "explained_variance"]
+      alert_thresholds:
+        mse: 100.0
+        mae: 5.0
+        r2: 0.8
+    explainability:
+      enabled: true
+      method: "shap"
+      sample_size: 1000
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.1
+    schedule: "monthly"
+    data_requirements:
+      min_samples: 1000
+      equipment_balance_threshold: 0.1
+      
+  optimization:
+    enabled: true
+    objective: "minimize_total_cost"
+    constraints:
+      - "max_downtime_risk <= 30"
+      - "maintenance_cost <= budget"
+      - "min_interval >= 7"
+    solver: "genetic_algorithm"
+    population_size: 100
+    generations: 50

@@ -1,0 +1,438 @@
+# Build Strategy Optimizer Model Configuration
+# ============================================
+
+model:
+  name: "build_strategy_optimizer"
+  version: "1.0.0"
+  type: "multi_objective_optimization"
+  algorithm: "genetic_algorithm"
+  description: "Multi-objective optimization model for PBF-LB/M build strategy optimization"
+  
+  # Model metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["process_optimization", "build_strategy", "genetic_algorithm", "multi_objective"]
+
+# Model Architecture
+architecture:
+  input_shape: [25]  # 25 input features
+  output_shape: [8]  # 8 optimized parameters
+  
+  # Genetic Algorithm parameters
+  genetic_algorithm:
+    population_size: 100
+    generations: 500
+    mutation_rate: 0.1
+    crossover_rate: 0.8
+    selection_method: "tournament"
+    tournament_size: 3
+    elitism: true
+    elitism_ratio: 0.1
+
+# Optimization Objectives
+objectives:
+  - name: "minimize_build_time"
+    weight: 0.3
+    target: "minimize"
+    description: "Minimize total build time"
+    bounds: [0, 1000]  # hours
+  
+  - name: "maximize_quality_score"
+    weight: 0.4
+    target: "maximize"
+    description: "Maximize part quality score"
+    bounds: [0, 1]
+  
+  - name: "minimize_material_usage"
+    weight: 0.2
+    target: "minimize"
+    description: "Minimize material consumption"
+    bounds: [0, 1000]  # grams
+  
+  - name: "minimize_support_volume"
+    weight: 0.1
+    target: "minimize"
+    description: "Minimize support structure volume"
+    bounds: [0, 100]  # cm³
+
+# Training Configuration
+training:
+  # Optimization parameters
+  optimization:
+    algorithm: "nsga2"  # Non-dominated Sorting Genetic Algorithm II
+    max_evaluations: 10000
+    convergence_threshold: 0.001
+    patience: 50
+  
+  # Early stopping
+  early_stopping:
+    patience: 50
+    monitor: "hypervolume"
+    mode: "max"
+    restore_best_weights: true
+    min_delta: 0.001
+  
+  # Validation
+  validation:
+    validation_split: 0.2
+    validation_frequency: 10
+    cross_validation: true
+    folds: 3
+
+# Data Configuration
+data:
+  # Input features
+  features:
+    - name: "part_geometry_complexity"
+      type: "continuous"
+      range: [0, 10]
+      description: "Geometric complexity score"
+    - name: "part_volume"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "cm³"
+    - name: "part_surface_area"
+      type: "continuous"
+      range: [0, 10000]
+      unit: "cm²"
+    - name: "aspect_ratio"
+      type: "continuous"
+      range: [0, 100]
+    - name: "wall_thickness_min"
+      type: "continuous"
+      range: [0.1, 10]
+      unit: "mm"
+    - name: "overhang_angle_max"
+      type: "continuous"
+      range: [0, 90]
+      unit: "degrees"
+    - name: "support_requirement_score"
+      type: "continuous"
+      range: [0, 10]
+    - name: "material_type"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]
+    - name: "build_orientation_x"
+      type: "continuous"
+      range: [0, 1]
+    - name: "build_orientation_y"
+      type: "continuous"
+      range: [0, 1]
+    - name: "build_orientation_z"
+      type: "continuous"
+      range: [0, 1]
+    - name: "layer_thickness"
+      type: "continuous"
+      range: [0.02, 0.1]
+      unit: "mm"
+    - name: "hatch_spacing"
+      type: "continuous"
+      range: [0.05, 0.5]
+      unit: "mm"
+    - name: "contour_spacing"
+      type: "continuous"
+      range: [0.05, 0.5]
+      unit: "mm"
+    - name: "laser_power"
+      type: "continuous"
+      range: [50, 1000]
+      unit: "W"
+    - name: "scan_speed"
+      type: "continuous"
+      range: [100, 2000]
+      unit: "mm/s"
+    - name: "focus_offset"
+      type: "continuous"
+      range: [-2, 2]
+      unit: "mm"
+    - name: "chamber_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "powder_bed_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "oxygen_level"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "ppm"
+    - name: "recoater_speed"
+      type: "continuous"
+      range: [10, 200]
+      unit: "mm/s"
+    - name: "powder_flow_rate"
+      type: "continuous"
+      range: [0, 50]
+      unit: "g/min"
+    - name: "build_plate_material"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Steel", "Aluminum", "Titanium"]
+    - name: "build_plate_temperature"
+      type: "continuous"
+      range: [20, 300]
+      unit: "°C"
+    - name: "atmospheric_pressure"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "mbar"
+  
+  # Output parameters (optimized)
+  outputs:
+    - name: "optimal_layer_thickness"
+      type: "continuous"
+      range: [0.02, 0.1]
+      unit: "mm"
+    - name: "optimal_hatch_spacing"
+      type: "continuous"
+      range: [0.05, 0.5]
+      unit: "mm"
+    - name: "optimal_contour_spacing"
+      type: "continuous"
+      range: [0.05, 0.5]
+      unit: "mm"
+    - name: "optimal_laser_power"
+      type: "continuous"
+      range: [50, 1000]
+      unit: "W"
+    - name: "optimal_scan_speed"
+      type: "continuous"
+      range: [100, 2000]
+      unit: "mm/s"
+    - name: "optimal_focus_offset"
+      type: "continuous"
+      range: [-2, 2]
+      unit: "mm"
+    - name: "optimal_build_orientation"
+      type: "continuous"
+      range: [0, 1]
+      dimensions: 3
+    - name: "optimal_support_strategy"
+      type: "categorical"
+      categories: ["minimal", "standard", "extensive"]
+  
+  # Data preprocessing
+  preprocessing:
+    normalization: "min_max_scaler"
+    missing_value_strategy: "interpolate"
+    outlier_detection: "iqr"
+    outlier_threshold: 3.0
+    feature_selection: true
+    feature_selection_method: "genetic_algorithm"
+    n_features: 25
+  
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    random_state: 42
+
+# Performance Requirements
+performance:
+  # Optimization thresholds
+  hypervolume_threshold: 0.8
+  convergence_threshold: 0.001
+  diversity_threshold: 0.1
+  
+  # Latency requirements
+  latency_threshold: 1000  # milliseconds
+  throughput_threshold: 100  # optimizations per second
+  
+  # Memory requirements
+  memory_threshold: 512  # MB
+  model_size_threshold: 50  # MB
+
+# Model Validation
+validation:
+  # Multi-objective validation
+  validation:
+    hypervolume: true
+    generational_distance: true
+    inverted_generational_distance: true
+    spread: true
+    epsilon_indicator: true
+  
+  # Validation thresholds
+  thresholds:
+    min_hypervolume: 0.7
+    max_generational_distance: 0.1
+    max_inverted_generational_distance: 0.1
+    min_spread: 0.1
+    max_epsilon_indicator: 0.1
+
+# Model Serving
+serving:
+  # API configuration
+  api:
+    endpoint: "/api/v1/optimize/build_strategy"
+    method: "POST"
+    content_type: "application/json"
+  
+  # Input schema
+  input_schema:
+    type: "object"
+    properties:
+      part_geometry_complexity: {"type": "number", "minimum": 0, "maximum": 10}
+      part_volume: {"type": "number", "minimum": 0, "maximum": 1000}
+      part_surface_area: {"type": "number", "minimum": 0, "maximum": 10000}
+      aspect_ratio: {"type": "number", "minimum": 0, "maximum": 100}
+      wall_thickness_min: {"type": "number", "minimum": 0.1, "maximum": 10}
+      overhang_angle_max: {"type": "number", "minimum": 0, "maximum": 90}
+      support_requirement_score: {"type": "number", "minimum": 0, "maximum": 10}
+      material_type: {"type": "string", "enum": ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]}
+      build_orientation_x: {"type": "number", "minimum": 0, "maximum": 1}
+      build_orientation_y: {"type": "number", "minimum": 0, "maximum": 1}
+      build_orientation_z: {"type": "number", "minimum": 0, "maximum": 1}
+      layer_thickness: {"type": "number", "minimum": 0.02, "maximum": 0.1}
+      hatch_spacing: {"type": "number", "minimum": 0.05, "maximum": 0.5}
+      contour_spacing: {"type": "number", "minimum": 0.05, "maximum": 0.5}
+      laser_power: {"type": "number", "minimum": 50, "maximum": 1000}
+      scan_speed: {"type": "number", "minimum": 100, "maximum": 2000}
+      focus_offset: {"type": "number", "minimum": -2, "maximum": 2}
+      chamber_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      powder_bed_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      oxygen_level: {"type": "number", "minimum": 0, "maximum": 1000}
+      recoater_speed: {"type": "number", "minimum": 10, "maximum": 200}
+      powder_flow_rate: {"type": "number", "minimum": 0, "maximum": 50}
+      build_plate_material: {"type": "string", "enum": ["Steel", "Aluminum", "Titanium"]}
+      build_plate_temperature: {"type": "number", "minimum": 20, "maximum": 300}
+      atmospheric_pressure: {"type": "number", "minimum": 0, "maximum": 2000}
+    required: ["part_geometry_complexity", "part_volume", "material_type", "layer_thickness", "hatch_spacing"]
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      optimal_parameters:
+        type: "object"
+        properties:
+          optimal_layer_thickness: {"type": "number", "minimum": 0.02, "maximum": 0.1}
+          optimal_hatch_spacing: {"type": "number", "minimum": 0.05, "maximum": 0.5}
+          optimal_contour_spacing: {"type": "number", "minimum": 0.05, "maximum": 0.5}
+          optimal_laser_power: {"type": "number", "minimum": 50, "maximum": 1000}
+          optimal_scan_speed: {"type": "number", "minimum": 100, "maximum": 2000}
+          optimal_focus_offset: {"type": "number", "minimum": -2, "maximum": 2}
+          optimal_build_orientation: 
+            type: "array"
+            items: {"type": "number", "minimum": 0, "maximum": 1}
+            minItems: 3
+            maxItems: 3
+          optimal_support_strategy: {"type": "string", "enum": ["minimal", "standard", "extensive"]}
+      objective_values:
+        type: "object"
+        properties:
+          build_time: {"type": "number", "minimum": 0}
+          quality_score: {"type": "number", "minimum": 0, "maximum": 1}
+          material_usage: {"type": "number", "minimum": 0}
+          support_volume: {"type": "number", "minimum": 0}
+      pareto_front:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            build_time: {"type": "number"}
+            quality_score: {"type": "number"}
+            material_usage: {"type": "number"}
+            support_volume: {"type": "number"}
+      confidence_score: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+        description: "Confidence score for the optimization"
+      timestamp: 
+        type: "string"
+        format: "date-time"
+        description: "Timestamp when optimization was performed"
+      model_version: 
+        type: "string"
+        description: "Version of the model used for optimization"
+      processing_time_ms: 
+        type: "number"
+        minimum: 0
+        description: "Time taken to process the request in milliseconds"
+      optimization_metrics:
+        type: "object"
+        properties:
+          hypervolume: {"type": "number"}
+          generational_distance: {"type": "number"}
+          inverted_generational_distance: {"type": "number"}
+          spread: {"type": "number"}
+          epsilon_indicator: {"type": "number"}
+    required: ["optimal_parameters", "objective_values", "confidence_score", "timestamp"]
+
+# Monitoring Configuration
+monitoring:
+  # Model performance monitoring
+  performance:
+    enabled: true
+    metrics_interval: 60  # seconds
+    retention_days: 30
+  
+  # Optimization monitoring
+  optimization_monitoring:
+    enabled: true
+    metrics:
+      - "hypervolume"
+      - "generational_distance"
+      - "inverted_generational_distance"
+      - "spread"
+      - "epsilon_indicator"
+      - "convergence_rate"
+      - "diversity_metric"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      hypervolume_drop: 0.05
+      convergence_failure: 0.1
+      latency_increase: 500  # milliseconds
+      error_rate: 0.05
+
+# Model Deployment
+deployment:
+  # Deployment configuration
+  strategy: "rolling"
+  replicas: 2
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+    gpu: "0"
+  
+  # Health checks
+  health_checks:
+    initial_delay: 30
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    min_replicas: 2
+    max_replicas: 6
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Model Versioning
+versioning:
+  # Version strategy
+  strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Version requirements
+  requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    trigger_threshold: 0.05  # 5% performance drop
+    automatic: false  # Manual rollback required

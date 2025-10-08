@@ -1,0 +1,387 @@
+# PBF-LB/M Data Pipeline - Remediation Configuration
+# This file contains data quality remediation configurations
+
+remediation:
+  # General remediation settings
+  general:
+    enabled: true
+    auto_fix_enabled: false
+    manual_review_required: true
+    escalation_enabled: true
+    audit_logging: true
+    
+  # Data quality remediation rules
+  data_quality_remediation:
+    # Completeness remediation
+    completeness:
+      enabled: true
+      auto_fix_enabled: false
+      manual_review_required: true
+      rules:
+        - name: "fill_missing_process_id"
+          condition: "process_id IS NULL"
+          action: "generate_uuid"
+          description: "Generate UUID for missing process ID"
+          severity: "error"
+          
+        - name: "fill_missing_timestamp"
+          condition: "timestamp IS NULL"
+          action: "use_current_timestamp"
+          description: "Use current timestamp for missing timestamp"
+          severity: "error"
+          
+        - name: "fill_missing_machine_id"
+          condition: "machine_id IS NULL"
+          action: "use_default_machine"
+          description: "Use default machine ID for missing machine ID"
+          severity: "error"
+          
+    # Accuracy remediation
+    accuracy:
+      enabled: true
+      auto_fix_enabled: false
+      manual_review_required: true
+      rules:
+        - name: "correct_invalid_process_status"
+          condition: "process_status NOT IN ('pending', 'running', 'paused', 'completed', 'failed', 'cancelled')"
+          action: "set_to_pending"
+          description: "Set invalid process status to pending"
+          severity: "error"
+          
+        - name: "correct_invalid_sensor_type"
+          condition: "sensor_type NOT IN ('temperature', 'pressure', 'laser_power', 'scan_speed', 'vibration', 'acoustic', 'optical')"
+          action: "set_to_unknown"
+          description: "Set invalid sensor type to unknown"
+          severity: "error"
+          
+        - name: "correct_negative_values"
+          condition: "sensor_value < 0"
+          action: "set_to_zero"
+          description: "Set negative sensor values to zero"
+          severity: "warning"
+          
+    # Consistency remediation
+    consistency:
+      enabled: true
+      auto_fix_enabled: false
+      manual_review_required: true
+      rules:
+        - name: "fix_end_time_before_start_time"
+          condition: "end_time < start_time"
+          action: "set_end_time_to_start_time"
+          description: "Set end time to start time when end time is before start time"
+          severity: "error"
+          
+        - name: "fix_negative_layer_numbers"
+          condition: "layer_number < 0"
+          action: "set_to_zero"
+          description: "Set negative layer numbers to zero"
+          severity: "warning"
+          
+        - name: "fix_quality_score_out_of_range"
+          condition: "quality_score < 0 OR quality_score > 1"
+          action: "clamp_to_range"
+          description: "Clamp quality score to valid range [0, 1]"
+          severity: "warning"
+          
+    # Timeliness remediation
+    timeliness:
+      enabled: true
+      auto_fix_enabled: false
+      manual_review_required: true
+      rules:
+        - name: "fix_future_timestamps"
+          condition: "timestamp > CURRENT_TIMESTAMP"
+          action: "set_to_current_timestamp"
+          description: "Set future timestamps to current timestamp"
+          severity: "warning"
+          
+        - name: "fix_old_timestamps"
+          condition: "timestamp < CURRENT_TIMESTAMP - INTERVAL '1 year'"
+          action: "flag_for_review"
+          description: "Flag very old timestamps for manual review"
+          severity: "warning"
+          
+  # Data source specific remediation
+  data_source_remediation:
+    pbf_process_data:
+      enabled: true
+      auto_fix_enabled: false
+      manual_review_required: true
+      rules:
+        - name: "fix_missing_material_type"
+          condition: "material_type IS NULL"
+          action: "use_default_material"
+          description: "Use default material type for missing values"
+          severity: "error"
+          
+        - name: "fix_invalid_laser_power"
+          condition: "laser_power_w <= 0 OR laser_power_w > 1000"
+          action: "clamp_to_valid_range"
+          description: "Clamp laser power to valid range [0, 1000]"
+          severity: "warning"
+          
+        - name: "fix_invalid_scan_speed"
+          condition: "scan_speed_mm_s <= 0 OR scan_speed_mm_s > 5000"
+          action: "clamp_to_valid_range"
+          description: "Clamp scan speed to valid range [0, 5000]"
+          severity: "warning"
+          
+    ispm_monitoring_data:
+      enabled: true
+      auto_fix_enabled: false
+      manual_review_required: true
+      rules:
+        - name: "fix_missing_sensor_type"
+          condition: "sensor_type IS NULL"
+          action: "use_default_sensor_type"
+          description: "Use default sensor type for missing values"
+          severity: "error"
+          
+        - name: "fix_invalid_sensor_value"
+          condition: "sensor_value IS NULL"
+          action: "use_last_known_value"
+          description: "Use last known sensor value for missing values"
+          severity: "warning"
+          
+        - name: "fix_outlier_sensor_values"
+          condition: "sensor_value > 10000 OR sensor_value < -1000"
+          action: "flag_for_review"
+          description: "Flag outlier sensor values for manual review"
+          severity: "warning"
+          
+    ct_scan_data:
+      enabled: true
+      auto_fix_enabled: false
+      manual_review_required: true
+      rules:
+        - name: "fix_missing_voxel_dimensions"
+          condition: "voxel_dimensions IS NULL"
+          action: "use_default_dimensions"
+          description: "Use default voxel dimensions for missing values"
+          severity: "error"
+          
+        - name: "fix_invalid_resolution"
+          condition: "resolution <= 0"
+          action: "use_default_resolution"
+          description: "Use default resolution for invalid values"
+          severity: "error"
+          
+        - name: "fix_missing_file_path"
+          condition: "file_path IS NULL"
+          action: "generate_file_path"
+          description: "Generate file path for missing values"
+          severity: "error"
+          
+    powder_bed_data:
+      enabled: true
+      auto_fix_enabled: false
+      manual_review_required: true
+      rules:
+        - name: "fix_missing_camera_id"
+          condition: "camera_id IS NULL"
+          action: "use_default_camera"
+          description: "Use default camera ID for missing values"
+          severity: "error"
+          
+        - name: "fix_invalid_layer_number"
+          condition: "layer_number < 0"
+          action: "set_to_zero"
+          description: "Set negative layer numbers to zero"
+          severity: "warning"
+          
+        - name: "fix_missing_image_path"
+          condition: "image_path IS NULL"
+          action: "generate_image_path"
+          description: "Generate image path for missing values"
+          severity: "error"
+          
+  # Remediation actions
+  actions:
+    # Data correction actions
+    data_correction:
+      generate_uuid:
+        description: "Generate a new UUID"
+        implementation: "uuid_generator"
+        
+      use_current_timestamp:
+        description: "Use current timestamp"
+        implementation: "current_timestamp"
+        
+      use_default_machine:
+        description: "Use default machine ID"
+        implementation: "default_value_lookup"
+        parameters:
+          table: "machines"
+          column: "machine_id"
+          condition: "is_default = true"
+          
+      set_to_pending:
+        description: "Set value to pending"
+        implementation: "constant_value"
+        parameters:
+          value: "pending"
+          
+      set_to_unknown:
+        description: "Set value to unknown"
+        implementation: "constant_value"
+        parameters:
+          value: "unknown"
+          
+      set_to_zero:
+        description: "Set value to zero"
+        implementation: "constant_value"
+        parameters:
+          value: 0
+          
+      clamp_to_range:
+        description: "Clamp value to valid range"
+        implementation: "clamp_value"
+        parameters:
+          min_value: 0
+          max_value: 1
+          
+      clamp_to_valid_range:
+        description: "Clamp value to valid range"
+        implementation: "clamp_value"
+        parameters:
+          min_value: 0
+          max_value: 1000
+          
+      use_default_material:
+        description: "Use default material type"
+        implementation: "default_value_lookup"
+        parameters:
+          table: "materials"
+          column: "material_type"
+          condition: "is_default = true"
+          
+      use_default_sensor_type:
+        description: "Use default sensor type"
+        implementation: "constant_value"
+        parameters:
+          value: "temperature"
+          
+      use_last_known_value:
+        description: "Use last known value"
+        implementation: "last_known_value"
+        parameters:
+          lookback_hours: 24
+          
+      use_default_dimensions:
+        description: "Use default voxel dimensions"
+        implementation: "constant_value"
+        parameters:
+          value: [100, 100, 100]
+          
+      use_default_resolution:
+        description: "Use default resolution"
+        implementation: "constant_value"
+        parameters:
+          value: 0.1
+          
+      generate_file_path:
+        description: "Generate file path"
+        implementation: "path_generator"
+        parameters:
+          base_path: "/data/ct_scans"
+          format: "scan_{process_id}_{timestamp}.dcm"
+          
+      use_default_camera:
+        description: "Use default camera ID"
+        implementation: "default_value_lookup"
+        parameters:
+          table: "cameras"
+          column: "camera_id"
+          condition: "is_default = true"
+          
+      generate_image_path:
+        description: "Generate image path"
+        implementation: "path_generator"
+        parameters:
+          base_path: "/data/powder_bed_images"
+          format: "powder_bed_{process_id}_{layer_number}_{timestamp}.jpg"
+          
+    # Data flagging actions
+    data_flagging:
+      flag_for_review:
+        description: "Flag data for manual review"
+        implementation: "add_flag"
+        parameters:
+          flag_type: "manual_review_required"
+          flag_reason: "Data quality issue detected"
+          
+      add_quality_flag:
+        description: "Add quality flag"
+        implementation: "add_flag"
+        parameters:
+          flag_type: "quality_issue"
+          flag_reason: "Data quality threshold exceeded"
+          
+  # Remediation monitoring
+  monitoring:
+    enabled: true
+    metrics_enabled: true
+    alerting_enabled: true
+    reporting_enabled: true
+    
+  # Remediation alerting
+  alerting:
+    channels:
+      - name: "email"
+        enabled: true
+        recipients: ["data-team@example.com", "quality-team@example.com"]
+        
+      - name: "slack"
+        enabled: true
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#data-quality-alerts"
+        
+    severity_levels:
+      - name: "critical"
+        threshold: 0.95
+        channels: ["email", "slack"]
+        escalation_minutes: 15
+        
+      - name: "high"
+        threshold: 0.90
+        channels: ["email", "slack"]
+        escalation_minutes: 60
+        
+      - name: "medium"
+        threshold: 0.85
+        channels: ["email"]
+        escalation_minutes: 240
+        
+      - name: "low"
+        threshold: 0.80
+        channels: ["email"]
+        escalation_minutes: 480
+        
+  # Remediation reporting
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["data-team@example.com", "management@example.com"]
+    include_metrics: true
+    include_trends: true
+    include_recommendations: true
+    
+  # Remediation environment-specific overrides
+  environments:
+    development:
+      auto_fix_enabled: true
+      manual_review_required: false
+      escalation_enabled: false
+      
+    staging:
+      auto_fix_enabled: false
+      manual_review_required: true
+      escalation_enabled: true
+      
+    production:
+      auto_fix_enabled: false
+      manual_review_required: true
+      escalation_enabled: true
+      audit_logging: true

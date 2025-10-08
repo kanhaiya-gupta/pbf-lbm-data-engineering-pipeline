@@ -1,0 +1,358 @@
+# Laser Parameter Predictor Model Configuration
+# ============================================
+
+model:
+  name: "laser_parameter_predictor"
+  version: "1.0.0"
+  type: "regression"
+  algorithm: "xgboost"
+  description: "XGBoost model for predicting optimal laser parameters for PBF-LB/M processes"
+  
+  # Model metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["process_optimization", "laser_parameters", "xgboost", "regression"]
+
+# Model Architecture
+architecture:
+  input_shape: [20]  # 20 input features
+  output_shape: [3]  # 3 laser parameters: power, speed, focus
+  
+  # XGBoost parameters
+  xgboost_params:
+    objective: "reg:squarederror"
+    n_estimators: 1000
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    random_state: 42
+
+# Training Configuration
+training:
+  # Hyperparameters
+  learning_rate: 0.1
+  batch_size: 32
+  epochs: 1000
+  
+  # Early stopping
+  early_stopping:
+    patience: 50
+    monitor: "val_loss"
+    mode: "min"
+    restore_best_weights: true
+    min_delta: 0.001
+  
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Regularization
+  regularization:
+    l1: 0.1
+    l2: 1.0
+    dropout: 0.0
+
+# Data Configuration
+data:
+  # Input features
+  features:
+    - name: "material_type"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]
+    - name: "part_complexity"
+      type: "continuous"
+      range: [0, 10]
+      description: "Part complexity score"
+    - name: "build_volume"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "cm³"
+    - name: "layer_thickness"
+      type: "continuous"
+      range: [0.02, 0.1]
+      unit: "mm"
+    - name: "hatch_spacing"
+      type: "continuous"
+      range: [0.05, 0.5]
+      unit: "mm"
+    - name: "build_orientation"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["X", "Y", "Z", "XY", "XZ", "YZ"]
+    - name: "support_volume_ratio"
+      type: "continuous"
+      range: [0, 1]
+    - name: "overhang_angle"
+      type: "continuous"
+      range: [0, 90]
+      unit: "degrees"
+    - name: "wall_thickness"
+      type: "continuous"
+      range: [0.1, 10]
+      unit: "mm"
+    - name: "surface_area_volume_ratio"
+      type: "continuous"
+      range: [0, 100]
+    - name: "chamber_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "oxygen_level"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "ppm"
+    - name: "powder_bed_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "powder_flow_rate"
+      type: "continuous"
+      range: [0, 50]
+      unit: "g/min"
+    - name: "recoater_speed"
+      type: "continuous"
+      range: [10, 200]
+      unit: "mm/s"
+    - name: "build_plate_material"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Steel", "Aluminum", "Titanium"]
+    - name: "build_plate_temperature"
+      type: "continuous"
+      range: [20, 300]
+      unit: "°C"
+    - name: "atmospheric_pressure"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "mbar"
+    - name: "humidity"
+      type: "continuous"
+      range: [0, 100]
+      unit: "%"
+    - name: "vibration_level"
+      type: "continuous"
+      range: [0, 10]
+      unit: "mm/s"
+  
+  # Target variables
+  targets:
+    - name: "optimal_laser_power"
+      type: "continuous"
+      range: [50, 1000]
+      unit: "W"
+    - name: "optimal_scan_speed"
+      type: "continuous"
+      range: [100, 2000]
+      unit: "mm/s"
+    - name: "optimal_focus_offset"
+      type: "continuous"
+      range: [-2, 2]
+      unit: "mm"
+  
+  # Data preprocessing
+  preprocessing:
+    normalization: "standard_scaler"
+    missing_value_strategy: "interpolate"
+    outlier_detection: "iqr"
+    outlier_threshold: 3.0
+    feature_selection: true
+    feature_selection_method: "mutual_information"
+    n_features: 20
+  
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    random_state: 42
+
+# Performance Requirements
+performance:
+  # Accuracy thresholds
+  r2_threshold: 0.85
+  mse_threshold: 0.1
+  mae_threshold: 0.2
+  rmse_threshold: 0.3
+  
+  # Latency requirements
+  latency_threshold: 50  # milliseconds
+  throughput_threshold: 2000  # predictions per second
+  
+  # Memory requirements
+  memory_threshold: 256  # MB
+  model_size_threshold: 25  # MB
+
+# Model Validation
+validation:
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Validation metrics
+  metrics:
+    - "r2_score"
+    - "mse"
+    - "mae"
+    - "rmse"
+    - "mape"
+    - "explained_variance"
+  
+  # Validation thresholds
+  thresholds:
+    min_r2: 0.80
+    max_mse: 0.15
+    max_mae: 0.25
+    max_rmse: 0.35
+
+# Model Serving
+serving:
+  # API configuration
+  api:
+    endpoint: "/api/v1/predict/laser_parameters"
+    method: "POST"
+    content_type: "application/json"
+  
+  # Input schema
+  input_schema:
+    type: "object"
+    properties:
+      material_type: {"type": "string", "enum": ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]}
+      part_complexity: {"type": "number", "minimum": 0, "maximum": 10}
+      build_volume: {"type": "number", "minimum": 0, "maximum": 1000}
+      layer_thickness: {"type": "number", "minimum": 0.02, "maximum": 0.1}
+      hatch_spacing: {"type": "number", "minimum": 0.05, "maximum": 0.5}
+      build_orientation: {"type": "string", "enum": ["X", "Y", "Z", "XY", "XZ", "YZ"]}
+      support_volume_ratio: {"type": "number", "minimum": 0, "maximum": 1}
+      overhang_angle: {"type": "number", "minimum": 0, "maximum": 90}
+      wall_thickness: {"type": "number", "minimum": 0.1, "maximum": 10}
+      surface_area_volume_ratio: {"type": "number", "minimum": 0, "maximum": 100}
+      chamber_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      oxygen_level: {"type": "number", "minimum": 0, "maximum": 1000}
+      powder_bed_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      powder_flow_rate: {"type": "number", "minimum": 0, "maximum": 50}
+      recoater_speed: {"type": "number", "minimum": 10, "maximum": 200}
+      build_plate_material: {"type": "string", "enum": ["Steel", "Aluminum", "Titanium"]}
+      build_plate_temperature: {"type": "number", "minimum": 20, "maximum": 300}
+      atmospheric_pressure: {"type": "number", "minimum": 0, "maximum": 2000}
+      humidity: {"type": "number", "minimum": 0, "maximum": 100}
+      vibration_level: {"type": "number", "minimum": 0, "maximum": 10}
+    required: ["material_type", "part_complexity", "build_volume", "layer_thickness", "hatch_spacing"]
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      optimal_laser_power: 
+        type: "number"
+        minimum: 50
+        maximum: 1000
+        description: "Optimal laser power in Watts"
+      optimal_scan_speed: 
+        type: "number"
+        minimum: 100
+        maximum: 2000
+        description: "Optimal scan speed in mm/s"
+      optimal_focus_offset: 
+        type: "number"
+        minimum: -2
+        maximum: 2
+        description: "Optimal focus offset in mm"
+      confidence_score: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+        description: "Confidence score for the predictions"
+      timestamp: 
+        type: "string"
+        format: "date-time"
+        description: "Timestamp when prediction was made"
+      model_version: 
+        type: "string"
+        description: "Version of the model used for prediction"
+      processing_time_ms: 
+        type: "number"
+        minimum: 0
+        description: "Time taken to process the request in milliseconds"
+      feature_importance: 
+        type: "array"
+        items: {"type": "number"}
+        description: "Feature importance scores"
+    required: ["optimal_laser_power", "optimal_scan_speed", "optimal_focus_offset", "confidence_score", "timestamp"]
+
+# Monitoring Configuration
+monitoring:
+  # Model performance monitoring
+  performance:
+    enabled: true
+    metrics_interval: 60  # seconds
+    retention_days: 30
+  
+  # Drift detection
+  drift_detection:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      r2_drop: 0.05
+      latency_increase: 25  # milliseconds
+      error_rate: 0.05
+
+# Model Deployment
+deployment:
+  # Deployment configuration
+  strategy: "rolling"
+  replicas: 2
+  resources:
+    cpu: "1"
+    memory: "2Gi"
+    gpu: "0"
+  
+  # Health checks
+  health_checks:
+    initial_delay: 30
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    min_replicas: 2
+    max_replicas: 8
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Model Versioning
+versioning:
+  # Version strategy
+  strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Version requirements
+  requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    trigger_threshold: 0.05  # 5% performance drop
+    automatic: false  # Manual rollback required

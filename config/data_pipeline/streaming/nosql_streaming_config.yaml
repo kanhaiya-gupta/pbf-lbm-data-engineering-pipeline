@@ -1,0 +1,496 @@
+# NoSQL Streaming Configuration
+# PBF-LB/M Data Pipeline - NoSQL Streaming Sink Configurations
+
+# NoSQL Streaming Sinks Configuration
+nosql_streaming_sinks:
+  enabled: true
+  
+  # MongoDB Streaming Sink
+  mongodb_sink:
+    enabled: true
+    sink_name: "mongodb"
+    sink_type: "document"
+    
+    connection:
+      connection_string: "${MONGODB_CONNECTION_STRING}"
+      database_name: "${MONGODB_DATABASE_NAME}"
+      max_pool_size: 50
+      min_pool_size: 5
+    
+    batch_config:
+      batch_size: 100
+      timeout_seconds: 5
+      max_batch_size: 1000
+      flush_interval: 1000  # milliseconds
+    
+    retry_config:
+      max_retries: 3
+      retry_delay: 1  # seconds
+      exponential_backoff: true
+      max_retry_delay: 60  # seconds
+    
+    collections:
+      pbf_process_stream:
+        collection_name: "pbf_process_stream"
+        write_concern: "majority"
+        ordered_inserts: true
+        bypass_document_validation: false
+      
+      ispm_monitoring_stream:
+        collection_name: "ispm_monitoring_stream"
+        write_concern: "majority"
+        ordered_inserts: true
+        bypass_document_validation: false
+      
+      ct_scan_stream:
+        collection_name: "ct_scan_stream"
+        write_concern: "majority"
+        ordered_inserts: true
+        bypass_document_validation: false
+      
+      powder_bed_stream:
+        collection_name: "powder_bed_stream"
+        write_concern: "majority"
+        ordered_inserts: true
+        bypass_document_validation: false
+
+  # Redis Streaming Sink
+  redis_sink:
+    enabled: true
+    sink_name: "redis"
+    sink_type: "key_value"
+    
+    connection:
+      host: "${REDIS_HOST}"
+      port: "${REDIS_PORT}"
+      password: "${REDIS_PASSWORD}"
+      db: 0
+      max_connections: 20
+    
+    batch_config:
+      batch_size: 50
+      timeout_seconds: 2
+      max_batch_size: 200
+      flush_interval: 500  # milliseconds
+    
+    retry_config:
+      max_retries: 3
+      retry_delay: 1  # seconds
+      exponential_backoff: true
+      max_retry_delay: 30  # seconds
+    
+    cache_patterns:
+      process_cache:
+        key_prefix: "stream:process:"
+        ttl: 3600
+        compression: true
+        serialization: "json"
+      
+      sensor_cache:
+        key_prefix: "stream:sensor:"
+        ttl: 300
+        compression: true
+        serialization: "json"
+      
+      session_cache:
+        key_prefix: "stream:session:"
+        ttl: 1800
+        compression: false
+        serialization: "json"
+      
+      analytics_cache:
+        key_prefix: "stream:analytics:"
+        ttl: 7200
+        compression: true
+        serialization: "json"
+
+  # Cassandra Streaming Sink
+  cassandra_sink:
+    enabled: true
+    sink_name: "cassandra"
+    sink_type: "columnar"
+    
+    connection:
+      hosts: ["${CASSANDRA_HOST}"]
+      port: 9042
+      keyspace: "${CASSANDRA_KEYSPACE}"
+      username: "${CASSANDRA_USERNAME}"
+      password: "${CASSANDRA_PASSWORD}"
+      consistency_level: "LOCAL_ONE"
+      max_connections: 10
+    
+    batch_config:
+      batch_size: 200
+      timeout_seconds: 10
+      max_batch_size: 1000
+      flush_interval: 2000  # milliseconds
+    
+    retry_config:
+      max_retries: 3
+      retry_delay: 2  # seconds
+      exponential_backoff: true
+      max_retry_delay: 60  # seconds
+    
+    tables:
+      process_metrics_stream:
+        table_name: "process_metrics_stream"
+        consistency_level: "LOCAL_ONE"
+        ttl_seconds: 2592000  # 30 days
+        compression: "LZ4Compressor"
+      
+      sensor_data_stream:
+        table_name: "sensor_data_stream"
+        consistency_level: "LOCAL_ONE"
+        ttl_seconds: 864000  # 10 days
+        compression: "LZ4Compressor"
+      
+      quality_metrics_stream:
+        table_name: "quality_metrics_stream"
+        consistency_level: "LOCAL_ONE"
+        ttl_seconds: 2592000  # 30 days
+        compression: "LZ4Compressor"
+
+  # Elasticsearch Streaming Sink
+  elasticsearch_sink:
+    enabled: true
+    sink_name: "elasticsearch"
+    sink_type: "search"
+    
+    connection:
+      hosts: ["${ELASTICSEARCH_HOST}"]
+      username: "${ELASTICSEARCH_USERNAME}"
+      password: "${ELASTICSEARCH_PASSWORD}"
+      max_retries: 3
+      timeout: 30
+      max_connections: 10
+    
+    batch_config:
+      batch_size: 100
+      timeout_seconds: 5
+      max_batch_size: 500
+      flush_interval: 1000  # milliseconds
+    
+    retry_config:
+      max_retries: 3
+      retry_delay: 1  # seconds
+      exponential_backoff: true
+      max_retry_delay: 30  # seconds
+    
+    indices:
+      pbf_process_stream:
+        index_name: "pbf_process_stream"
+        index_settings:
+          number_of_shards: 2
+          number_of_replicas: 1
+          refresh_interval: "10s"
+        bulk_settings:
+          bulk_size: 100
+          bulk_timeout: "10s"
+      
+      ispm_monitoring_stream:
+        index_name: "ispm_monitoring_stream"
+        index_settings:
+          number_of_shards: 2
+          number_of_replicas: 1
+          refresh_interval: "5s"
+        bulk_settings:
+          bulk_size: 100
+          bulk_timeout: "10s"
+      
+      ct_scan_stream:
+        index_name: "ct_scan_stream"
+        index_settings:
+          number_of_shards: 1
+          number_of_replicas: 1
+          refresh_interval: "30s"
+        bulk_settings:
+          bulk_size: 50
+          bulk_timeout: "15s"
+      
+      powder_bed_stream:
+        index_name: "powder_bed_stream"
+        index_settings:
+          number_of_shards: 1
+          number_of_replicas: 1
+          refresh_interval: "15s"
+        bulk_settings:
+          bulk_size: 50
+          bulk_timeout: "10s"
+
+  # Neo4j Streaming Sink
+  neo4j_sink:
+    enabled: true
+    sink_name: "neo4j"
+    sink_type: "graph"
+    
+    connection:
+      uri: "${NEO4J_URI}"
+      username: "${NEO4J_USERNAME}"
+      password: "${NEO4J_PASSWORD}"
+      database: "${NEO4J_DATABASE}"
+      max_connections: 10
+      connection_timeout: 30
+    
+    batch_config:
+      batch_size: 50
+      timeout_seconds: 5
+      max_batch_size: 200
+      flush_interval: 1000  # milliseconds
+    
+    retry_config:
+      max_retries: 3
+      retry_delay: 2  # seconds
+      exponential_backoff: true
+      max_retry_delay: 60  # seconds
+    
+    graph_operations:
+      node_creation:
+        process_nodes:
+          label: "Process"
+          properties: ["process_id", "timestamp", "material_type", "quality_grade"]
+        
+        sensor_nodes:
+          label: "Sensor"
+          properties: ["sensor_id", "sensor_type", "location", "value"]
+        
+        quality_nodes:
+          label: "Quality"
+          properties: ["grade", "metrics", "timestamp"]
+        
+        defect_nodes:
+          label: "Defect"
+          properties: ["defect_id", "defect_type", "severity", "location"]
+      
+      relationship_creation:
+        process_quality:
+          type: "HAS_QUALITY"
+          properties: ["measured_at", "confidence"]
+        
+        process_sensor:
+          type: "MONITORED_BY"
+          properties: ["sampling_rate", "accuracy"]
+        
+        process_defect:
+          type: "HAS_DEFECT"
+          properties: ["detected_at", "severity_score"]
+
+# Stream Processing Configuration
+stream_processing:
+  enabled: true
+  
+  # Kafka Streams Configuration
+  kafka_streams:
+    enabled: true
+    application_id: "pbf-nosql-streams"
+    bootstrap_servers: ["${KAFKA_BOOTSTRAP_SERVERS}"]
+    
+    processing_config:
+      num_stream_threads: 4
+      commit_interval_ms: 1000
+      cache_max_bytes_buffering: 10485760  # 10MB
+      default_key_serde: "org.apache.kafka.common.serialization.Serdes$StringSerde"
+      default_value_serde: "org.apache.kafka.common.serialization.Serdes$StringSerde"
+    
+    topics:
+      input_topics:
+        - "pbf_process_stream"
+        - "ispm_monitoring_stream"
+        - "ct_scan_stream"
+        - "powder_bed_stream"
+      
+      output_topics:
+        - "processed_pbf_data"
+        - "processed_ispm_data"
+        - "processed_ct_data"
+        - "processed_powder_data"
+    
+    transformations:
+      data_enrichment: true
+      data_validation: true
+      data_aggregation: true
+      anomaly_detection: true
+      quality_scoring: true
+
+  # Apache Flink Configuration
+  flink:
+    enabled: true
+    job_name: "pbf-nosql-flink-job"
+    
+    execution_config:
+      parallelism: 4
+      max_parallelism: 16
+      checkpoint_interval: 60000  # 1 minute
+      checkpoint_timeout: 600000  # 10 minutes
+      min_pause_between_checkpoints: 5000  # 5 seconds
+      max_concurrent_checkpoints: 1
+    
+    sources:
+      kafka_source:
+        bootstrap_servers: ["${KAFKA_BOOTSTRAP_SERVERS}"]
+        topics: ["pbf_process_stream", "ispm_monitoring_stream"]
+        group_id: "flink-nosql-consumer"
+        auto_offset_reset: "latest"
+    
+    sinks:
+      mongodb_sink:
+        enabled: true
+        connection_string: "${MONGODB_CONNECTION_STRING}"
+        database_name: "${MONGODB_DATABASE_NAME}"
+        collection_name: "flink_processed_data"
+      
+      redis_sink:
+        enabled: true
+        host: "${REDIS_HOST}"
+        port: "${REDIS_PORT}"
+        key_prefix: "flink:"
+        ttl: 3600
+      
+      cassandra_sink:
+        enabled: true
+        hosts: ["${CASSANDRA_HOST}"]
+        keyspace: "${CASSANDRA_KEYSPACE}"
+        table_name: "flink_processed_data"
+      
+      elasticsearch_sink:
+        enabled: true
+        hosts: ["${ELASTICSEARCH_HOST}"]
+        index_name: "flink_processed_data"
+      
+      neo4j_sink:
+        enabled: true
+        uri: "${NEO4J_URI}"
+        username: "${NEO4J_USERNAME}"
+        password: "${NEO4J_PASSWORD}"
+
+# Real-time Data Transformation
+real_time_transformation:
+  enabled: true
+  
+  transformation_rules:
+    document_transformation:
+      enabled: true
+      flatten_nested: true
+      field_mappings:
+        process_id: "process_id"
+        timestamp: "timestamp"
+        material_type: "material_info.material_type"
+        quality_score: "quality_metrics.density"
+      
+      data_cleaning:
+        remove_null_fields: true
+        standardize_timestamps: true
+        validate_required_fields: true
+        normalize_numeric_fields: true
+    
+    key_value_transformation:
+      enabled: true
+      key_generation:
+        pattern: "{data_type}:{process_id}:{timestamp}"
+        timestamp_format: "%Y%m%d%H%M%S"
+      
+      value_processing:
+        compression: true
+        serialization: "json"
+        validation: true
+    
+    columnar_transformation:
+      enabled: true
+      partition_key_mapping:
+        process_id: "process_id"
+        timestamp: "timestamp"
+      
+      clustering_key_mapping:
+        metric_type: "metric_type"
+        sensor_id: "sensor_id"
+      
+      data_aggregation:
+        time_buckets: ["1m", "5m", "15m"]
+        aggregation_functions: ["avg", "min", "max", "count"]
+    
+    search_transformation:
+      enabled: true
+      text_processing:
+        lowercase: true
+        remove_stopwords: true
+        stemming: true
+        synonym_expansion: true
+      
+      field_mapping:
+        id: "_id"
+        timestamp: "timestamp"
+        process_id: "process_id"
+        material_type: "material_type"
+        quality_metrics: "quality_metrics"
+    
+    graph_transformation:
+      enabled: true
+      node_extraction:
+        process_nodes: true
+        sensor_nodes: true
+        quality_nodes: true
+        defect_nodes: true
+      
+      relationship_extraction:
+        process_quality: true
+        process_sensor: true
+        process_defect: true
+        sensor_quality: true
+
+# Monitoring and Alerting
+monitoring:
+  enabled: true
+  
+  metrics:
+    sink_performance:
+      enabled: true
+      metrics_interval: 30  # seconds
+      metrics_to_collect:
+        - "records_processed"
+        - "processing_time"
+        - "error_count"
+        - "batch_size"
+        - "throughput"
+    
+    sink_health:
+      enabled: true
+      health_check_interval: 60  # seconds
+      health_checks:
+        - "connection_status"
+        - "write_success_rate"
+        - "latency"
+        - "error_rate"
+  
+  alerts:
+    enabled: true
+    alert_rules:
+      high_error_rate:
+        condition: "error_rate > 0.05"
+        severity: "warning"
+        action: "notify"
+      
+      high_latency:
+        condition: "latency > 5000"  # 5 seconds
+        severity: "warning"
+        action: "notify"
+      
+      connection_failure:
+        condition: "connection_status == false"
+        severity: "critical"
+        action: "page"
+      
+      low_throughput:
+        condition: "throughput < 100"  # records per second
+        severity: "info"
+        action: "log"
+  
+  dashboards:
+    enabled: true
+    dashboard_url: "${GRAFANA_URL}"
+    refresh_interval: 30  # seconds
+    
+    panels:
+      - "sink_performance"
+      - "sink_health"
+      - "error_rates"
+      - "throughput"
+      - "latency"

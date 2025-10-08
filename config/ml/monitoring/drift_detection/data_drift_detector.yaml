@@ -1,0 +1,390 @@
+# Data Drift Detector Configuration
+# =================================
+
+monitor:
+  name: "data_drift_detector"
+  version: "1.0.0"
+  description: "Data drift detection for ML model monitoring"
+  
+  # Monitor metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["drift_detection", "data_monitoring", "ml_monitoring", "quality"]
+
+# Drift Detection Configuration
+drift_detection:
+  # Detection methods
+  methods:
+    - name: "statistical_tests"
+      enabled: true
+      tests:
+        - type: "ks_test"
+          threshold: 0.05
+          description: "Kolmogorov-Smirnov test for distribution drift"
+        - type: "chi_square_test"
+          threshold: 0.05
+          description: "Chi-square test for categorical drift"
+        - type: "mann_whitney_test"
+          threshold: 0.05
+          description: "Mann-Whitney U test for median drift"
+        - type: "t_test"
+          threshold: 0.05
+          description: "T-test for mean drift"
+    
+    - name: "distribution_comparison"
+      enabled: true
+      methods:
+        - type: "wasserstein_distance"
+          threshold: 0.1
+          description: "Wasserstein distance for distribution drift"
+        - type: "jensen_shannon_divergence"
+          threshold: 0.1
+          description: "Jensen-Shannon divergence for distribution drift"
+        - type: "kl_divergence"
+          threshold: 0.1
+          description: "Kullback-Leibler divergence for distribution drift"
+        - type: "earth_movers_distance"
+          threshold: 0.1
+          description: "Earth Mover's Distance for distribution drift"
+    
+    - name: "psi_calculation"
+      enabled: true
+      threshold: 0.2
+      description: "Population Stability Index for feature drift"
+      bins: 10
+      min_bin_size: 5
+    
+    - name: "correlation_analysis"
+      enabled: true
+      threshold: 0.1
+      description: "Correlation drift detection"
+      methods:
+        - "pearson"
+        - "spearman"
+        - "kendall"
+
+# Data Sources Configuration
+data_sources:
+  # Reference data (baseline)
+  reference:
+    type: "postgresql"
+    table: "reference_data"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    filters:
+      date_range: "last_30_days"
+      quality_threshold: 0.95
+    sampling:
+      enabled: true
+      method: "random"
+      size: 10000
+      seed: 42
+  
+  # Current data (monitoring)
+  current:
+    type: "kafka"
+    topic: "ispm_sensor_data"
+    consumer_group: "drift_detector"
+    window_size: "1h"
+    sampling:
+      enabled: true
+      method: "systematic"
+      interval: "1min"
+      size: 1000
+
+# Feature Configuration
+features:
+  # Features to monitor
+  monitored_features:
+    - name: "laser_power"
+      type: "continuous"
+      drift_threshold: 0.1
+      importance_weight: 0.2
+    - name: "scan_speed"
+      type: "continuous"
+      drift_threshold: 0.1
+      importance_weight: 0.2
+    - name: "temperature"
+      type: "continuous"
+      drift_threshold: 0.15
+      importance_weight: 0.3
+    - name: "melt_pool_size"
+      type: "continuous"
+      drift_threshold: 0.1
+      importance_weight: 0.15
+    - name: "spatter_count"
+      type: "discrete"
+      drift_threshold: 0.2
+      importance_weight: 0.1
+    - name: "powder_flow_rate"
+      type: "continuous"
+      drift_threshold: 0.1
+      importance_weight: 0.05
+  
+  # Feature preprocessing
+  preprocessing:
+    normalization: true
+    scaling_method: "standard_scaler"
+    handle_missing_values: "interpolate"
+    outlier_detection: true
+    outlier_threshold: 3.0
+
+# Detection Configuration
+detection:
+  # Detection frequency
+  frequency: "1h"
+  timezone: "UTC"
+  
+  # Detection window
+  window_size: "1h"
+  overlap: "0.5h"
+  
+  # Detection thresholds
+  thresholds:
+    global_drift: 0.1
+    feature_drift: 0.15
+    severe_drift: 0.3
+    critical_drift: 0.5
+  
+  # Detection sensitivity
+  sensitivity:
+    level: "medium"  # low, medium, high
+    adjustment_factor: 1.0
+    seasonal_adjustment: true
+    trend_adjustment: true
+
+# Alerting Configuration
+alerting:
+  # Alert channels
+  channels:
+    - type: "email"
+      recipients: ["ml-team@company.com"]
+      template: "drift_alert_email"
+    - type: "slack"
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#ml-alerts"
+      template: "drift_alert_slack"
+    - type: "pagerduty"
+      integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+      severity: "critical"
+  
+  # Alert thresholds
+  thresholds:
+    - level: "warning"
+      drift_score: 0.1
+      duration: "30m"
+      cooldown: "1h"
+    - level: "critical"
+      drift_score: 0.3
+      duration: "10m"
+      cooldown: "30m"
+    - level: "emergency"
+      drift_score: 0.5
+      duration: "5m"
+      cooldown: "15m"
+  
+  # Alert suppression
+  suppression:
+    enabled: true
+    maintenance_windows: true
+    business_hours_only: false
+    max_alerts_per_hour: 10
+
+# Storage Configuration
+storage:
+  # Results storage
+  results:
+    type: "postgresql"
+    table: "drift_detection_results"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    retention_days: 90
+    partitioning: ["year", "month", "day"]
+  
+  # Artifacts storage
+  artifacts:
+    type: "s3"
+    bucket: "pbf-ml-artifacts"
+    path: "drift_detection/artifacts"
+    compression: "gzip"
+    retention_days: 30
+  
+  # Cache storage
+  cache:
+    type: "redis"
+    host: "redis"
+    port: 6379
+    db: 3
+    ttl: "1h"
+    max_size: 10000
+
+# Performance Configuration
+performance:
+  # Processing performance
+  processing:
+    parallel_processing: true
+    max_workers: 4
+    batch_size: 1000
+    timeout: "10m"
+  
+  # Memory management
+  memory:
+    target: 2  # GB
+    max: 4
+    gc_threshold: 0.8
+  
+  # CPU requirements
+  cpu:
+    target: 1
+    max: 2
+
+# Monitoring Configuration
+monitoring:
+  # Health checks
+  health_check:
+    path: "/health"
+    interval: "60s"
+    timeout: "10s"
+    failure_threshold: 3
+    success_threshold: 1
+  
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: "5m"
+    retention_days: 30
+    
+    # Custom metrics
+    custom_metrics:
+      - "drift_detection_latency"
+      - "drift_score_distribution"
+      - "feature_drift_count"
+      - "alert_frequency"
+      - "false_positive_rate"
+      - "true_positive_rate"
+      - "memory_usage"
+      - "cpu_usage"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    
+    # Alert thresholds
+    thresholds:
+      - metric: "drift_detection_latency"
+        threshold: 600  # 10 minutes
+        operator: ">"
+        severity: "warning"
+        duration: "5m"
+      - metric: "false_positive_rate"
+        threshold: 0.1
+        operator: ">"
+        severity: "warning"
+        duration: "10m"
+      - metric: "memory_usage"
+        threshold: 0.9
+        operator: ">"
+        severity: "critical"
+        duration: "5m"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/data_drift_detector.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+  
+  # Drift logging
+  drift_logging:
+    enabled: true
+    log_drift_scores: true
+    log_feature_drift: true
+    log_alerts: true
+    log_performance: true
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "numpy==1.24.3"
+    - "pandas==2.0.3"
+    - "scipy==1.11.4"
+    - "scikit-learn==1.3.0"
+    - "kafka-python==2.0.2"
+    - "psycopg2-binary==2.9.9"
+    - "redis==5.0.1"
+    - "boto3==1.34.0"
+    - "evidently==0.4.14"
+  
+  # Environment variables
+  env_vars:
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+    POSTGRES_URL: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    REDIS_URL: "redis://redis:6379/3"
+    S3_BUCKET: "pbf-ml-artifacts"
+    LOG_LEVEL: "INFO"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Error responses
+  error_responses:
+    format: "json"
+    include_stack_trace: false
+    include_request_id: true
+    log_errors: true
+  
+  # Retry policy
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: "5m"
+  
+  # Failure handling
+  failure_handling:
+    strategy: "continue_on_failure"
+    dead_letter_queue: true
+    error_notification: true
+
+# Deployment Configuration
+deployment:
+  # Deployment strategy
+  strategy: "rolling"
+  replicas: 2
+  max_unavailable: 1
+  max_surge: 1
+  progress_deadline: 600  # 10 minutes
+  
+  # Resource requirements
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  
+  # Health checks
+  health_checks:
+    liveness:
+      enabled: true
+      path: "/health"
+      initial_delay: 30
+      period: 10
+      timeout: 5
+      success_threshold: 1
+      failure_threshold: 3
+    readiness:
+      enabled: true
+      path: "/health"
+      initial_delay: 15
+      period: 5
+      timeout: 3
+      success_threshold: 1
+      failure_threshold: 3

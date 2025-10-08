@@ -1,0 +1,409 @@
+# Model Ensemble Pipeline Configuration
+# Pipeline for ensemble model inference in PBF-LBM systems
+
+pipeline:
+  name: "model_ensemble_pipeline"
+  version: "1.0.0"
+  description: "Ensemble model inference pipeline for improved predictions"
+  
+  stages:
+    - name: "data_ingestion"
+      description: "Ingest data for ensemble inference"
+      component: "data_ingestion"
+      inputs:
+        - source: "batch_data"
+          path: "/data/inference/batch/"
+          format: "parquet"
+        - source: "streaming_data"
+          endpoint: "kafka://inference-data"
+          format: "json"
+        - source: "api_requests"
+          endpoint: "/api/inference/requests"
+          format: "json"
+      outputs:
+        - name: "input_data"
+          path: "/data/pipeline/ensemble/input/"
+          format: "parquet"
+      parameters:
+        batch_size: 1000
+        parallel_workers: 4
+        timeout_minutes: 30
+        
+    - name: "data_preprocessing"
+      description: "Preprocess data for ensemble models"
+      component: "data_preprocessing"
+      inputs:
+        - name: "input_data"
+          from_stage: "data_ingestion"
+      outputs:
+        - name: "preprocessed_data"
+          path: "/data/pipeline/ensemble/preprocessed/"
+          format: "parquet"
+      parameters:
+        transformations:
+          - name: "data_cleaning"
+            operations:
+              - "remove_null_values"
+              - "handle_outliers"
+              - "impute_missing"
+          - name: "feature_scaling"
+            method: "standard_scaler"
+            scaler_path: "/models/scalers/"
+          - name: "feature_engineering"
+            operations:
+              - "polynomial_features"
+              - "interaction_features"
+              - "domain_features"
+        validation:
+          enabled: true
+          schema_validation: true
+          range_validation: true
+          
+    - name: "base_model_inference"
+      description: "Run inference on base models"
+      component: "base_model_inference"
+      inputs:
+        - name: "preprocessed_data"
+          from_stage: "data_preprocessing"
+      outputs:
+        - name: "base_predictions"
+          path: "/data/pipeline/ensemble/base_predictions/"
+          format: "parquet"
+      parameters:
+        models:
+          - name: "process_optimization_rf"
+            config_file: "config/ml/models/process_optimization/laser_parameter_predictor.yaml"
+            model_path: "/models/process_optimization/laser_parameter_predictor/rf/"
+            algorithm: "RandomForestRegressor"
+            weight: 0.25
+          - name: "process_optimization_xgb"
+            config_file: "config/ml/models/process_optimization/laser_parameter_predictor.yaml"
+            model_path: "/models/process_optimization/laser_parameter_predictor/xgb/"
+            algorithm: "XGBRegressor"
+            weight: 0.25
+          - name: "process_optimization_svm"
+            config_file: "config/ml/models/process_optimization/laser_parameter_predictor.yaml"
+            model_path: "/models/process_optimization/laser_parameter_predictor/svm/"
+            algorithm: "SVR"
+            weight: 0.20
+          - name: "process_optimization_nn"
+            config_file: "config/ml/models/process_optimization/laser_parameter_predictor.yaml"
+            model_path: "/models/process_optimization/laser_parameter_predictor/nn/"
+            algorithm: "NeuralNetwork"
+            weight: 0.30
+        parallel_execution:
+          enabled: true
+          max_workers: 4
+        timeout_per_model: 300
+        fallback_strategy: "use_available_models"
+        
+    - name: "defect_detection_ensemble"
+      description: "Ensemble inference for defect detection"
+      component: "defect_detection_ensemble"
+      inputs:
+        - name: "preprocessed_data"
+          from_stage: "data_preprocessing"
+      outputs:
+        - name: "defect_predictions"
+          path: "/data/pipeline/ensemble/defect_predictions/"
+          format: "parquet"
+      parameters:
+        models:
+          - name: "defect_detection_cnn"
+            config_file: "config/ml/models/defect_detection/image_defect_classifier.yaml"
+            model_path: "/models/defect_detection/image_defect_classifier/cnn/"
+            algorithm: "ConvolutionalNeuralNetwork"
+            weight: 0.40
+          - name: "defect_detection_rf"
+            config_file: "config/ml/models/defect_detection/real_time_defect_predictor.yaml"
+            model_path: "/models/defect_detection/real_time_defect_predictor/rf/"
+            algorithm: "RandomForestClassifier"
+            weight: 0.30
+          - name: "defect_detection_xgb"
+            config_file: "config/ml/models/defect_detection/real_time_defect_predictor.yaml"
+            model_path: "/models/defect_detection/real_time_defect_predictor/xgb/"
+            algorithm: "XGBClassifier"
+            weight: 0.30
+        ensemble_method: "weighted_voting"
+        confidence_threshold: 0.8
+        parallel_execution:
+          enabled: true
+          max_workers: 3
+          
+    - name: "quality_assessment_ensemble"
+      description: "Ensemble inference for quality assessment"
+      component: "quality_assessment_ensemble"
+      inputs:
+        - name: "preprocessed_data"
+          from_stage: "data_preprocessing"
+      outputs:
+        - name: "quality_predictions"
+          path: "/data/pipeline/ensemble/quality_predictions/"
+          format: "parquet"
+      parameters:
+        models:
+          - name: "quality_score_rf"
+            config_file: "config/ml/models/quality_assessment/quality_score_predictor.yaml"
+            model_path: "/models/quality_assessment/quality_score_predictor/rf/"
+            algorithm: "RandomForestRegressor"
+            weight: 0.30
+          - name: "dimensional_accuracy_gb"
+            config_file: "config/ml/models/quality_assessment/dimensional_accuracy_predictor.yaml"
+            model_path: "/models/quality_assessment/dimensional_accuracy_predictor/gb/"
+            algorithm: "GradientBoostingRegressor"
+            weight: 0.25
+          - name: "surface_finish_rf"
+            config_file: "config/ml/models/quality_assessment/surface_finish_predictor.yaml"
+            model_path: "/models/quality_assessment/surface_finish_predictor/rf/"
+            algorithm: "RandomForestRegressor"
+            weight: 0.25
+          - name: "mechanical_property_xgb"
+            config_file: "config/ml/models/quality_assessment/mechanical_property_predictor.yaml"
+            model_path: "/models/quality_assessment/mechanical_property_predictor/xgb/"
+            algorithm: "XGBRegressor"
+            weight: 0.20
+        ensemble_method: "weighted_average"
+        uncertainty_quantification:
+          enabled: true
+          method: "bootstrap"
+          n_bootstrap: 100
+          
+    - name: "maintenance_ensemble"
+      description: "Ensemble inference for predictive maintenance"
+      component: "maintenance_ensemble"
+      inputs:
+        - name: "preprocessed_data"
+          from_stage: "data_preprocessing"
+      outputs:
+        - name: "maintenance_predictions"
+          path: "/data/pipeline/ensemble/maintenance_predictions/"
+          format: "parquet"
+      parameters:
+        models:
+          - name: "equipment_health_if"
+            config_file: "config/ml/models/predictive_maintenance/equipment_health_monitor.yaml"
+            model_path: "/models/predictive_maintenance/equipment_health_monitor/if/"
+            algorithm: "IsolationForest"
+            weight: 0.35
+          - name: "failure_predictor_xgb"
+            config_file: "config/ml/models/predictive_maintenance/failure_predictor.yaml"
+            model_path: "/models/predictive_maintenance/failure_predictor/xgb/"
+            algorithm: "XGBClassifier"
+            weight: 0.35
+          - name: "maintenance_scheduler_gb"
+            config_file: "config/ml/models/predictive_maintenance/maintenance_scheduler.yaml"
+            model_path: "/models/predictive_maintenance/maintenance_scheduler/gb/"
+            algorithm: "GradientBoostingRegressor"
+            weight: 0.30
+        ensemble_method: "stacking"
+        meta_learner: "LinearRegression"
+        cross_validation:
+          enabled: true
+          cv_folds: 5
+          
+    - name: "ensemble_combination"
+      description: "Combine predictions from different model ensembles"
+      component: "ensemble_combination"
+      inputs:
+        - name: "base_predictions"
+          from_stage: "base_model_inference"
+        - name: "defect_predictions"
+          from_stage: "defect_detection_ensemble"
+        - name: "quality_predictions"
+          from_stage: "quality_assessment_ensemble"
+        - name: "maintenance_predictions"
+          from_stage: "maintenance_ensemble"
+      outputs:
+        - name: "final_predictions"
+          path: "/data/pipeline/ensemble/final_predictions/"
+          format: "parquet"
+      parameters:
+        combination_strategy: "hierarchical_ensemble"
+        weights:
+          process_optimization: 0.30
+          defect_detection: 0.25
+          quality_assessment: 0.25
+          maintenance: 0.20
+        uncertainty_propagation:
+          enabled: true
+          method: "monte_carlo"
+          n_samples: 1000
+        confidence_calibration:
+          enabled: true
+          method: "isotonic_regression"
+          validation_split: 0.2
+        conflict_resolution:
+          enabled: true
+          strategy: "weighted_consensus"
+          threshold: 0.7
+          
+    - name: "result_validation"
+      description: "Validate ensemble predictions"
+      component: "result_validation"
+      inputs:
+        - name: "final_predictions"
+          from_stage: "ensemble_combination"
+      outputs:
+        - name: "validated_predictions"
+          path: "/data/pipeline/ensemble/validated_predictions/"
+          format: "parquet"
+      parameters:
+        validation_rules:
+          - name: "prediction_range_check"
+            rules:
+              - "process_parameters within valid ranges"
+              - "quality_scores between 0 and 1"
+              - "defect_probabilities between 0 and 1"
+          - name: "consistency_check"
+            rules:
+              - "defect_probability vs quality_score consistency"
+              - "maintenance_urgency vs equipment_health consistency"
+          - name: "business_rule_validation"
+            rules:
+              - "high_defect_probability_implies_low_quality"
+              - "equipment_anomaly_implies_maintenance_need"
+        confidence_threshold: 0.8
+        fallback_strategy: "use_most_confident_model"
+        error_handling: "flag_low_confidence"
+        
+    - name: "result_output"
+      description: "Output validated ensemble predictions"
+      component: "result_output"
+      inputs:
+        - name: "validated_predictions"
+          from_stage: "result_validation"
+      outputs:
+        - name: "ensemble_results"
+          path: "/data/pipeline/ensemble/results/"
+          format: "json"
+      parameters:
+        output_formats:
+          - "json"
+          - "parquet"
+          - "csv"
+        output_destinations:
+          - "api_response"
+          - "database_storage"
+          - "message_queue"
+          - "file_system"
+        metadata:
+          - "ensemble_version"
+          - "model_versions"
+          - "prediction_confidence"
+          - "uncertainty_estimates"
+          - "processing_timestamp"
+        result_aggregation:
+          enabled: true
+          method: "time_window"
+          window_size: "5_minutes"
+          
+    - name: "pipeline_monitoring"
+      description: "Monitor ensemble pipeline performance"
+      component: "pipeline_monitoring"
+      inputs:
+        - name: "all_stages"
+          from_stage: "*"
+      outputs:
+        - name: "monitoring_metrics"
+          path: "/data/pipeline/ensemble/monitoring/"
+          format: "json"
+      parameters:
+        metrics:
+          - "ensemble_accuracy"
+          - "individual_model_accuracy"
+          - "ensemble_diversity"
+          - "prediction_confidence"
+          - "uncertainty_estimates"
+          - "processing_latency"
+          - "resource_utilization"
+        model_performance_tracking:
+          enabled: true
+          metrics:
+            - "accuracy"
+            - "precision"
+            - "recall"
+            - "f1_score"
+            - "auc_roc"
+        ensemble_analysis:
+          enabled: true
+          diversity_metrics:
+            - "correlation_based_diversity"
+            - "disagreement_diversity"
+            - "double_fault_diversity"
+        alerting:
+          - name: "ensemble_performance_degradation"
+            condition: "ensemble_accuracy < 0.85"
+            severity: "warning"
+          - name: "high_uncertainty"
+            condition: "prediction_uncertainty > 0.3"
+            severity: "info"
+          - name: "model_disagreement"
+            condition: "model_disagreement > 0.5"
+            severity: "warning"
+
+  scheduling:
+    trigger: "schedule"
+    schedule: "0 */6 * * *"  # Every 6 hours
+    timezone: "UTC"
+    retry_policy:
+      max_retries: 3
+      retry_delay_minutes: 30
+      exponential_backoff: true
+      
+  resources:
+    compute:
+      type: "spark_cluster"
+      nodes: 6
+      cores_per_node: 12
+      memory_per_node: "64GB"
+      storage: "500GB"
+    gpu:
+      enabled: true
+      type: "nvidia_tesla_v100"
+      count: 2
+      memory_per_gpu: "32GB"
+    storage:
+      type: "s3"
+      bucket: "ml-ensemble-data"
+      region: "us-west-2"
+      
+  environment:
+    python_version: "3.9"
+    dependencies:
+      - "scikit-learn==1.3.0"
+      - "xgboost==1.7.6"
+      - "tensorflow==2.13.0"
+      - "pandas==2.0.3"
+      - "numpy==1.24.3"
+      - "mlflow==2.5.0"
+      - "shap==0.42.1"
+      - "optuna==3.2.0"
+      - "uncertainty-toolbox==0.0.8"
+    environment_variables:
+      MLFLOW_TRACKING_URI: "http://mlflow-server:5000"
+      AWS_DEFAULT_REGION: "us-west-2"
+      LOG_LEVEL: "INFO"
+      CUDA_VISIBLE_DEVICES: "0,1"
+      
+  monitoring:
+    enabled: true
+    metrics_collection:
+      - "ensemble_performance"
+      - "individual_model_performance"
+      - "ensemble_diversity"
+      - "prediction_confidence"
+      - "uncertainty_estimates"
+      - "processing_latency"
+      - "resource_utilization"
+    logging:
+      level: "INFO"
+      format: "json"
+      retention_days: 30
+    alerting:
+      enabled: true
+      channels: ["email", "slack"]
+      thresholds:
+        ensemble_accuracy: 0.85
+        prediction_uncertainty: 0.3
+        model_disagreement: 0.5
+        processing_latency_minutes: 30

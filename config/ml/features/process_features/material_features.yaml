@@ -1,0 +1,321 @@
+# Material Features Configuration
+# Feature engineering for material properties in PBF-LBM processes
+
+features:
+  name: "material_features"
+  version: "1.0.0"
+  description: "Feature engineering for material properties in PBF-LBM manufacturing"
+  
+  input_schema:
+    required_fields:
+      - "material_id"
+      - "material_type"
+      - "timestamp"
+    optional_fields:
+      - "density"
+      - "melting_temperature"
+      - "thermal_conductivity"
+      - "thermal_expansion_coefficient"
+      - "specific_heat"
+      - "thermal_diffusivity"
+      - "surface_tension"
+      - "viscosity"
+      - "elastic_modulus"
+      - "poisson_ratio"
+      - "yield_strength"
+      - "ultimate_tensile_strength"
+      - "elongation"
+      - "hardness"
+      - "fatigue_strength"
+      - "fracture_toughness"
+      - "electrical_conductivity"
+      - "magnetic_permeability"
+      - "corrosion_resistance"
+      - "oxidation_resistance"
+      - "powder_particle_size_d10"
+      - "powder_particle_size_d50"
+      - "powder_particle_size_d90"
+      - "powder_sphericity"
+      - "powder_flowability"
+      - "powder_density"
+      - "powder_porosity"
+      - "oxygen_content"
+      - "nitrogen_content"
+      - "carbon_content"
+      - "composition_ti"
+      - "composition_al"
+      - "composition_v"
+      - "composition_fe"
+      - "composition_cr"
+      - "composition_ni"
+      - "composition_mo"
+      - "composition_cu"
+      - "composition_mn"
+      - "composition_si"
+      - "composition_p"
+      - "composition_s"
+      
+  feature_groups:
+    - name: "physical_properties"
+      description: "Features derived from physical properties"
+      features:
+        - name: "density_category"
+          description: "Material density category"
+          formula: "categorize_density(density)"
+          type: "categorical"
+          categories: ["low", "medium", "high", "very_high"]
+          
+        - name: "thermal_conductivity_category"
+          description: "Thermal conductivity category"
+          formula: "categorize_thermal_conductivity(thermal_conductivity)"
+          type: "categorical"
+          categories: ["low", "medium", "high", "very_high"]
+          
+        - name: "thermal_expansion_category"
+          description: "Thermal expansion category"
+          formula: "categorize_thermal_expansion(thermal_expansion_coefficient)"
+          type: "categorical"
+          categories: ["low", "medium", "high", "very_high"]
+          
+        - name: "thermal_diffusivity_category"
+          description: "Thermal diffusivity category"
+          formula: "categorize_thermal_diffusivity(thermal_diffusivity)"
+          type: "categorical"
+          categories: ["low", "medium", "high", "very_high"]
+          
+        - name: "thermal_mass"
+          description: "Thermal mass (density * specific_heat)"
+          formula: "density * specific_heat"
+          type: "numerical"
+          range: [100.0, 10000.0]
+          
+        - name: "thermal_penetration_depth"
+          description: "Thermal penetration depth"
+          formula: "sqrt(thermal_diffusivity * 0.1)"
+          type: "numerical"
+          range: [0.001, 0.1]
+          
+    - name: "mechanical_properties"
+      description: "Features derived from mechanical properties"
+      features:
+        - name: "strength_to_weight_ratio"
+          description: "Strength to weight ratio"
+          formula: "yield_strength / density"
+          type: "numerical"
+          range: [0.1, 1000.0]
+          
+        - name: "stiffness_to_weight_ratio"
+          description: "Stiffness to weight ratio"
+          formula: "elastic_modulus / density"
+          type: "numerical"
+          range: [1.0, 10000.0]
+          
+        - name: "toughness_index"
+          description: "Material toughness index"
+          formula: "fracture_toughness * yield_strength"
+          type: "numerical"
+          range: [0.1, 100000.0]
+          
+        - name: "ductility_index"
+          description: "Material ductility index"
+          formula: "elongation * ultimate_tensile_strength / yield_strength"
+          type: "numerical"
+          range: [0.1, 1000.0]
+          
+        - name: "hardness_category"
+          description: "Material hardness category"
+          formula: "categorize_hardness(hardness)"
+          type: "categorical"
+          categories: ["soft", "medium", "hard", "very_hard"]
+          
+        - name: "fatigue_resistance"
+          description: "Fatigue resistance index"
+          formula: "fatigue_strength / ultimate_tensile_strength"
+          type: "numerical"
+          range: [0.1, 1.0]
+          
+    - name: "powder_properties"
+      description: "Features derived from powder properties"
+      features:
+        - name: "particle_size_distribution_width"
+          description: "Particle size distribution width"
+          formula: "(powder_particle_size_d90 - powder_particle_size_d10) / powder_particle_size_d50"
+          type: "numerical"
+          range: [0.1, 5.0]
+          
+        - name: "particle_size_uniformity"
+          description: "Particle size uniformity"
+          formula: "powder_particle_size_d50 / (powder_particle_size_d90 - powder_particle_size_d10)"
+          type: "numerical"
+          range: [0.1, 10.0]
+          
+        - name: "powder_quality_index"
+          description: "Overall powder quality index"
+          formula: "powder_sphericity * powder_flowability * (1 - powder_porosity / 100)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "powder_density_ratio"
+          description: "Powder density to theoretical density ratio"
+          formula: "powder_density / density"
+          type: "numerical"
+          range: [0.3, 0.8]
+          
+        - name: "powder_flowability_category"
+          description: "Powder flowability category"
+          formula: "categorize_flowability(powder_flowability)"
+          type: "categorical"
+          categories: ["poor", "fair", "good", "excellent"]
+          
+        - name: "powder_sphericity_category"
+          description: "Powder sphericity category"
+          formula: "categorize_sphericity(powder_sphericity)"
+          type: "categorical"
+          categories: ["irregular", "sub_spherical", "spherical", "perfect_spherical"]
+          
+    - name: "composition_features"
+      description: "Features derived from material composition"
+      features:
+        - name: "alloy_type"
+          description: "Alloy type classification"
+          formula: "classify_alloy_type(composition_ti, composition_al, composition_v, composition_fe, composition_cr, composition_ni)"
+          type: "categorical"
+          categories: ["titanium_alloy", "steel", "nickel_alloy", "aluminum_alloy", "copper_alloy", "other"]
+          
+        - name: "main_element"
+          description: "Main alloying element"
+          formula: "get_main_element(composition_ti, composition_al, composition_v, composition_fe, composition_cr, composition_ni)"
+          type: "categorical"
+          categories: ["ti", "al", "v", "fe", "cr", "ni", "cu", "mn", "si"]
+          
+        - name: "alloying_elements_count"
+          description: "Number of significant alloying elements"
+          formula: "count_alloying_elements(composition_ti, composition_al, composition_v, composition_fe, composition_cr, composition_ni, composition_mo, composition_cu, composition_mn, composition_si)"
+          type: "numerical"
+          range: [0, 10]
+          
+        - name: "impurity_content"
+          description: "Total impurity content"
+          formula: "oxygen_content + nitrogen_content + carbon_content + composition_p + composition_s"
+          type: "numerical"
+          range: [0.0, 5.0]
+          
+        - name: "alloy_complexity"
+          description: "Alloy complexity index"
+          formula: "alloying_elements_count * impurity_content"
+          type: "numerical"
+          range: [0.0, 50.0]
+          
+        - name: "oxidation_resistance_index"
+          description: "Oxidation resistance index"
+          formula: "oxidation_resistance * (1 - oxygen_content / 1000)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+    - name: "process_compatibility"
+      description: "Features related to process compatibility"
+      features:
+        - name: "melting_difficulty"
+          description: "Melting difficulty index"
+          formula: "melting_temperature * thermal_conductivity / 1000"
+          type: "numerical"
+          range: [0.1, 1000.0]
+          
+        - name: "solidification_rate"
+          description: "Solidification rate index"
+          formula: "thermal_conductivity / (density * specific_heat)"
+          type: "numerical"
+          range: [0.001, 1.0]
+          
+        - name: "weldability_index"
+          description: "Weldability index"
+          formula: "thermal_conductivity * (1 - thermal_expansion_coefficient / 50e-6)"
+          type: "numerical"
+          range: [0.1, 1000.0]
+          
+        - name: "process_stability"
+          description: "Process stability index"
+          formula: "1 / (thermal_expansion_coefficient * thermal_conductivity / 1000)"
+          type: "numerical"
+          range: [0.001, 100.0]
+          
+        - name: "energy_requirement"
+          description: "Energy requirement index"
+          formula: "melting_temperature * density * specific_heat / 1000000"
+          type: "numerical"
+          range: [0.1, 1000.0]
+          
+    - name: "quality_indicators"
+      description: "Features related to quality indicators"
+      features:
+        - name: "material_quality_score"
+          description: "Overall material quality score"
+          formula: "powder_quality_index * (1 - impurity_content / 5) * (1 - powder_porosity / 100)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "consistency_index"
+          description: "Material consistency index"
+          formula: "1 / (particle_size_distribution_width * alloy_complexity / 10)"
+          type: "numerical"
+          range: [0.1, 10.0]
+          
+        - name: "reliability_index"
+          description: "Material reliability index"
+          formula: "fatigue_resistance * toughness_index / 1000"
+          type: "numerical"
+          range: [0.001, 100.0]
+          
+        - name: "processability_index"
+          description: "Processability index"
+          formula: "powder_flowability * weldability_index / 1000"
+          type: "numerical"
+          range: [0.001, 100.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["thermal_mass", "thermal_penetration_depth", "strength_to_weight_ratio", "stiffness_to_weight_ratio",
+                "toughness_index", "ductility_index", "fatigue_resistance", "particle_size_distribution_width",
+                "particle_size_uniformity", "powder_quality_index", "powder_density_ratio", "alloying_elements_count",
+                "impurity_content", "alloy_complexity", "oxidation_resistance_index", "melting_difficulty",
+                "solidification_rate", "weldability_index", "process_stability", "energy_requirement",
+                "material_quality_score", "consistency_index", "reliability_index", "processability_index"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["density_category", "thermal_conductivity_category", "thermal_expansion_category",
+                "thermal_diffusivity_category", "hardness_category", "powder_flowability_category",
+                "powder_sphericity_category", "alloy_type", "main_element"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 40
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "density_range_check"
+        condition: "density > 0 AND density < 50"
+        action: "flag_invalid"
+      - name: "melting_temperature_check"
+        condition: "melting_temperature > 0 AND melting_temperature < 3000"
+        action: "flag_invalid"
+      - name: "powder_quality_check"
+        condition: "powder_quality_index >= 0 AND powder_quality_index <= 1"
+        action: "flag_invalid"
+      - name: "composition_sum_check"
+        condition: "sum(composition_elements) <= 100"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["density", "melting_temperature", "powder_quality_index", "alloy_complexity"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 15

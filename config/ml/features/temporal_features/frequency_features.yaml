@@ -1,0 +1,214 @@
+# Frequency Features Configuration
+# Feature engineering for frequency domain temporal features
+
+features:
+  name: "frequency_features"
+  version: "1.0.0"
+  description: "Feature engineering for frequency domain temporal features in PBF-LBM processes"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "value"
+    optional_fields:
+      - "entity_id"
+      - "sampling_rate"
+      
+  feature_groups:
+    - name: "spectral_features"
+      description: "Spectral domain features"
+      features:
+        - name: "spectral_centroid"
+          description: "Spectral centroid"
+          formula: "calculate_spectral_centroid(value)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "spectral_bandwidth"
+          description: "Spectral bandwidth"
+          formula: "calculate_spectral_bandwidth(value)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "spectral_rolloff"
+          description: "Spectral rolloff"
+          formula: "calculate_spectral_rolloff(value)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "spectral_flatness"
+          description: "Spectral flatness"
+          formula: "calculate_spectral_flatness(value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+        - name: "spectral_contrast"
+          description: "Spectral contrast"
+          formula: "calculate_spectral_contrast(value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+        - name: "spectral_energy"
+          description: "Spectral energy"
+          formula: "calculate_spectral_energy(value)"
+          type: "numerical"
+          range: [0.0, 10000.0]
+        - name: "spectral_entropy"
+          description: "Spectral entropy"
+          formula: "calculate_spectral_entropy(value)"
+          type: "numerical"
+          range: [0.0, 8.0]
+        - name: "spectral_kurtosis"
+          description: "Spectral kurtosis"
+          formula: "calculate_spectral_kurtosis(value)"
+          type: "numerical"
+          range: [0.0, 20.0]
+        - name: "spectral_skewness"
+          description: "Spectral skewness"
+          formula: "calculate_spectral_skewness(value)"
+          type: "numerical"
+          range: [-3.0, 3.0]
+          
+    - name: "frequency_bands"
+      description: "Frequency band features"
+      features:
+        - name: "low_frequency_energy"
+          description: "Energy in low frequency band (0-0.1 Hz)"
+          formula: "calculate_band_energy(value, 0, 0.1)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "mid_frequency_energy"
+          description: "Energy in mid frequency band (0.1-1 Hz)"
+          formula: "calculate_band_energy(value, 0.1, 1.0)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "high_frequency_energy"
+          description: "Energy in high frequency band (1-10 Hz)"
+          formula: "calculate_band_energy(value, 1.0, 10.0)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "very_high_frequency_energy"
+          description: "Energy in very high frequency band (10-100 Hz)"
+          formula: "calculate_band_energy(value, 10.0, 100.0)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "frequency_band_ratio_low_mid"
+          description: "Ratio of low to mid frequency energy"
+          formula: "low_frequency_energy / (mid_frequency_energy + 1e-6)"
+          type: "numerical"
+          range: [0.0, 100.0]
+        - name: "frequency_band_ratio_mid_high"
+          description: "Ratio of mid to high frequency energy"
+          formula: "mid_frequency_energy / (high_frequency_energy + 1e-6)"
+          type: "numerical"
+          range: [0.0, 100.0]
+        - name: "frequency_band_ratio_high_vhigh"
+          description: "Ratio of high to very high frequency energy"
+          formula: "high_frequency_energy / (very_high_frequency_energy + 1e-6)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+    - name: "dominant_frequencies"
+      description: "Dominant frequency features"
+      features:
+        - name: "dominant_frequency"
+          description: "Dominant frequency component"
+          formula: "calculate_dominant_frequency(value)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "dominant_frequency_amplitude"
+          description: "Amplitude of dominant frequency"
+          formula: "calculate_dominant_frequency_amplitude(value)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "second_dominant_frequency"
+          description: "Second dominant frequency component"
+          formula: "calculate_second_dominant_frequency(value)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "frequency_dominance_ratio"
+          description: "Ratio of dominant to second dominant frequency amplitude"
+          formula: "dominant_frequency_amplitude / (second_dominant_frequency_amplitude + 1e-6)"
+          type: "numerical"
+          range: [0.0, 100.0]
+        - name: "frequency_concentration"
+          description: "Frequency concentration index"
+          formula: "calculate_frequency_concentration(value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+        - name: "frequency_dispersion"
+          description: "Frequency dispersion index"
+          formula: "calculate_frequency_dispersion(value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "harmonic_features"
+      description: "Harmonic analysis features"
+      features:
+        - name: "fundamental_frequency"
+          description: "Fundamental frequency"
+          formula: "calculate_fundamental_frequency(value)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+        - name: "harmonic_distortion"
+          description: "Total harmonic distortion"
+          formula: "calculate_harmonic_distortion(value)"
+          type: "numerical"
+          range: [0.0, 100.0]
+        - name: "harmonic_richness"
+          description: "Harmonic richness index"
+          formula: "calculate_harmonic_richness(value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+        - name: "harmonic_balance"
+          description: "Harmonic balance index"
+          formula: "calculate_harmonic_balance(value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+        - name: "odd_harmonic_ratio"
+          description: "Ratio of odd to even harmonics"
+          formula: "calculate_odd_harmonic_ratio(value)"
+          type: "numerical"
+          range: [0.0, 10.0]
+        - name: "harmonic_coherence"
+          description: "Harmonic coherence index"
+          formula: "calculate_harmonic_coherence(value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["spectral_centroid", "spectral_bandwidth", "spectral_rolloff", "spectral_flatness",
+                "spectral_contrast", "spectral_energy", "spectral_entropy", "spectral_kurtosis",
+                "spectral_skewness", "low_frequency_energy", "mid_frequency_energy", "high_frequency_energy",
+                "very_high_frequency_energy", "frequency_band_ratio_low_mid", "frequency_band_ratio_mid_high",
+                "frequency_band_ratio_high_vhigh", "dominant_frequency", "dominant_frequency_amplitude",
+                "second_dominant_frequency", "frequency_dominance_ratio", "frequency_concentration",
+                "frequency_dispersion", "fundamental_frequency", "harmonic_distortion", "harmonic_richness",
+                "harmonic_balance", "odd_harmonic_ratio", "harmonic_coherence"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 20
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "frequency_range_check"
+        condition: "dominant_frequency >= 0 AND dominant_frequency <= 1000"
+        action: "flag_invalid"
+      - name: "spectral_energy_check"
+        condition: "spectral_energy >= 0"
+        action: "flag_invalid"
+      - name: "harmonic_distortion_check"
+        condition: "harmonic_distortion >= 0 AND harmonic_distortion <= 100"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["spectral_centroid", "dominant_frequency", "spectral_energy"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 20

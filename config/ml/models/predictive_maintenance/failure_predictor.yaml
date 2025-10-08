@@ -1,0 +1,305 @@
+# Failure Predictor Configuration
+# Model for predicting equipment failures in PBF-LBM systems
+
+model:
+  name: "failure_predictor"
+  version: "1.0.0"
+  type: "classification"
+  framework: "xgboost"
+  
+  architecture:
+    algorithm: "XGBClassifier"
+    parameters:
+      n_estimators: 500
+      max_depth: 10
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+      objective: "binary:logistic"
+      scale_pos_weight: 10
+    
+  input_features:
+    # Laser System Parameters
+    - name: "laser_power_actual"
+      type: "numerical"
+      description: "Actual laser power output (W)"
+      range: [0.0, 1000.0]
+    - name: "laser_power_setpoint"
+      type: "numerical"
+      description: "Laser power setpoint (W)"
+      range: [0.0, 1000.0]
+    - name: "laser_power_stability"
+      type: "numerical"
+      description: "Laser power stability (coefficient of variation)"
+      range: [0.0, 0.1]
+    - name: "laser_temperature"
+      type: "numerical"
+      description: "Laser system temperature (°C)"
+      range: [20.0, 80.0]
+    - name: "laser_cooling_efficiency"
+      type: "numerical"
+      description: "Laser cooling system efficiency (%)"
+      range: [0.0, 100.0]
+    - name: "laser_beam_quality"
+      type: "numerical"
+      description: "Laser beam quality factor (M²)"
+      range: [1.0, 5.0]
+    - name: "laser_focus_position"
+      type: "numerical"
+      description: "Laser focus position deviation (mm)"
+      range: [-2.0, 2.0]
+    
+    # Galvanometer System
+    - name: "galvo_x_position"
+      type: "numerical"
+      description: "Galvanometer X position (mm)"
+      range: [-200.0, 200.0]
+    - name: "galvo_y_position"
+      type: "numerical"
+      description: "Galvanometer Y position (mm)"
+      range: [-200.0, 200.0]
+    - name: "galvo_x_velocity"
+      type: "numerical"
+      description: "Galvanometer X velocity (mm/s)"
+      range: [0.0, 2000.0]
+    - name: "galvo_y_velocity"
+      type: "numerical"
+      description: "Galvanometer Y velocity (mm/s)"
+      range: [0.0, 2000.0]
+    - name: "galvo_temperature"
+      type: "numerical"
+      description: "Galvanometer temperature (°C)"
+      range: [20.0, 60.0]
+    - name: "galvo_vibration_level"
+      type: "numerical"
+      description: "Galvanometer vibration level (g)"
+      range: [0.0, 10.0]
+    
+    # Powder Handling System
+    - name: "powder_feeder_rate"
+      type: "numerical"
+      description: "Powder feeder rate (g/min)"
+      range: [0.0, 100.0]
+    - name: "powder_feeder_consistency"
+      type: "numerical"
+      description: "Powder feeder consistency (coefficient of variation)"
+      range: [0.0, 0.2]
+    - name: "powder_level"
+      type: "numerical"
+      description: "Powder level in hopper (%)"
+      range: [0.0, 100.0]
+    - name: "powder_flow_pressure"
+      type: "numerical"
+      description: "Powder flow pressure (bar)"
+      range: [0.0, 5.0]
+    - name: "powder_sieving_efficiency"
+      type: "numerical"
+      description: "Powder sieving efficiency (%)"
+      range: [0.0, 100.0]
+    - name: "powder_contamination_level"
+      type: "numerical"
+      description: "Powder contamination level (ppm)"
+      range: [0.0, 1000.0]
+    
+    # Build Platform System
+    - name: "platform_position"
+      type: "numerical"
+      description: "Build platform position (mm)"
+      range: [0.0, 500.0]
+    - name: "platform_velocity"
+      type: "numerical"
+      description: "Build platform velocity (mm/s)"
+      range: [0.0, 50.0]
+    - name: "platform_temperature"
+      type: "numerical"
+      description: "Build platform temperature (°C)"
+      range: [20.0, 200.0]
+    - name: "platform_vibration"
+      type: "numerical"
+      description: "Build platform vibration level (g)"
+      range: [0.0, 5.0]
+    - name: "platform_leveling_accuracy"
+      type: "numerical"
+      description: "Platform leveling accuracy (μm)"
+      range: [0.0, 100.0]
+    
+    # Environmental System
+    - name: "chamber_temperature"
+      type: "numerical"
+      description: "Build chamber temperature (°C)"
+      range: [20.0, 200.0]
+    - name: "chamber_pressure"
+      type: "numerical"
+      description: "Build chamber pressure (mbar)"
+      range: [0.0, 1000.0]
+    - name: "oxygen_content"
+      type: "numerical"
+      description: "Oxygen content in chamber (ppm)"
+      range: [0.0, 1000.0]
+    - name: "humidity"
+      type: "numerical"
+      description: "Relative humidity (%)"
+      range: [0.0, 100.0]
+    - name: "gas_flow_rate"
+      type: "numerical"
+      description: "Inert gas flow rate (L/min)"
+      range: [0.0, 100.0]
+    - name: "filtration_efficiency"
+      type: "numerical"
+      description: "Gas filtration efficiency (%)"
+      range: [0.0, 100.0]
+    
+    # System Health Metrics
+    - name: "operating_hours"
+      type: "numerical"
+      description: "Total operating hours"
+      range: [0.0, 100000.0]
+    - name: "maintenance_interval"
+      type: "numerical"
+      description: "Days since last maintenance"
+      range: [0.0, 365.0]
+    - name: "error_count_24h"
+      type: "numerical"
+      description: "Error count in last 24 hours"
+      range: [0.0, 100.0]
+    - name: "warning_count_24h"
+      type: "numerical"
+      description: "Warning count in last 24 hours"
+      range: [0.0, 500.0]
+    - name: "system_load"
+      type: "numerical"
+      description: "System load percentage (%)"
+      range: [0.0, 100.0]
+    - name: "power_consumption"
+      type: "numerical"
+      description: "Total power consumption (kW)"
+      range: [0.0, 50.0]
+    
+    # Temporal Features
+    - name: "time_since_startup"
+      type: "numerical"
+      description: "Time since system startup (hours)"
+      range: [0.0, 168.0]
+    - name: "build_duration"
+      type: "numerical"
+      description: "Current build duration (hours)"
+      range: [0.0, 100.0]
+    - name: "layer_count"
+      type: "numerical"
+      description: "Current layer count"
+      range: [0.0, 10000.0]
+
+  output_classes:
+    - name: "no_failure"
+      description: "System operating normally"
+      threshold: 0.0
+    - name: "imminent_failure"
+      description: "Failure predicted within 24-48 hours"
+      threshold: 0.7
+    - name: "critical_failure"
+      description: "Failure predicted within 2-8 hours"
+      threshold: 0.9
+
+  training:
+    dataset_path: "/data/training/failure_prediction_dataset.csv"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "stratified_kfold"
+      n_splits: 5
+    metrics:
+      primary: "f1_weighted"
+      secondary: ["precision_weighted", "recall_weighted", "accuracy", "auc_roc"]
+    early_stopping:
+      enabled: true
+      patience: 20
+      monitor: "val_f1_weighted"
+    
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["laser_power_actual", "laser_power_setpoint", "laser_power_stability",
+                "laser_temperature", "laser_cooling_efficiency", "laser_beam_quality",
+                "laser_focus_position", "galvo_x_position", "galvo_y_position",
+                "galvo_x_velocity", "galvo_y_velocity", "galvo_temperature",
+                "galvo_vibration_level", "powder_feeder_rate", "powder_feeder_consistency",
+                "powder_level", "powder_flow_pressure", "powder_sieving_efficiency",
+                "powder_contamination_level", "platform_position", "platform_velocity",
+                "platform_temperature", "platform_vibration", "platform_leveling_accuracy",
+                "chamber_temperature", "chamber_pressure", "oxygen_content", "humidity",
+                "gas_flow_rate", "filtration_efficiency", "operating_hours",
+                "maintenance_interval", "error_count_24h", "warning_count_24h",
+                "system_load", "power_consumption", "time_since_startup",
+                "build_duration", "layer_count"]
+    feature_engineering:
+      - name: "laser_power_deviation"
+        formula: "abs(laser_power_actual - laser_power_setpoint) / laser_power_setpoint"
+      - name: "galvo_velocity_magnitude"
+        formula: "sqrt(galvo_x_velocity^2 + galvo_y_velocity^2)"
+      - name: "system_stress_index"
+        formula: "(error_count_24h + warning_count_24h) * system_load / 100"
+      - name: "maintenance_urgency"
+        formula: "maintenance_interval / 30 + operating_hours / 10000"
+      - name: "environmental_stability"
+        formula: "1 - (abs(chamber_temperature - 25) / 100 + oxygen_content / 1000)"
+    feature_selection:
+      method: "mutual_info_classif"
+      k_best: 40
+      
+  validation:
+    business_rules:
+      - rule: "high_error_rate_alert"
+        condition: "error_count_24h > 10 AND predicted_class == 'no_failure'"
+        action: "escalate_review"
+      - rule: "maintenance_overdue_check"
+        condition: "maintenance_interval > 90 AND predicted_class == 'no_failure'"
+        action: "schedule_maintenance"
+      - rule: "critical_parameter_deviation"
+        condition: "laser_power_deviation > 0.1 AND predicted_class == 'no_failure'"
+        action: "investigate_immediately"
+
+  deployment:
+    inference_mode: "real_time"
+    batch_size: 1
+    max_latency_ms: 200
+    model_format: "joblib"
+    artifact_path: "/models/failure_predictor/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["laser_power_actual", "laser_temperature", "chamber_temperature", "system_load"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["accuracy", "f1_weighted", "precision_weighted", "recall_weighted", "auc_roc"]
+      alert_thresholds:
+        accuracy: 0.90
+        f1_weighted: 0.85
+        auc_roc: 0.85
+    explainability:
+      enabled: true
+      method: "shap"
+      sample_size: 1000
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.05
+    schedule: "weekly"
+    data_requirements:
+      min_samples: 5000
+      class_balance_threshold: 0.05
+      
+  alerting:
+    enabled: true
+    channels: ["email", "sms", "dashboard", "api"]
+    escalation_matrix:
+      - level: "warning"
+        threshold: 0.7
+        recipients: ["operators", "supervisors"]
+      - level: "critical"
+        threshold: 0.9
+        recipients: ["operators", "supervisors", "maintenance_team", "management"]
+    notification_frequency: "immediate"

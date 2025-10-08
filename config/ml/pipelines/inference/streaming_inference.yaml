@@ -1,0 +1,369 @@
+# Streaming Inference Pipeline Configuration
+# Pipeline for real-time streaming inference in PBF-LBM systems
+
+pipeline:
+  name: "streaming_inference_pipeline"
+  version: "1.0.0"
+  description: "Real-time streaming inference pipeline for PBF-LBM manufacturing"
+  
+  stages:
+    - name: "data_ingestion"
+      description: "Ingest real-time sensor data streams"
+      component: "stream_ingestion"
+      inputs:
+        - source: "kafka"
+          brokers: ["kafka-broker-1:9092", "kafka-broker-2:9092", "kafka-broker-3:9092"]
+          topics:
+            - "sensor-data"
+            - "process-parameters"
+            - "equipment-status"
+          consumer_group: "ml-inference"
+        - source: "mqtt"
+          broker: "mqtt://sensor-broker:1883"
+          topics:
+            - "equipment/+/sensors"
+            - "process/+/parameters"
+        - source: "websocket"
+          endpoint: "ws://data-stream:8080/stream"
+          protocols: ["json", "protobuf"]
+      outputs:
+        - name: "raw_stream_data"
+          path: "kafka://processed-data"
+          format: "json"
+      parameters:
+        batch_size: 1000
+        batch_timeout_ms: 5000
+        max_latency_ms: 100
+        parallel_consumers: 4
+        auto_offset_reset: "latest"
+        enable_auto_commit: true
+        
+    - name: "data_preprocessing"
+      description: "Preprocess streaming data for inference"
+      component: "stream_preprocessing"
+      inputs:
+        - name: "raw_stream_data"
+          from_stage: "data_ingestion"
+      outputs:
+        - name: "preprocessed_data"
+          path: "kafka://preprocessed-data"
+          format: "json"
+      parameters:
+        transformations:
+          - name: "data_cleaning"
+            operations:
+              - "remove_null_values"
+              - "handle_outliers"
+              - "interpolate_missing"
+          - name: "feature_scaling"
+            method: "standard_scaler"
+            scaler_path: "/models/scalers/"
+          - name: "feature_engineering"
+            operations:
+              - "rolling_statistics"
+              - "lag_features"
+              - "frequency_features"
+              - "domain_features"
+        windowing:
+          enabled: true
+          window_size: "5_minutes"
+          slide_interval: "1_minute"
+          watermark_delay: "30_seconds"
+        data_validation:
+          enabled: true
+          schema_validation: true
+          range_validation: true
+          anomaly_detection: true
+          
+    - name: "feature_store_lookup"
+      description: "Lookup features from online feature store"
+      component: "feature_store_lookup"
+      inputs:
+        - name: "preprocessed_data"
+          from_stage: "data_preprocessing"
+      outputs:
+        - name: "enriched_data"
+          path: "kafka://enriched-data"
+          format: "json"
+      parameters:
+        feature_store:
+          type: "feast"
+          registry_path: "/data/feature_store/registry/"
+          online_store:
+            type: "redis"
+            host: "redis-feature-store"
+            port: 6379
+            db: 0
+        features:
+          - name: "equipment_health_features"
+            ttl: "1_hour"
+          - name: "process_optimization_features"
+            ttl: "30_minutes"
+          - name: "quality_assessment_features"
+            ttl: "2_hours"
+          - name: "maintenance_features"
+            ttl: "24_hours"
+        fallback_strategy: "use_default_values"
+        timeout_ms: 100
+        
+    - name: "model_inference"
+      description: "Perform real-time model inference"
+      component: "stream_inference"
+      inputs:
+        - name: "enriched_data"
+          from_stage: "feature_store_lookup"
+      outputs:
+        - name: "inference_results"
+          path: "kafka://inference-results"
+          format: "json"
+      parameters:
+        models:
+          - name: "process_optimization"
+            config_file: "config/ml/models/process_optimization/laser_parameter_predictor.yaml"
+            model_path: "/models/process_optimization/laser_parameter_predictor/latest/"
+            inference_type: "regression"
+            batch_size: 1
+            max_latency_ms: 50
+          - name: "defect_detection"
+            config_file: "config/ml/models/defect_detection/real_time_defect_predictor.yaml"
+            model_path: "/models/defect_detection/real_time_defect_predictor/latest/"
+            inference_type: "classification"
+            batch_size: 1
+            max_latency_ms: 100
+          - name: "equipment_health"
+            config_file: "config/ml/models/predictive_maintenance/equipment_health_monitor.yaml"
+            model_path: "/models/predictive_maintenance/equipment_health_monitor/latest/"
+            inference_type: "anomaly_detection"
+            batch_size: 1
+            max_latency_ms: 75
+          - name: "quality_assessment"
+            config_file: "config/ml/models/quality_assessment/quality_score_predictor.yaml"
+            model_path: "/models/quality_assessment/quality_score_predictor/latest/"
+            inference_type: "regression"
+            batch_size: 1
+            max_latency_ms: 80
+        model_serving:
+          type: "triton_inference_server"
+          endpoint: "http://triton-server:8000"
+          protocol: "http"
+          timeout_ms: 200
+        ensemble_method:
+          enabled: true
+          strategy: "weighted_average"
+          weights:
+            process_optimization: 0.3
+            defect_detection: 0.4
+            equipment_health: 0.2
+            quality_assessment: 0.1
+        explainability:
+          enabled: true
+          method: "shap"
+          sample_size: 100
+          max_latency_ms: 50
+          
+    - name: "post_processing"
+      description: "Post-process inference results"
+      component: "stream_postprocessing"
+      inputs:
+        - name: "inference_results"
+          from_stage: "model_inference"
+      outputs:
+        - name: "processed_results"
+          path: "kafka://processed-results"
+          format: "json"
+      parameters:
+        operations:
+          - name: "result_validation"
+            rules:
+              - "range_validation"
+              - "consistency_check"
+              - "business_rule_validation"
+          - name: "confidence_scoring"
+            method: "ensemble_confidence"
+            threshold: 0.8
+          - name: "result_aggregation"
+            method: "time_window_aggregation"
+            window_size: "1_minute"
+            aggregation_functions: ["mean", "max", "min"]
+          - name: "alert_generation"
+            rules:
+              - name: "high_defect_probability"
+                condition: "defect_probability > 0.8"
+                severity: "critical"
+                action: "immediate_alert"
+              - name: "equipment_anomaly"
+                condition: "anomaly_score > 0.9"
+                severity: "high"
+                action: "maintenance_alert"
+              - name: "quality_degradation"
+                condition: "quality_score < 0.7"
+                severity: "medium"
+                action: "process_adjustment"
+        data_enrichment:
+          enabled: true
+          metadata:
+            - "timestamp"
+            - "equipment_id"
+            - "process_id"
+            - "model_version"
+            - "inference_latency"
+            
+    - name: "result_routing"
+      description: "Route results to appropriate destinations"
+      component: "stream_routing"
+      inputs:
+        - name: "processed_results"
+          from_stage: "post_processing"
+      outputs:
+        - name: "control_signals"
+          path: "kafka://control-signals"
+          format: "json"
+        - name: "alerts"
+          path: "kafka://alerts"
+          format: "json"
+        - name: "monitoring_data"
+          path: "kafka://monitoring-data"
+          format: "json"
+        - name: "storage_data"
+          path: "kafka://storage-data"
+          format: "json"
+      parameters:
+        routing_rules:
+          - name: "control_signals"
+            condition: "result_type == 'control_recommendation'"
+            destinations:
+              - "equipment_controller"
+              - "process_optimizer"
+          - name: "alerts"
+            condition: "alert_level in ['critical', 'high']"
+            destinations:
+              - "alert_manager"
+              - "notification_service"
+          - name: "monitoring_data"
+            condition: "always"
+            destinations:
+              - "monitoring_dashboard"
+              - "metrics_collector"
+          - name: "storage_data"
+            condition: "always"
+            destinations:
+              - "time_series_database"
+              - "data_lake"
+        load_balancing:
+          enabled: true
+          strategy: "round_robin"
+        failover:
+          enabled: true
+          backup_destinations: ["backup-kafka-cluster"]
+          
+    - name: "pipeline_monitoring"
+      description: "Monitor streaming pipeline performance"
+      component: "stream_monitoring"
+      inputs:
+        - name: "all_stages"
+          from_stage: "*"
+      outputs:
+        - name: "monitoring_metrics"
+          path: "kafka://monitoring-metrics"
+          format: "json"
+      parameters:
+        metrics:
+          - "throughput_records_per_second"
+          - "latency_p99"
+          - "latency_p95"
+          - "latency_mean"
+          - "error_rate"
+          - "backpressure_ratio"
+          - "resource_utilization"
+          - "model_inference_time"
+          - "feature_store_lookup_time"
+        alerting:
+          - name: "high_latency"
+            condition: "latency_p99 > 1000"
+            severity: "critical"
+          - name: "high_error_rate"
+            condition: "error_rate > 0.01"
+            severity: "high"
+          - name: "low_throughput"
+            condition: "throughput < 100"
+            severity: "medium"
+          - name: "backpressure_detected"
+            condition: "backpressure_ratio > 0.8"
+            severity: "high"
+        dashboards:
+          - name: "streaming_pipeline_dashboard"
+            url: "http://grafana:3000/d/streaming-pipeline"
+          - name: "model_performance_dashboard"
+            url: "http://grafana:3000/d/model-performance"
+
+  scheduling:
+    trigger: "continuous"
+    restart_policy: "always"
+    checkpointing:
+      enabled: true
+      interval: "1_minute"
+      storage: "s3://ml-pipeline-checkpoints/"
+    backpressure_handling:
+      enabled: true
+      strategy: "drop_oldest"
+      max_buffer_size: 10000
+      
+  resources:
+    compute:
+      type: "flink_cluster"
+      task_managers: 3
+      slots_per_task_manager: 4
+      memory_per_task_manager: "8GB"
+      parallelism: 12
+    gpu:
+      enabled: true
+      type: "nvidia_tesla_t4"
+      count: 2
+      memory_per_gpu: "16GB"
+    storage:
+      type: "s3"
+      bucket: "ml-streaming-data"
+      region: "us-west-2"
+      
+  environment:
+    python_version: "3.9"
+    dependencies:
+      - "apache-flink==1.17.1"
+      - "kafka-python==2.0.2"
+      - "pyspark==3.4.1"
+      - "tensorflow-serving==2.13.0"
+      - "triton-client==2.34.0"
+      - "feast==0.32.0"
+      - "redis==4.6.0"
+      - "pandas==2.0.3"
+      - "numpy==1.24.3"
+      - "shap==0.42.1"
+    environment_variables:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092"
+      REDIS_HOST: "redis-feature-store"
+      REDIS_PORT: "6379"
+      TRITON_SERVER_URL: "http://triton-server:8000"
+      LOG_LEVEL: "INFO"
+      FLINK_CHECKPOINT_INTERVAL: "60000"
+      
+  monitoring:
+    enabled: true
+    metrics_collection:
+      - "stream_throughput"
+      - "processing_latency"
+      - "error_rate"
+      - "resource_utilization"
+      - "model_inference_metrics"
+      - "feature_store_performance"
+    logging:
+      level: "INFO"
+      format: "json"
+      retention_days: 7
+    alerting:
+      enabled: true
+      channels: ["email", "slack", "pagerduty"]
+      thresholds:
+        latency_p99_ms: 1000
+        error_rate_percent: 1
+        throughput_min_records_per_second: 100
+        backpressure_ratio: 0.8

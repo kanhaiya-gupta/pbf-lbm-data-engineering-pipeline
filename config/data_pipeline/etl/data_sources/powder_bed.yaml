@@ -1,0 +1,313 @@
+# PBF-LB/M Data Pipeline - Powder Bed Data Source Configuration
+# This file contains powder bed monitoring data source specific configurations
+
+powder_bed:
+  # Data source information
+  source_info:
+    name: "Powder Bed Monitoring Data"
+    description: "Powder bed monitoring data from Kafka streams"
+    type: "kafka"
+    priority: "medium"
+    enabled: true
+    
+  # Connection configuration
+  connection:
+    bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+    topic: "powder_bed_monitoring_events"
+    consumer_group: "powder_bed_etl_consumer"
+    security_protocol: "PLAINTEXT"
+    sasl_mechanism: null
+    sasl_username: null
+    sasl_password: null
+    
+  # Data extraction settings
+  extraction:
+    batch_size: 20000
+    timeout_minutes: 45
+    retry_attempts: 3
+    retry_delay_seconds: 5
+    
+    # Streaming extraction
+    streaming:
+      enabled: true
+      trigger_processing_time: "30 seconds"
+      output_mode: "append"
+      checkpoint_location: "/tmp/spark-checkpoints/powder_bed"
+      
+    # Batch extraction
+    batch:
+      enabled: false
+      schedule: "0 */30 * * *"  # Every 30 minutes
+      
+  # Data schema
+  schema:
+    columns:
+      - name: "powder_bed_id"
+        type: "VARCHAR"
+        nullable: false
+        primary_key: true
+        
+      - name: "process_id"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "camera_id"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "timestamp"
+        type: "TIMESTAMP"
+        nullable: false
+        
+      - name: "layer_number"
+        type: "INTEGER"
+        nullable: false
+        
+      - name: "image_path"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "image_size"
+        type: "BIGINT"
+        nullable: false
+        
+      - name: "image_width"
+        type: "INTEGER"
+        nullable: true
+        
+      - name: "image_height"
+        type: "INTEGER"
+        nullable: true
+        
+      - name: "surface_roughness"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "surface_quality_score"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "particle_analysis"
+        type: "JSON"
+        nullable: true
+        
+      - name: "recoat_quality_score"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "anomalies_detected"
+        type: "ARRAY"
+        nullable: true
+        
+      - name: "metadata"
+        type: "JSON"
+        nullable: true
+        
+  # Data quality rules
+  quality_rules:
+    - name: "powder_bed_id_not_null"
+      type: "not_null"
+      column: "powder_bed_id"
+      severity: "error"
+      
+    - name: "process_id_not_null"
+      type: "not_null"
+      column: "process_id"
+      severity: "error"
+      
+    - name: "camera_id_not_null"
+      type: "not_null"
+      column: "camera_id"
+      severity: "error"
+      
+    - name: "timestamp_not_null"
+      type: "not_null"
+      column: "timestamp"
+      severity: "error"
+      
+    - name: "layer_number_not_null"
+      type: "not_null"
+      column: "layer_number"
+      severity: "error"
+      
+    - name: "image_path_not_null"
+      type: "not_null"
+      column: "image_path"
+      severity: "error"
+      
+    - name: "image_size_positive"
+      type: "greater_than"
+      column: "image_size"
+      value: 0
+      severity: "error"
+      
+    - name: "layer_number_positive"
+      type: "greater_than_or_equal"
+      column: "layer_number"
+      value: 0
+      severity: "error"
+      
+    - name: "surface_quality_score_range"
+      type: "range"
+      column: "surface_quality_score"
+      min_value: 0.0
+      max_value: 1.0
+      severity: "warning"
+      
+    - name: "recoat_quality_score_range"
+      type: "range"
+      column: "recoat_quality_score"
+      min_value: 0.0
+      max_value: 1.0
+      severity: "warning"
+      
+    - name: "surface_roughness_positive"
+      type: "greater_than_or_equal"
+      column: "surface_roughness"
+      value: 0
+      severity: "warning"
+      
+  # Data transformation rules
+  transformations:
+    - name: "parse_powder_bed_data"
+      type: "json_parse"
+      source_column: "value"
+      target_columns:
+        - "powder_bed_id"
+        - "process_id"
+        - "camera_id"
+        - "timestamp"
+        - "layer_number"
+        - "image_path"
+        - "image_size"
+        - "image_width"
+        - "image_height"
+        - "surface_roughness"
+        - "surface_quality_score"
+        - "particle_analysis"
+        - "recoat_quality_score"
+        - "anomalies_detected"
+        - "metadata"
+        
+    - name: "validate_powder_bed_data"
+      type: "sql"
+      query: |
+        SELECT *
+        FROM parsed_data
+        WHERE layer_number >= 0
+          AND timestamp IS NOT NULL
+          AND image_size > 0
+          AND image_path IS NOT NULL
+          
+    - name: "calculate_derived_metrics"
+      type: "sql"
+      query: |
+        SELECT *,
+          CASE 
+            WHEN surface_quality_score >= 0.9 THEN 'excellent'
+            WHEN surface_quality_score >= 0.7 THEN 'good'
+            WHEN surface_quality_score >= 0.5 THEN 'fair'
+            WHEN surface_quality_score >= 0.3 THEN 'poor'
+            ELSE 'unacceptable'
+          END as surface_quality_tier,
+          CASE 
+            WHEN recoat_quality_score >= 0.9 THEN 'excellent'
+            WHEN recoat_quality_score >= 0.7 THEN 'good'
+            WHEN recoat_quality_score >= 0.5 THEN 'fair'
+            WHEN recoat_quality_score >= 0.3 THEN 'poor'
+            ELSE 'unacceptable'
+          END as recoat_quality_tier,
+          CASE 
+            WHEN surface_roughness <= 5 THEN 'smooth'
+            WHEN surface_roughness <= 15 THEN 'moderate'
+            WHEN surface_roughness <= 30 THEN 'rough'
+            ELSE 'very_rough'
+          END as surface_roughness_tier,
+          CASE 
+            WHEN array_length(anomalies_detected, 1) = 0 THEN 'no_anomalies'
+            WHEN array_length(anomalies_detected, 1) <= 3 THEN 'few_anomalies'
+            WHEN array_length(anomalies_detected, 1) <= 10 THEN 'moderate_anomalies'
+            ELSE 'many_anomalies'
+          END as anomaly_severity
+        FROM validated_data
+        
+    - name: "extract_particle_analysis"
+      type: "sql"
+      query: |
+        SELECT *,
+          particle_analysis->>'particle_count' as particle_count,
+          particle_analysis->>'avg_particle_size' as avg_particle_size,
+          particle_analysis->>'particle_distribution' as particle_distribution,
+          particle_analysis->>'coverage_percentage' as coverage_percentage
+        FROM calculated_data
+        
+  # Data target configuration
+  target:
+    database: "PBF_LBM_DW"
+    schema: "PUBLIC"
+    table: "fct_powder_bed"
+    write_mode: "append"
+    
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    health_check_interval: 180  # 3 minutes
+    metrics_collection: true
+    alert_thresholds:
+      message_lag_seconds: 600  # 10 minutes
+      processing_timeout: 90  # 1.5 minutes
+      quality_score_threshold: 0.8
+      
+  # Security configuration
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: false  # Will be enabled in production
+    audit_logging: true
+    
+  # Image processing configuration
+  image_processing:
+    enabled: true
+    algorithms:
+      - name: "surface_roughness_analysis"
+        enabled: true
+        threshold: 0.1
+        
+      - name: "particle_detection"
+        enabled: true
+        threshold: 0.05
+        
+      - name: "recoat_quality_assessment"
+        enabled: true
+        threshold: 0.1
+        
+      - name: "anomaly_detection"
+        enabled: true
+        threshold: 0.2
+        
+    alerting:
+      enabled: true
+      channels: ["email", "slack"]
+      severity_threshold: 0.7
+      
+  # Quality assessment configuration
+  quality_assessment:
+    enabled: true
+    criteria:
+      surface_quality:
+        weight: 0.4
+        threshold: 0.8
+        
+      recoat_quality:
+        weight: 0.3
+        threshold: 0.8
+        
+      particle_distribution:
+        weight: 0.2
+        threshold: 0.7
+        
+      anomaly_detection:
+        weight: 0.1
+        threshold: 0.9
+        
+    overall_threshold: 0.75

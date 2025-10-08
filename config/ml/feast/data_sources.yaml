@@ -1,0 +1,27 @@
+# Feast Data Sources Configuration
+# Data source configurations for feature store
+
+data_sources:
+  - name: "process_data_source"
+    description: "Process parameter data source"
+    type: "file"
+    path: "/data/process_data/"
+    format: "parquet"
+    timestamp_field: "timestamp"
+    created_timestamp_column: "created_at"
+    
+  - name: "sensor_data_source"
+    description: "Sensor data source"
+    type: "kafka"
+    bootstrap_servers: "kafka:9092"
+    topic: "sensor_data"
+    timestamp_field: "timestamp"
+    created_timestamp_column: "created_at"
+    
+  - name: "material_data_source"
+    description: "Material data source"
+    type: "database"
+    connection_string: "postgresql://user:password@postgres:5432/materials"
+    table: "material_properties"
+    timestamp_field: "timestamp"
+    created_timestamp_column: "created_at"

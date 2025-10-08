@@ -1,0 +1,15 @@
+# Feast Feature Store Configuration
+# Main configuration for Feast feature store
+
+project: "pbf_lbm_feature_store"
+provider: "local"
+registry:
+  registry_type: "file"
+  path: "/data/feature_store/registry/"
+online_store:
+  type: "redis"
+  connection_string: "redis://redis-feature-store:6379"
+offline_store:
+  type: "file"
+  path: "/data/feature_store/offline/"
+entity_key_serialization_version: 2

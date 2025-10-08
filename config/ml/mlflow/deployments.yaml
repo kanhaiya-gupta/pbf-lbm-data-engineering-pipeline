@@ -1,0 +1,585 @@
+# MLflow Deployments Configuration
+# Configuration for MLflow model deployments
+
+deployments:
+  name: "mlflow_deployments"
+  version: "1.0.0"
+  description: "MLflow deployments configuration for PBF-LBM ML models"
+  
+  deployment_templates:
+    - name: "quality_assessment_deployment"
+      description: "Quality assessment model deployment"
+      model_name: "quality_score_predictor"
+      model_version: "latest"
+      deployment_type: "kubernetes"
+      namespace: "ml-production"
+      replicas: 3
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "2000m"
+          memory: "4Gi"
+      autoscaling:
+        enabled: true
+        min_replicas: 2
+        max_replicas: 10
+        target_cpu_utilization: 70
+        target_memory_utilization: 80
+      health_check:
+        enabled: true
+        path: "/health"
+        initial_delay: 30
+        period: 10
+        timeout: 5
+        failure_threshold: 3
+        success_threshold: 1
+      environment_variables:
+        - name: "MODEL_NAME"
+          value: "quality_score_predictor"
+        - name: "MODEL_VERSION"
+          value: "latest"
+        - name: "LOG_LEVEL"
+          value: "INFO"
+      config_map:
+        name: "quality-assessment-config"
+        data:
+          model_path: "/models/quality_assessment/"
+          batch_size: "32"
+          timeout: "30"
+      secrets:
+        - name: "model-secrets"
+          keys:
+            - "api_key"
+            - "database_password"
+      service:
+        name: "quality-assessment-service"
+        type: "ClusterIP"
+        port: 8080
+        target_port: 8080
+      ingress:
+        enabled: true
+        host: "quality-assessment.ml.company.com"
+        path: "/api/v1/quality"
+        tls:
+          enabled: true
+          secret_name: "quality-assessment-tls"
+      monitoring:
+        enabled: true
+        metrics:
+          - name: "prediction_count"
+            type: "counter"
+            labels: ["model_name", "version"]
+          - name: "prediction_latency"
+            type: "histogram"
+            labels: ["model_name", "endpoint"]
+          - name: "prediction_accuracy"
+            type: "gauge"
+            labels: ["model_name", "version"]
+        alerts:
+          - name: "high_latency"
+            condition: "prediction_latency_p95 > 1000"
+            severity: "warning"
+            duration: "5m"
+          - name: "low_accuracy"
+            condition: "prediction_accuracy < 0.8"
+            severity: "critical"
+            duration: "10m"
+            
+    - name: "maintenance_deployment"
+      description: "Predictive maintenance model deployment"
+      model_name: "failure_predictor"
+      model_version: "latest"
+      deployment_type: "kubernetes"
+      namespace: "ml-production"
+      replicas: 2
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+      autoscaling:
+        enabled: true
+        min_replicas: 2
+        max_replicas: 8
+        target_cpu_utilization: 70
+        target_memory_utilization: 80
+      health_check:
+        enabled: true
+        path: "/health"
+        initial_delay: 30
+        period: 10
+        timeout: 5
+        failure_threshold: 3
+        success_threshold: 1
+      environment_variables:
+        - name: "MODEL_NAME"
+          value: "failure_predictor"
+        - name: "MODEL_VERSION"
+          value: "latest"
+        - name: "LOG_LEVEL"
+          value: "INFO"
+      config_map:
+        name: "maintenance-config"
+        data:
+          model_path: "/models/maintenance/"
+          batch_size: "16"
+          timeout: "60"
+      secrets:
+        - name: "model-secrets"
+          keys:
+            - "api_key"
+            - "database_password"
+      service:
+        name: "maintenance-service"
+        type: "ClusterIP"
+        port: 8080
+        target_port: 8080
+      ingress:
+        enabled: true
+        host: "maintenance.ml.company.com"
+        path: "/api/v1/maintenance"
+        tls:
+          enabled: true
+          secret_name: "maintenance-tls"
+      monitoring:
+        enabled: true
+        metrics:
+          - name: "prediction_count"
+            type: "counter"
+            labels: ["model_name", "version"]
+          - name: "prediction_latency"
+            type: "histogram"
+            labels: ["model_name", "endpoint"]
+          - name: "prediction_accuracy"
+            type: "gauge"
+            labels: ["model_name", "version"]
+        alerts:
+          - name: "high_latency"
+            condition: "prediction_latency_p95 > 2000"
+            severity: "warning"
+            duration: "5m"
+          - name: "low_accuracy"
+            condition: "prediction_accuracy < 0.85"
+            severity: "critical"
+            duration: "10m"
+            
+    - name: "process_optimization_deployment"
+      description: "Process optimization model deployment"
+      model_name: "process_optimizer"
+      model_version: "latest"
+      deployment_type: "kubernetes"
+      namespace: "ml-production"
+      replicas: 2
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+      autoscaling:
+        enabled: true
+        min_replicas: 2
+        max_replicas: 8
+        target_cpu_utilization: 70
+        target_memory_utilization: 80
+      health_check:
+        enabled: true
+        path: "/health"
+        initial_delay: 30
+        period: 10
+        timeout: 5
+        failure_threshold: 3
+        success_threshold: 1
+      environment_variables:
+        - name: "MODEL_NAME"
+          value: "process_optimizer"
+        - name: "MODEL_VERSION"
+          value: "latest"
+        - name: "LOG_LEVEL"
+          value: "INFO"
+      config_map:
+        name: "process-optimization-config"
+        data:
+          model_path: "/models/process_optimization/"
+          batch_size: "16"
+          timeout: "60"
+      secrets:
+        - name: "model-secrets"
+          keys:
+            - "api_key"
+            - "database_password"
+      service:
+        name: "process-optimization-service"
+        type: "ClusterIP"
+        port: 8080
+        target_port: 8080
+      ingress:
+        enabled: true
+        host: "process-optimization.ml.company.com"
+        path: "/api/v1/process"
+        tls:
+          enabled: true
+          secret_name: "process-optimization-tls"
+      monitoring:
+        enabled: true
+        metrics:
+          - name: "prediction_count"
+            type: "counter"
+            labels: ["model_name", "version"]
+          - name: "prediction_latency"
+            type: "histogram"
+            labels: ["model_name", "endpoint"]
+          - name: "prediction_accuracy"
+            type: "gauge"
+            labels: ["model_name", "version"]
+        alerts:
+          - name: "high_latency"
+            condition: "prediction_latency_p95 > 2000"
+            severity: "warning"
+            duration: "5m"
+          - name: "low_accuracy"
+            condition: "prediction_accuracy < 0.8"
+            severity: "critical"
+            duration: "10m"
+            
+    - name: "defect_detection_deployment"
+      description: "Defect detection model deployment"
+      model_name: "defect_detector"
+      model_version: "latest"
+      deployment_type: "kubernetes"
+      namespace: "ml-production"
+      replicas: 2
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+      autoscaling:
+        enabled: true
+        min_replicas: 2
+        max_replicas: 8
+        target_cpu_utilization: 70
+        target_memory_utilization: 80
+      health_check:
+        enabled: true
+        path: "/health"
+        initial_delay: 30
+        period: 10
+        timeout: 5
+        failure_threshold: 3
+        success_threshold: 1
+      environment_variables:
+        - name: "MODEL_NAME"
+          value: "defect_detector"
+        - name: "MODEL_VERSION"
+          value: "latest"
+        - name: "LOG_LEVEL"
+          value: "INFO"
+      config_map:
+        name: "defect-detection-config"
+        data:
+          model_path: "/models/defect_detection/"
+          batch_size: "8"
+          timeout: "120"
+      secrets:
+        - name: "model-secrets"
+          keys:
+            - "api_key"
+            - "database_password"
+      service:
+        name: "defect-detection-service"
+        type: "ClusterIP"
+        port: 8080
+        target_port: 8080
+      ingress:
+        enabled: true
+        host: "defect-detection.ml.company.com"
+        path: "/api/v1/defect"
+        tls:
+          enabled: true
+          secret_name: "defect-detection-tls"
+      monitoring:
+        enabled: true
+        metrics:
+          - name: "prediction_count"
+            type: "counter"
+            labels: ["model_name", "version"]
+          - name: "prediction_latency"
+            type: "histogram"
+            labels: ["model_name", "endpoint"]
+          - name: "prediction_accuracy"
+            type: "gauge"
+            labels: ["model_name", "version"]
+        alerts:
+          - name: "high_latency"
+            condition: "prediction_latency_p95 > 5000"
+            severity: "warning"
+            duration: "5m"
+          - name: "low_accuracy"
+            condition: "prediction_accuracy < 0.85"
+            severity: "critical"
+            duration: "10m"
+            
+    - name: "material_analysis_deployment"
+      description: "Material analysis model deployment"
+      model_name: "material_analyzer"
+      model_version: "latest"
+      deployment_type: "kubernetes"
+      namespace: "ml-production"
+      replicas: 2
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+      autoscaling:
+        enabled: true
+        min_replicas: 2
+        max_replicas: 8
+        target_cpu_utilization: 70
+        target_memory_utilization: 80
+      health_check:
+        enabled: true
+        path: "/health"
+        initial_delay: 30
+        period: 10
+        timeout: 5
+        failure_threshold: 3
+        success_threshold: 1
+      environment_variables:
+        - name: "MODEL_NAME"
+          value: "material_analyzer"
+        - name: "MODEL_VERSION"
+          value: "latest"
+        - name: "LOG_LEVEL"
+          value: "INFO"
+      config_map:
+        name: "material-analysis-config"
+        data:
+          model_path: "/models/material_analysis/"
+          batch_size: "16"
+          timeout: "60"
+      secrets:
+        - name: "model-secrets"
+          keys:
+            - "api_key"
+            - "database_password"
+      service:
+        name: "material-analysis-service"
+        type: "ClusterIP"
+        port: 8080
+        target_port: 8080
+      ingress:
+        enabled: true
+        host: "material-analysis.ml.company.com"
+        path: "/api/v1/material"
+        tls:
+          enabled: true
+          secret_name: "material-analysis-tls"
+      monitoring:
+        enabled: true
+        metrics:
+          - name: "prediction_count"
+            type: "counter"
+            labels: ["model_name", "version"]
+          - name: "prediction_latency"
+            type: "histogram"
+            labels: ["model_name", "endpoint"]
+          - name: "prediction_accuracy"
+            type: "gauge"
+            labels: ["model_name", "version"]
+        alerts:
+          - name: "high_latency"
+            condition: "prediction_latency_p95 > 2000"
+            severity: "warning"
+            duration: "5m"
+          - name: "low_accuracy"
+            condition: "prediction_accuracy < 0.8"
+            severity: "critical"
+            duration: "10m"
+            
+  deployment_management:
+    auto_deployment:
+      enabled: true
+      trigger_conditions:
+        - name: "model_accuracy"
+          threshold: 0.85
+          operator: "greater_than"
+        - name: "validation_score"
+          threshold: 0.8
+          operator: "greater_than"
+        - name: "test_score"
+          threshold: 0.75
+          operator: "greater_than"
+      deployment_strategy: "rolling_update"
+      max_unavailable: 1
+      max_surge: 1
+      
+    deployment_lifecycle:
+      stages:
+        - name: "staging"
+          description: "Staging environment deployment"
+          duration: "24_hours"
+          auto_promote: false
+        - name: "production"
+          description: "Production environment deployment"
+          duration: "90_days"
+          auto_promote: true
+        - name: "deprecated"
+          description: "Deprecated model version"
+          duration: "30_days"
+          auto_promote: false
+        - name: "archived"
+          description: "Archived model version"
+          duration: "365_days"
+          auto_promote: false
+          
+    deployment_cleanup:
+      enabled: true
+      schedule: "0 3 * * 0"
+      retention_policy:
+        staging: "7_days"
+        production: "90_days"
+        deprecated: "30_days"
+        archived: "365_days"
+      cleanup_actions:
+        - name: "delete_deployment"
+          condition: "deployment_age > retention_period"
+          action: "delete"
+        - name: "archive_deployment"
+          condition: "deployment_age > retention_period"
+          action: "archive"
+        - name: "compress_logs"
+          condition: "deployment_age > 30_days"
+          action: "compress"
+          
+  deployment_tracking:
+    enabled: true
+    tracking_uri: "http://mlflow:5000"
+    deployment_name: "pbf-lbm-ml-deployments"
+    run_name: "{model_name}_{model_version}_{timestamp}"
+    tags:
+      - "pbf-lbm"
+      - "manufacturing"
+      - "ml"
+      - "deployment"
+      
+  deployment_metrics:
+    enabled: true
+    collection_interval: "1_minute"
+    retention_days: 90
+    custom_metrics:
+      - name: "deployment_count"
+        type: "gauge"
+        labels: ["deployment_type", "status"]
+      - name: "deployment_health"
+        type: "gauge"
+        labels: ["deployment_name", "status"]
+      - name: "model_performance"
+        type: "gauge"
+        labels: ["deployment_name", "metric_name"]
+      - name: "deployment_latency"
+        type: "histogram"
+        labels: ["deployment_name", "endpoint"]
+      - name: "deployment_throughput"
+        type: "gauge"
+        labels: ["deployment_name", "endpoint"]
+        
+  deployment_alerting:
+    enabled: true
+    channels: ["slack", "email", "pagerduty"]
+    rules:
+      - name: "deployment_failure"
+        condition: "deployment_status == 'FAILED'"
+        severity: "critical"
+        duration: "1m"
+      - name: "deployment_unhealthy"
+        condition: "deployment_health < 0.8"
+        severity: "warning"
+        duration: "5m"
+      - name: "high_latency"
+        condition: "deployment_latency_p95 > 2000"
+        severity: "warning"
+        duration: "5m"
+      - name: "low_throughput"
+        condition: "deployment_throughput < 100"
+        severity: "warning"
+        duration: "10m"
+      - name: "deployment_cleanup_failure"
+        condition: "cleanup_status == 'FAILED'"
+        severity: "critical"
+        duration: "1m"
+        
+  deployment_reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["ml_team", "data_team", "management"]
+    include_metrics:
+      - "deployment_summary"
+      - "model_performance"
+      - "deployment_metrics"
+      - "health_status"
+      - "trend_analysis"
+    dashboard:
+      enabled: true
+      url: "http://mlflow:5000"
+      refresh_interval: "5_minutes"
+      
+  deployment_storage:
+    results:
+      type: "s3"
+      bucket: "mlflow-deployments"
+      region: "us-west-2"
+      prefix: "deployments/"
+      retention_days: 90
+    artifacts:
+      type: "s3"
+      bucket: "mlflow-artifacts"
+      region: "us-west-2"
+      prefix: "artifacts/"
+      retention_days: 90
+    logs:
+      type: "elasticsearch"
+      endpoint: "http://elasticsearch:9200"
+      index: "mlflow-deployments"
+      retention_days: 30
+      
+  deployment_validation:
+    enabled: true
+    checks:
+      - name: "deployment_completeness"
+        condition: "required_resources_present == true"
+        action: "flag_incomplete"
+      - name: "resource_validation"
+        condition: "resources_valid == true"
+        action: "flag_invalid"
+      - name: "health_check_validation"
+        condition: "health_check_passing == true"
+        action: "flag_unhealthy"
+      - name: "deployment_validation"
+        condition: "deployment_successful == true"
+        action: "flag_failed"
+        
+  deployment_integration:
+    mlflow:
+      enabled: true
+      tracking_uri: "http://mlflow:5000"
+      deployment_name: "pbf-lbm-ml-deployments"
+    kubernetes:
+      enabled: true
+      namespace: "ml-production"
+      service_account: "mlflow-deployments"
+    monitoring:
+      enabled: true
+      prometheus_endpoint: "http://prometheus:9090"
+      grafana_endpoint: "http://grafana:3000"

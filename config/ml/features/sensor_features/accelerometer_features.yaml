@@ -1,0 +1,433 @@
+# Accelerometer Features Configuration
+# Feature engineering for accelerometer sensor data in PBF-LBM processes
+
+features:
+  name: "accelerometer_features"
+  version: "1.0.0"
+  description: "Feature engineering for accelerometer sensor data in PBF-LBM manufacturing"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "accelerometer_id"
+      - "acceleration_x"
+      - "acceleration_y"
+      - "acceleration_z"
+    optional_fields:
+      - "sampling_rate"
+      - "sensor_position_x"
+      - "sensor_position_y"
+      - "sensor_position_z"
+      - "sensor_orientation_x"
+      - "sensor_orientation_y"
+      - "sensor_orientation_z"
+      - "temperature"
+      - "humidity"
+      - "vibration_frequency"
+      - "noise_level"
+      - "sensor_quality"
+      - "calibration_status"
+      - "battery_level"
+      - "signal_strength"
+      - "data_quality_score"
+      
+  feature_groups:
+    - name: "basic_statistics"
+      description: "Basic statistical features from accelerometer data"
+      features:
+        - name: "mean_acceleration_x"
+          description: "Mean acceleration in X direction"
+          formula: "mean(acceleration_x)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "mean_acceleration_y"
+          description: "Mean acceleration in Y direction"
+          formula: "mean(acceleration_y)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "mean_acceleration_z"
+          description: "Mean acceleration in Z direction"
+          formula: "mean(acceleration_z)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "std_acceleration_x"
+          description: "Standard deviation of acceleration in X direction"
+          formula: "std(acceleration_x)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          
+        - name: "std_acceleration_y"
+          description: "Standard deviation of acceleration in Y direction"
+          formula: "std(acceleration_y)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          
+        - name: "std_acceleration_z"
+          description: "Standard deviation of acceleration in Z direction"
+          formula: "std(acceleration_z)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          
+        - name: "min_acceleration_x"
+          description: "Minimum acceleration in X direction"
+          formula: "min(acceleration_x)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "min_acceleration_y"
+          description: "Minimum acceleration in Y direction"
+          formula: "min(acceleration_y)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "min_acceleration_z"
+          description: "Minimum acceleration in Z direction"
+          formula: "min(acceleration_z)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "max_acceleration_x"
+          description: "Maximum acceleration in X direction"
+          formula: "max(acceleration_x)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "max_acceleration_y"
+          description: "Maximum acceleration in Y direction"
+          formula: "max(acceleration_y)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "max_acceleration_z"
+          description: "Maximum acceleration in Z direction"
+          formula: "max(acceleration_z)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+    - name: "magnitude_features"
+      description: "Features derived from acceleration magnitude"
+      features:
+        - name: "acceleration_magnitude"
+          description: "Magnitude of acceleration vector"
+          formula: "sqrt(acceleration_x^2 + acceleration_y^2 + acceleration_z^2)"
+          type: "numerical"
+          range: [0.0, 34.64]
+          
+        - name: "mean_magnitude"
+          description: "Mean acceleration magnitude"
+          formula: "mean(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 34.64]
+          
+        - name: "std_magnitude"
+          description: "Standard deviation of acceleration magnitude"
+          formula: "std(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 17.32]
+          
+        - name: "max_magnitude"
+          description: "Maximum acceleration magnitude"
+          formula: "max(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 34.64]
+          
+        - name: "min_magnitude"
+          description: "Minimum acceleration magnitude"
+          formula: "min(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 34.64]
+          
+        - name: "magnitude_range"
+          description: "Range of acceleration magnitude"
+          formula: "max_magnitude - min_magnitude"
+          type: "numerical"
+          range: [0.0, 34.64]
+          
+        - name: "magnitude_variance"
+          description: "Variance of acceleration magnitude"
+          formula: "var(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 300.0]
+          
+    - name: "frequency_features"
+      description: "Frequency domain features"
+      features:
+        - name: "dominant_frequency"
+          description: "Dominant frequency component"
+          formula: "calculate_dominant_frequency(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "spectral_centroid"
+          description: "Spectral centroid"
+          formula: "calculate_spectral_centroid(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "spectral_bandwidth"
+          description: "Spectral bandwidth"
+          formula: "calculate_spectral_bandwidth(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "spectral_rolloff"
+          description: "Spectral rolloff"
+          formula: "calculate_spectral_rolloff(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "spectral_flatness"
+          description: "Spectral flatness"
+          formula: "calculate_spectral_flatness(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spectral_contrast"
+          description: "Spectral contrast"
+          formula: "calculate_spectral_contrast(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "zero_crossing_rate"
+          description: "Zero crossing rate"
+          formula: "calculate_zero_crossing_rate(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "time_domain_features"
+      description: "Time domain features"
+      features:
+        - name: "root_mean_square"
+          description: "Root mean square of acceleration"
+          formula: "sqrt(mean(acceleration_magnitude^2))"
+          type: "numerical"
+          range: [0.0, 34.64]
+          
+        - name: "peak_to_peak"
+          description: "Peak-to-peak amplitude"
+          formula: "max_magnitude - min_magnitude"
+          type: "numerical"
+          range: [0.0, 34.64]
+          
+        - name: "crest_factor"
+          description: "Crest factor"
+          formula: "max_magnitude / root_mean_square"
+          type: "numerical"
+          range: [1.0, 10.0]
+          
+        - name: "kurtosis"
+          description: "Kurtosis of acceleration"
+          formula: "kurtosis(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 20.0]
+          
+        - name: "skewness"
+          description: "Skewness of acceleration"
+          formula: "skewness(acceleration_magnitude)"
+          type: "numerical"
+          range: [-3.0, 3.0]
+          
+        - name: "impulse_factor"
+          description: "Impulse factor"
+          formula: "max_magnitude / mean_magnitude"
+          type: "numerical"
+          range: [1.0, 100.0]
+          
+        - name: "shape_factor"
+          description: "Shape factor"
+          formula: "root_mean_square / mean_magnitude"
+          type: "numerical"
+          range: [1.0, 10.0]
+          
+    - name: "vibration_features"
+      description: "Vibration-specific features"
+      features:
+        - name: "vibration_level"
+          description: "Overall vibration level"
+          formula: "root_mean_square * 1000"
+          type: "numerical"
+          range: [0.0, 10000.0]
+          
+        - name: "vibration_severity"
+          description: "Vibration severity index"
+          formula: "categorize_vibration_severity(vibration_level)"
+          type: "categorical"
+          categories: ["minimal", "low", "medium", "high", "severe"]
+          
+        - name: "vibration_frequency_domain"
+          description: "Vibration frequency domain"
+          formula: "categorize_frequency_domain(dominant_frequency)"
+          type: "categorical"
+          categories: ["low_frequency", "medium_frequency", "high_frequency", "very_high_frequency"]
+          
+        - name: "vibration_energy"
+          description: "Vibration energy"
+          formula: "sum(acceleration_magnitude^2)"
+          type: "numerical"
+          range: [0.0, 1000000.0]
+          
+        - name: "vibration_power"
+          description: "Vibration power"
+          formula: "vibration_energy / length(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 10000.0]
+          
+        - name: "vibration_intensity"
+          description: "Vibration intensity"
+          formula: "vibration_power * dominant_frequency"
+          type: "numerical"
+          range: [0.0, 10000000.0]
+          
+    - name: "orientation_features"
+      description: "Features related to sensor orientation"
+      features:
+        - name: "gravity_component_x"
+          description: "Gravity component in X direction"
+          formula: "mean_acceleration_x - 9.81 * cos(sensor_orientation_x)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "gravity_component_y"
+          description: "Gravity component in Y direction"
+          formula: "mean_acceleration_y - 9.81 * cos(sensor_orientation_y)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "gravity_component_z"
+          description: "Gravity component in Z direction"
+          formula: "mean_acceleration_z - 9.81 * cos(sensor_orientation_z)"
+          type: "numerical"
+          range: [-20.0, 20.0]
+          
+        - name: "orientation_stability"
+          description: "Orientation stability index"
+          formula: "1 / (std(gravity_component_x) + std(gravity_component_y) + std(gravity_component_z))"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "tilt_angle"
+          description: "Tilt angle from vertical"
+          formula: "acos(gravity_component_z / 9.81)"
+          type: "numerical"
+          range: [0.0, 3.14159]
+          
+        - name: "tilt_direction"
+          description: "Tilt direction"
+          formula: "atan2(gravity_component_y, gravity_component_x)"
+          type: "numerical"
+          range: [-3.14159, 3.14159]
+          
+    - name: "anomaly_features"
+      description: "Features for anomaly detection"
+      features:
+        - name: "anomaly_score"
+          description: "Anomaly detection score"
+          formula: "calculate_anomaly_score(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "outlier_count"
+          description: "Number of outliers"
+          formula: "count_outliers(acceleration_magnitude)"
+          type: "numerical"
+          range: [0, 1000]
+          
+        - name: "outlier_ratio"
+          description: "Ratio of outliers to total samples"
+          formula: "outlier_count / length(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "change_point_score"
+          description: "Change point detection score"
+          formula: "calculate_change_point_score(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "trend_strength"
+          description: "Trend strength in acceleration"
+          formula: "calculate_trend_strength(acceleration_magnitude)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "sensor_quality_features"
+      description: "Features related to sensor quality"
+      features:
+        - name: "signal_to_noise_ratio"
+          description: "Signal to noise ratio"
+          formula: "20 * log10(mean_magnitude / noise_level)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "data_quality_index"
+          description: "Overall data quality index"
+          formula: "data_quality_score * (1 - noise_level / 100) * (signal_to_noise_ratio / 100)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "sensor_health_score"
+          description: "Sensor health score"
+          formula: "sensor_quality * calibration_status * (battery_level / 100) * (signal_strength / 100)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "measurement_reliability"
+          description: "Measurement reliability index"
+          formula: "data_quality_index * sensor_health_score"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["mean_acceleration_x", "mean_acceleration_y", "mean_acceleration_z", "std_acceleration_x",
+                "std_acceleration_y", "std_acceleration_z", "min_acceleration_x", "min_acceleration_y",
+                "min_acceleration_z", "max_acceleration_x", "max_acceleration_y", "max_acceleration_z",
+                "acceleration_magnitude", "mean_magnitude", "std_magnitude", "max_magnitude", "min_magnitude",
+                "magnitude_range", "magnitude_variance", "dominant_frequency", "spectral_centroid",
+                "spectral_bandwidth", "spectral_rolloff", "spectral_flatness", "spectral_contrast",
+                "zero_crossing_rate", "root_mean_square", "peak_to_peak", "crest_factor", "kurtosis",
+                "skewness", "impulse_factor", "shape_factor", "vibration_level", "vibration_energy",
+                "vibration_power", "vibration_intensity", "gravity_component_x", "gravity_component_y",
+                "gravity_component_z", "orientation_stability", "tilt_angle", "tilt_direction",
+                "anomaly_score", "outlier_count", "outlier_ratio", "change_point_score", "trend_strength",
+                "signal_to_noise_ratio", "data_quality_index", "sensor_health_score", "measurement_reliability"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["vibration_severity", "vibration_frequency_domain"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 40
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "acceleration_range_check"
+        condition: "min_acceleration_x >= -20 AND max_acceleration_x <= 20"
+        action: "flag_invalid"
+      - name: "magnitude_range_check"
+        condition: "min_magnitude >= 0 AND max_magnitude <= 34.64"
+        action: "flag_invalid"
+      - name: "frequency_range_check"
+        condition: "dominant_frequency >= 0 AND dominant_frequency <= 1000"
+        action: "flag_invalid"
+      - name: "quality_index_check"
+        condition: "data_quality_index >= 0 AND data_quality_index <= 1"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["mean_magnitude", "std_magnitude", "vibration_level", "data_quality_index"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 25

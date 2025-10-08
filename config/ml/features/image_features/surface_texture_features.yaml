@@ -1,0 +1,693 @@
+# Surface Texture Features Configuration
+# Feature engineering for surface texture analysis in PBF-LBM
+
+features:
+  name: "surface_texture_features"
+  version: "1.0.0"
+  description: "Feature engineering for surface texture analysis in PBF-LBM"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "image_id"
+      - "image_data"
+      - "image_width"
+      - "image_height"
+      - "image_channels"
+    optional_fields:
+      - "surface_type"
+      - "roughness_target"
+      - "build_layer"
+      - "material_type"
+      - "laser_power"
+      - "scan_speed"
+      - "hatch_spacing"
+      - "layer_thickness"
+      - "camera_settings"
+      - "lighting_conditions"
+      - "measurement_scale"
+      
+  feature_groups:
+    - name: "basic_texture_features"
+      description: "Basic surface texture features"
+      features:
+        - name: "surface_roughness_ra"
+          description: "Arithmetic average roughness (Ra)"
+          formula: "calculate_ra_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          unit: "micrometers"
+        - name: "surface_roughness_rz"
+          description: "Maximum height of the profile (Rz)"
+          formula: "calculate_rz_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 500.0]
+          unit: "micrometers"
+        - name: "surface_roughness_rq"
+          description: "Root mean square roughness (Rq)"
+          formula: "calculate_rq_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 120.0]
+          unit: "micrometers"
+        - name: "surface_roughness_rt"
+          description: "Maximum peak-to-valley height (Rt)"
+          formula: "calculate_rt_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          unit: "micrometers"
+        - name: "surface_roughness_rp"
+          description: "Maximum peak height (Rp)"
+          formula: "calculate_rp_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 500.0]
+          unit: "micrometers"
+        - name: "surface_roughness_rv"
+          description: "Maximum valley depth (Rv)"
+          formula: "calculate_rv_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 500.0]
+          unit: "micrometers"
+        - name: "surface_roughness_rsm"
+          description: "Mean spacing of profile irregularities (RSm)"
+          formula: "calculate_rsm_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          unit: "micrometers"
+        - name: "surface_roughness_rdq"
+          description: "Root mean square slope (Rdq)"
+          formula: "calculate_rdq_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          unit: "degrees"
+        - name: "surface_roughness_rsk"
+          description: "Skewness of the profile (Rsk)"
+          formula: "calculate_rsk_roughness(image_data)"
+          type: "numerical"
+          range: [-3.0, 3.0]
+          unit: "dimensionless"
+        - name: "surface_roughness_rku"
+          description: "Kurtosis of the profile (Rku)"
+          formula: "calculate_rku_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 20.0]
+          unit: "dimensionless"
+          
+    - name: "advanced_texture_features"
+      description: "Advanced surface texture analysis features"
+      features:
+        - name: "texture_uniformity"
+          description: "Uniformity of surface texture"
+          formula: "calculate_texture_uniformity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "uniformity_ratio"
+        - name: "surface_smoothness"
+          description: "Overall surface smoothness measure"
+          formula: "calculate_surface_smoothness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "smoothness_ratio"
+        - name: "texture_directionality"
+          description: "Directionality of surface texture"
+          formula: "calculate_texture_directionality(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "directionality_ratio"
+        - name: "texture_regularity"
+          description: "Regularity of surface texture patterns"
+          formula: "calculate_texture_regularity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "regularity_ratio"
+        - name: "texture_coarseness"
+          description: "Coarseness of surface texture"
+          formula: "calculate_texture_coarseness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "coarseness_ratio"
+        - name: "texture_contrast"
+          description: "Contrast of surface texture"
+          formula: "calculate_texture_contrast(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "contrast_ratio"
+        - name: "texture_busyness"
+          description: "Busyness of surface texture"
+          formula: "calculate_texture_busyness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "busyness_ratio"
+        - name: "texture_complexity"
+          description: "Complexity of surface texture"
+          formula: "calculate_texture_complexity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "complexity_ratio"
+        - name: "texture_fineness"
+          description: "Fineness of surface texture"
+          formula: "calculate_texture_fineness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "fineness_ratio"
+        - name: "texture_roughness_index"
+          description: "Overall roughness index"
+          formula: "calculate_roughness_index(image_data)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          unit: "roughness_index"
+          
+    - name: "spatial_texture_features"
+      description: "Spatial texture analysis features"
+      features:
+        - name: "local_binary_pattern_uniformity"
+          description: "Uniformity of Local Binary Patterns"
+          formula: "calculate_lbp_uniformity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "uniformity_ratio"
+        - name: "gray_level_cooccurrence_matrix_contrast"
+          description: "GLCM contrast for texture analysis"
+          formula: "calculate_glcm_contrast(image_data)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          unit: "contrast_value"
+        - name: "gray_level_cooccurrence_matrix_homogeneity"
+          description: "GLCM homogeneity for texture analysis"
+          formula: "calculate_glcm_homogeneity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "homogeneity_value"
+        - name: "gray_level_cooccurrence_matrix_energy"
+          description: "GLCM energy for texture analysis"
+          formula: "calculate_glcm_energy(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "energy_value"
+        - name: "gray_level_cooccurrence_matrix_correlation"
+          description: "GLCM correlation for texture analysis"
+          formula: "calculate_glcm_correlation(image_data)"
+          type: "numerical"
+          range: [-1.0, 1.0]
+          unit: "correlation_value"
+        - name: "gray_level_cooccurrence_matrix_dissimilarity"
+          description: "GLCM dissimilarity for texture analysis"
+          formula: "calculate_glcm_dissimilarity(image_data)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          unit: "dissimilarity_value"
+        - name: "gray_level_cooccurrence_matrix_entropy"
+          description: "GLCM entropy for texture analysis"
+          formula: "calculate_glcm_entropy(image_data)"
+          type: "numerical"
+          range: [0.0, 8.0]
+          unit: "bits"
+        - name: "gray_level_cooccurrence_matrix_asm"
+          description: "GLCM angular second moment for texture analysis"
+          formula: "calculate_glcm_asm(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "asm_value"
+        - name: "gray_level_cooccurrence_matrix_idm"
+          description: "GLCM inverse difference moment for texture analysis"
+          formula: "calculate_glcm_idm(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "idm_value"
+        - name: "gray_level_cooccurrence_matrix_idn"
+          description: "GLCM inverse difference normalized for texture analysis"
+          formula: "calculate_glcm_idn(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "idn_value"
+          
+    - name: "frequency_texture_features"
+      description: "Frequency domain texture analysis features"
+      features:
+        - name: "gabor_filter_response_0"
+          description: "Gabor filter response at 0 degrees"
+          formula: "calculate_gabor_response(image_data, frequency=0.1, theta=0)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_45"
+          description: "Gabor filter response at 45 degrees"
+          formula: "calculate_gabor_response(image_data, frequency=0.1, theta=45)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_90"
+          description: "Gabor filter response at 90 degrees"
+          formula: "calculate_gabor_response(image_data, frequency=0.1, theta=90)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_135"
+          description: "Gabor filter response at 135 degrees"
+          formula: "calculate_gabor_response(image_data, frequency=0.1, theta=135)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_180"
+          description: "Gabor filter response at 180 degrees"
+          formula: "calculate_gabor_response(image_data, frequency=0.1, theta=180)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_225"
+          description: "Gabor filter response at 225 degrees"
+          formula: "calculate_gabor_response(image_data, frequency=0.1, theta=225)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_270"
+          description: "Gabor filter response at 270 degrees"
+          formula: "calculate_gabor_response(image_data, frequency=0.1, theta=270)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_315"
+          description: "Gabor filter response at 315 degrees"
+          formula: "calculate_gabor_response(image_data, frequency=0.1, theta=315)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_mean"
+          description: "Mean Gabor filter response across all orientations"
+          formula: "mean([gabor_filter_response_0, gabor_filter_response_45, gabor_filter_response_90, gabor_filter_response_135, gabor_filter_response_180, gabor_filter_response_225, gabor_filter_response_270, gabor_filter_response_315])"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "response_value"
+        - name: "gabor_filter_response_std"
+          description: "Standard deviation of Gabor filter responses"
+          formula: "std([gabor_filter_response_0, gabor_filter_response_45, gabor_filter_response_90, gabor_filter_response_135, gabor_filter_response_180, gabor_filter_response_225, gabor_filter_response_270, gabor_filter_response_315])"
+          type: "numerical"
+          range: [0.0, 0.5]
+          unit: "response_value"
+          
+    - name: "wavelet_texture_features"
+      description: "Wavelet-based texture analysis features"
+      features:
+        - name: "wavelet_energy_ll"
+          description: "Energy in low-low frequency band"
+          formula: "calculate_wavelet_energy(image_data, band='ll')"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "energy_ratio"
+        - name: "wavelet_energy_lh"
+          description: "Energy in low-high frequency band"
+          formula: "calculate_wavelet_energy(image_data, band='lh')"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "energy_ratio"
+        - name: "wavelet_energy_hl"
+          description: "Energy in high-low frequency band"
+          formula: "calculate_wavelet_energy(image_data, band='hl')"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "energy_ratio"
+        - name: "wavelet_energy_hh"
+          description: "Energy in high-high frequency band"
+          formula: "calculate_wavelet_energy(image_data, band='hh')"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "energy_ratio"
+        - name: "wavelet_entropy_ll"
+          description: "Entropy in low-low frequency band"
+          formula: "calculate_wavelet_entropy(image_data, band='ll')"
+          type: "numerical"
+          range: [0.0, 8.0]
+          unit: "bits"
+        - name: "wavelet_entropy_lh"
+          description: "Entropy in low-high frequency band"
+          formula: "calculate_wavelet_entropy(image_data, band='lh')"
+          type: "numerical"
+          range: [0.0, 8.0]
+          unit: "bits"
+        - name: "wavelet_entropy_hl"
+          description: "Entropy in high-low frequency band"
+          formula: "calculate_wavelet_entropy(image_data, band='hl')"
+          type: "numerical"
+          range: [0.0, 8.0]
+          unit: "bits"
+        - name: "wavelet_entropy_hh"
+          description: "Entropy in high-high frequency band"
+          formula: "calculate_wavelet_entropy(image_data, band='hh')"
+          type: "numerical"
+          range: [0.0, 8.0]
+          unit: "bits"
+        - name: "wavelet_energy_ratio"
+          description: "Ratio of high-frequency to low-frequency energy"
+          formula: "(wavelet_energy_lh + wavelet_energy_hl + wavelet_energy_hh) / (wavelet_energy_ll + 1e-6)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          unit: "energy_ratio"
+        - name: "wavelet_entropy_ratio"
+          description: "Ratio of high-frequency to low-frequency entropy"
+          formula: "(wavelet_entropy_lh + wavelet_entropy_hl + wavelet_entropy_hh) / (wavelet_entropy_ll + 1e-6)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          unit: "entropy_ratio"
+          
+    - name: "fractal_texture_features"
+      description: "Fractal-based texture analysis features"
+      features:
+        - name: "fractal_dimension"
+          description: "Fractal dimension of surface texture"
+          formula: "calculate_fractal_dimension(image_data)"
+          type: "numerical"
+          range: [2.0, 3.0]
+          unit: "dimension"
+        - name: "lacunarity"
+          description: "Lacunarity measure of surface texture"
+          formula: "calculate_lacunarity(image_data)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          unit: "lacunarity_value"
+        - name: "hurst_exponent"
+          description: "Hurst exponent of surface texture"
+          formula: "calculate_hurst_exponent(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "hurst_value"
+        - name: "box_counting_dimension"
+          description: "Box counting dimension of surface texture"
+          formula: "calculate_box_counting_dimension(image_data)"
+          type: "numerical"
+          range: [2.0, 3.0]
+          unit: "dimension"
+        - name: "mass_dimension"
+          description: "Mass dimension of surface texture"
+          formula: "calculate_mass_dimension(image_data)"
+          type: "numerical"
+          range: [2.0, 3.0]
+          unit: "dimension"
+        - name: "correlation_dimension"
+          description: "Correlation dimension of surface texture"
+          formula: "calculate_correlation_dimension(image_data)"
+          type: "numerical"
+          range: [2.0, 3.0]
+          unit: "dimension"
+        - name: "information_dimension"
+          description: "Information dimension of surface texture"
+          formula: "calculate_information_dimension(image_data)"
+          type: "numerical"
+          range: [2.0, 3.0]
+          unit: "dimension"
+        - name: "fractal_roughness"
+          description: "Fractal-based roughness measure"
+          formula: "calculate_fractal_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          unit: "micrometers"
+        - name: "fractal_anisotropy"
+          description: "Fractal anisotropy measure"
+          formula: "calculate_fractal_anisotropy(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "anisotropy_ratio"
+        - name: "fractal_regularity"
+          description: "Fractal regularity measure"
+          formula: "calculate_fractal_regularity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "regularity_ratio"
+          
+    - name: "statistical_texture_features"
+      description: "Statistical texture analysis features"
+      features:
+        - name: "texture_mean"
+          description: "Mean of texture values"
+          formula: "mean(image_data)"
+          type: "numerical"
+          range: [0.0, 255.0]
+          unit: "pixel_value"
+        - name: "texture_std"
+          description: "Standard deviation of texture values"
+          formula: "std(image_data)"
+          type: "numerical"
+          range: [0.0, 128.0]
+          unit: "pixel_value"
+        - name: "texture_variance"
+          description: "Variance of texture values"
+          formula: "var(image_data)"
+          type: "numerical"
+          range: [0.0, 16384.0]
+          unit: "pixel_value_squared"
+        - name: "texture_skewness"
+          description: "Skewness of texture distribution"
+          formula: "skew(image_data)"
+          type: "numerical"
+          range: [-3.0, 3.0]
+          unit: "dimensionless"
+        - name: "texture_kurtosis"
+          description: "Kurtosis of texture distribution"
+          formula: "kurtosis(image_data)"
+          type: "numerical"
+          range: [0.0, 20.0]
+          unit: "dimensionless"
+        - name: "texture_entropy"
+          description: "Entropy of texture distribution"
+          formula: "calculate_entropy(image_data)"
+          type: "numerical"
+          range: [0.0, 8.0]
+          unit: "bits"
+        - name: "texture_energy"
+          description: "Energy of texture distribution"
+          formula: "calculate_energy(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "energy_ratio"
+        - name: "texture_uniformity"
+          description: "Uniformity of texture distribution"
+          formula: "calculate_uniformity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "uniformity_ratio"
+        - name: "texture_contrast"
+          description: "Contrast of texture distribution"
+          formula: "calculate_contrast(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "contrast_ratio"
+        - name: "texture_homogeneity"
+          description: "Homogeneity of texture distribution"
+          formula: "calculate_homogeneity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "homogeneity_ratio"
+          
+    - name: "geometric_texture_features"
+      description: "Geometric texture analysis features"
+      features:
+        - name: "surface_area_ratio"
+          description: "Ratio of surface area to projected area"
+          formula: "calculate_surface_area_ratio(image_data)"
+          type: "numerical"
+          range: [1.0, 10.0]
+          unit: "area_ratio"
+        - name: "surface_volume_ratio"
+          description: "Ratio of surface volume to projected volume"
+          formula: "calculate_surface_volume_ratio(image_data)"
+          type: "numerical"
+          range: [1.0, 10.0]
+          unit: "volume_ratio"
+        - name: "surface_curvature_mean"
+          description: "Mean surface curvature"
+          formula: "calculate_mean_curvature(image_data)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+          unit: "curvature_value"
+        - name: "surface_curvature_gaussian"
+          description: "Gaussian surface curvature"
+          formula: "calculate_gaussian_curvature(image_data)"
+          type: "numerical"
+          range: [-1000000.0, 1000000.0]
+          unit: "curvature_value_squared"
+        - name: "surface_curvature_principal"
+          description: "Principal surface curvature"
+          formula: "calculate_principal_curvature(image_data)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+          unit: "curvature_value"
+        - name: "surface_slope_mean"
+          description: "Mean surface slope"
+          formula: "calculate_mean_slope(image_data)"
+          type: "numerical"
+          range: [0.0, 90.0]
+          unit: "degrees"
+        - name: "surface_slope_std"
+          description: "Standard deviation of surface slope"
+          formula: "calculate_slope_std(image_data)"
+          type: "numerical"
+          range: [0.0, 45.0]
+          unit: "degrees"
+        - name: "surface_aspect_ratio"
+          description: "Aspect ratio of surface features"
+          formula: "calculate_aspect_ratio(image_data)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          unit: "aspect_ratio"
+        - name: "surface_orientation"
+          description: "Dominant surface orientation"
+          formula: "calculate_surface_orientation(image_data)"
+          type: "numerical"
+          range: [0.0, 180.0]
+          unit: "degrees"
+        - name: "surface_anisotropy"
+          description: "Surface anisotropy measure"
+          formula: "calculate_surface_anisotropy(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          unit: "anisotropy_ratio"
+          
+  preprocessing:
+    image_processing:
+      resize:
+        enabled: true
+        target_size: [512, 512]
+        method: "bilinear"
+      normalization:
+        enabled: true
+        method: "min_max"
+        range: [0.0, 1.0]
+      denoising:
+        enabled: true
+        method: "gaussian"
+        kernel_size: 3
+        sigma: 1.0
+      contrast_enhancement:
+        enabled: true
+        method: "clahe"
+        clip_limit: 2.0
+        tile_grid_size: [8, 8]
+      histogram_equalization:
+        enabled: true
+        method: "adaptive"
+        clip_limit: 0.03
+      edge_enhancement:
+        enabled: true
+        method: "unsharp_mask"
+        radius: 1.0
+        amount: 1.0
+        threshold: 0.0
+      texture_enhancement:
+        enabled: true
+        method: "gabor_filter"
+        frequencies: [0.1, 0.2, 0.3]
+        orientations: [0, 45, 90, 135]
+        
+    feature_scaling:
+      method: "robust_scaler"
+      features: ["surface_roughness_ra", "surface_roughness_rz", "surface_roughness_rq", "surface_roughness_rt",
+                "surface_roughness_rp", "surface_roughness_rv", "surface_roughness_rsm", "surface_roughness_rdq",
+                "surface_roughness_rsk", "surface_roughness_rku", "texture_uniformity", "surface_smoothness",
+                "texture_directionality", "texture_regularity", "texture_coarseness", "texture_contrast",
+                "texture_busyness", "texture_complexity", "texture_fineness", "texture_roughness_index",
+                "local_binary_pattern_uniformity", "gray_level_cooccurrence_matrix_contrast",
+                "gray_level_cooccurrence_matrix_homogeneity", "gray_level_cooccurrence_matrix_energy",
+                "gray_level_cooccurrence_matrix_correlation", "gray_level_cooccurrence_matrix_dissimilarity",
+                "gray_level_cooccurrence_matrix_entropy", "gray_level_cooccurrence_matrix_asm",
+                "gray_level_cooccurrence_matrix_idm", "gray_level_cooccurrence_matrix_idn",
+                "gabor_filter_response_0", "gabor_filter_response_45", "gabor_filter_response_90",
+                "gabor_filter_response_135", "gabor_filter_response_180", "gabor_filter_response_225",
+                "gabor_filter_response_270", "gabor_filter_response_315", "gabor_filter_response_mean",
+                "gabor_filter_response_std", "wavelet_energy_ll", "wavelet_energy_lh", "wavelet_energy_hl",
+                "wavelet_energy_hh", "wavelet_entropy_ll", "wavelet_entropy_lh", "wavelet_entropy_hl",
+                "wavelet_entropy_hh", "wavelet_energy_ratio", "wavelet_entropy_ratio", "fractal_dimension",
+                "lacunarity", "hurst_exponent", "box_counting_dimension", "mass_dimension",
+                "correlation_dimension", "information_dimension", "fractal_roughness", "fractal_anisotropy",
+                "fractal_regularity", "texture_mean", "texture_std", "texture_variance", "texture_skewness",
+                "texture_kurtosis", "texture_entropy", "texture_energy", "texture_uniformity", "texture_contrast",
+                "texture_homogeneity", "surface_area_ratio", "surface_volume_ratio", "surface_curvature_mean",
+                "surface_curvature_gaussian", "surface_curvature_principal", "surface_slope_mean",
+                "surface_slope_std", "surface_aspect_ratio", "surface_orientation", "surface_anisotropy"]
+                
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 60
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "roughness_range_check"
+        condition: "surface_roughness_ra >= 0 AND surface_roughness_ra <= 100"
+        action: "flag_invalid"
+      - name: "texture_uniformity_check"
+        condition: "texture_uniformity >= 0 AND texture_uniformity <= 1"
+        action: "flag_invalid"
+      - name: "surface_smoothness_check"
+        condition: "surface_smoothness >= 0 AND surface_smoothness <= 1"
+        action: "flag_invalid"
+      - name: "fractal_dimension_check"
+        condition: "fractal_dimension >= 2.0 AND fractal_dimension <= 3.0"
+        action: "flag_invalid"
+      - name: "gabor_response_check"
+        condition: "gabor_filter_response_mean >= 0 AND gabor_filter_response_mean <= 1"
+        action: "flag_invalid"
+      - name: "wavelet_energy_check"
+        condition: "wavelet_energy_ratio >= 0 AND wavelet_energy_ratio <= 10"
+        action: "flag_invalid"
+      - name: "surface_curvature_check"
+        condition: "surface_curvature_mean >= -1000 AND surface_curvature_mean <= 1000"
+        action: "flag_invalid"
+      - name: "surface_slope_check"
+        condition: "surface_slope_mean >= 0 AND surface_slope_mean <= 90"
+        action: "flag_invalid"
+        
+    data_quality_checks:
+      - name: "image_completeness"
+        condition: "image_data is not null AND image_data.size > 0"
+        action: "flag_incomplete"
+      - name: "image_dimensions"
+        condition: "image_width > 100 AND image_height > 100"
+        action: "flag_invalid"
+      - name: "image_channels"
+        condition: "image_channels in [1, 3]"
+        action: "flag_invalid"
+      - name: "image_format"
+        condition: "image_data.dtype in ['uint8', 'float32']"
+        action: "flag_invalid"
+      - name: "texture_quality"
+        condition: "texture_entropy > 0 AND texture_entropy < 8"
+        action: "flag_invalid"
+      - name: "surface_quality"
+        condition: "surface_roughness_ra > 0 AND surface_roughness_ra < 100"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["surface_roughness_ra", "texture_uniformity", "surface_smoothness", "fractal_dimension", "gabor_filter_response_mean"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 30
+        
+  storage:
+    feature_cache:
+      enabled: true
+      ttl: "1_hour"
+      max_size: "1GB"
+    feature_archive:
+      enabled: true
+      retention_days: 30
+      compression: "gzip"
+      
+  integration:
+    mlflow:
+      enabled: true
+      tracking_uri: "http://mlflow:5000"
+      experiment_name: "surface_texture_features"
+    feast:
+      enabled: true
+      registry_path: "/data/feature_store/registry/"
+      online_store: "redis://redis-feature-store:6379"
+    airflow:
+      enabled: true
+      dag_id: "surface_texture_features_pipeline"
+      schedule_interval: "0 * * * *"

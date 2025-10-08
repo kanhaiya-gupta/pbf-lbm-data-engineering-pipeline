@@ -1,0 +1,36 @@
+# Lag Features Configuration
+# Feature engineering for lag-based temporal features
+
+features:
+  name: "lag_features"
+  version: "1.0.0"
+  description: "Feature engineering for lag-based temporal features"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "value"
+    optional_fields:
+      - "entity_id"
+      
+  feature_groups:
+    - name: "lag_features"
+      description: "Lag-based features"
+      features:
+        - name: "lag_1"
+          formula: "lag(value, 1)"
+          type: "numerical"
+        - name: "lag_5"
+          formula: "lag(value, 5)"
+          type: "numerical"
+        - name: "lag_10"
+          formula: "lag(value, 10)"
+          type: "numerical"
+        - name: "lag_20"
+          formula: "lag(value, 20)"
+          type: "numerical"
+          
+  preprocessing:
+    scaling:
+      method: "standard_scaler"
+      features: ["lag_1", "lag_5", "lag_10", "lag_20"]

@@ -1,0 +1,276 @@
+# Mechanical Property Predictor Configuration
+# Model for predicting mechanical properties of PBF-LBM parts
+
+model:
+  name: "mechanical_property_predictor"
+  version: "1.0.0"
+  type: "regression"
+  framework: "xgboost"
+  
+  architecture:
+    algorithm: "XGBRegressor"
+    parameters:
+      n_estimators: 400
+      max_depth: 10
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+      objective: "reg:squarederror"
+    
+  input_features:
+    # Process Parameters
+    - name: "laser_power"
+      type: "numerical"
+      description: "Laser power setting (W)"
+      range: [50.0, 1000.0]
+    - name: "scan_speed"
+      type: "numerical"
+      description: "Laser scan speed (mm/s)"
+      range: [100.0, 2000.0]
+    - name: "hatch_spacing"
+      type: "numerical"
+      description: "Hatch spacing between scan lines (mm)"
+      range: [0.05, 0.3]
+    - name: "layer_thickness"
+      type: "numerical"
+      description: "Layer thickness (mm)"
+      range: [0.02, 0.1]
+    - name: "energy_density"
+      type: "numerical"
+      description: "Volumetric energy density (J/mm³)"
+      range: [10.0, 500.0]
+    - name: "scan_strategy"
+      type: "categorical"
+      description: "Laser scanning strategy"
+      categories: ["unidirectional", "bidirectional", "island", "spiral", "contour_hatch"]
+    - name: "rotation_angle"
+      type: "numerical"
+      description: "Layer rotation angle (degrees)"
+      range: [0.0, 90.0]
+    
+    # Build Parameters
+    - name: "build_orientation"
+      type: "categorical"
+      description: "Primary build orientation"
+      categories: ["horizontal", "vertical", "angled_30", "angled_45", "angled_60"]
+    - name: "build_temperature"
+      type: "numerical"
+      description: "Build chamber temperature (°C)"
+      range: [20.0, 200.0]
+    - name: "preheat_temperature"
+      type: "numerical"
+      description: "Powder bed preheat temperature (°C)"
+      range: [20.0, 300.0]
+    - name: "cooling_rate"
+      type: "numerical"
+      description: "Average cooling rate (°C/s)"
+      range: [0.1, 1000.0]
+    - name: "post_build_heat_treatment"
+      type: "categorical"
+      description: "Post-build heat treatment"
+      categories: ["none", "stress_relief", "solution_treatment", "aging", "annealing"]
+    - name: "heat_treatment_temperature"
+      type: "numerical"
+      description: "Heat treatment temperature (°C)"
+      range: [200.0, 1200.0]
+    - name: "heat_treatment_duration"
+      type: "numerical"
+      description: "Heat treatment duration (hours)"
+      range: [0.0, 24.0]
+    
+    # Material Properties
+    - name: "material_type"
+      type: "categorical"
+      description: "Material type"
+      categories: ["Ti6Al4V", "Inconel718", "AlSi10Mg", "316L", "CoCr", "MaragingSteel"]
+    - name: "powder_particle_size_d50"
+      type: "numerical"
+      description: "50th percentile particle size (μm)"
+      range: [20.0, 150.0]
+    - name: "powder_flowability"
+      type: "numerical"
+      description: "Powder flowability index"
+      range: [0.0, 1.0]
+    - name: "powder_density"
+      type: "numerical"
+      description: "Powder apparent density (g/cm³)"
+      range: [1.0, 10.0]
+    - name: "oxygen_content"
+      type: "numerical"
+      description: "Oxygen content in powder (ppm)"
+      range: [0.0, 2000.0]
+    - name: "nitrogen_content"
+      type: "numerical"
+      description: "Nitrogen content in powder (ppm)"
+      range: [0.0, 1000.0]
+    
+    # Geometry Features
+    - name: "part_volume"
+      type: "numerical"
+      description: "Total part volume (mm³)"
+      range: [1.0, 1000000.0]
+    - name: "wall_thickness"
+      type: "numerical"
+      description: "Characteristic wall thickness (mm)"
+      range: [0.1, 50.0]
+    - name: "aspect_ratio"
+      type: "numerical"
+      description: "Part aspect ratio (max_dimension/min_dimension)"
+      range: [1.0, 100.0]
+    - name: "build_height"
+      type: "numerical"
+      description: "Total build height (mm)"
+      range: [1.0, 500.0]
+    - name: "support_volume_ratio"
+      type: "numerical"
+      description: "Ratio of support volume to part volume"
+      range: [0.0, 2.0]
+    
+    # Microstructure Features
+    - name: "grain_size"
+      type: "numerical"
+      description: "Average grain size (μm)"
+      range: [0.1, 100.0]
+    - name: "porosity_percentage"
+      type: "numerical"
+      description: "Porosity percentage (%)"
+      range: [0.0, 10.0]
+    - name: "density_percentage"
+      type: "numerical"
+      description: "Relative density percentage (%)"
+      range: [90.0, 100.0]
+    - name: "phase_fraction_alpha"
+      type: "numerical"
+      description: "Alpha phase fraction (%)"
+      range: [0.0, 100.0]
+    - name: "phase_fraction_beta"
+      type: "numerical"
+      description: "Beta phase fraction (%)"
+      range: [0.0, 100.0]
+    - name: "precipitate_size"
+      type: "numerical"
+      description: "Average precipitate size (nm)"
+      range: [1.0, 1000.0]
+
+  output_targets:
+    - name: "tensile_strength"
+      description: "Ultimate tensile strength (MPa)"
+      range: [200.0, 2000.0]
+    - name: "yield_strength"
+      description: "Yield strength (MPa)"
+      range: [100.0, 1800.0]
+    - name: "elongation"
+      description: "Elongation at break (%)"
+      range: [1.0, 50.0]
+    - name: "hardness"
+      description: "Vickers hardness (HV)"
+      range: [100.0, 1000.0]
+    - name: "fatigue_strength"
+      description: "Fatigue strength at 10^6 cycles (MPa)"
+      range: [50.0, 1000.0]
+    - name: "fracture_toughness"
+      description: "Fracture toughness KIC (MPa·m^0.5)"
+      range: [10.0, 200.0]
+    - name: "elastic_modulus"
+      description: "Elastic modulus (GPa)"
+      range: [50.0, 500.0]
+    - name: "thermal_conductivity"
+      description: "Thermal conductivity (W/m·K)"
+      range: [1.0, 500.0]
+
+  training:
+    dataset_path: "/data/training/mechanical_properties_dataset.csv"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "kfold"
+      n_splits: 5
+    metrics:
+      primary: "neg_mean_squared_error"
+      secondary: ["neg_mean_absolute_error", "r2", "explained_variance"]
+    early_stopping:
+      enabled: true
+      patience: 25
+      monitor: "val_neg_mean_squared_error"
+    
+  preprocessing:
+    scaling:
+      method: "standard_scaler"
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness",
+                "energy_density", "rotation_angle", "build_temperature", "preheat_temperature",
+                "cooling_rate", "heat_treatment_temperature", "heat_treatment_duration",
+                "powder_particle_size_d50", "powder_flowability", "powder_density",
+                "oxygen_content", "nitrogen_content", "part_volume", "wall_thickness",
+                "aspect_ratio", "build_height", "support_volume_ratio", "grain_size",
+                "porosity_percentage", "density_percentage", "phase_fraction_alpha",
+                "phase_fraction_beta", "precipitate_size"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["scan_strategy", "build_orientation", "post_build_heat_treatment", "material_type"]
+    feature_engineering:
+      - name: "energy_density_calc"
+        formula: "laser_power / (scan_speed * hatch_spacing * layer_thickness)"
+      - name: "thermal_history_index"
+        formula: "build_temperature * preheat_temperature / cooling_rate"
+      - name: "powder_quality_index"
+        formula: "powder_flowability * (1 - oxygen_content / 1000) * density_percentage / 100"
+      - name: "microstructure_index"
+        formula: "grain_size * (1 - porosity_percentage / 100) * density_percentage / 100"
+      - name: "heat_treatment_intensity"
+        formula: "heat_treatment_temperature * heat_treatment_duration / 1000"
+    feature_selection:
+      method: "feature_importance"
+      threshold: 0.005
+      
+  validation:
+    business_rules:
+      - rule: "high_porosity_strength_check"
+        condition: "porosity_percentage > 2 AND predicted_tensile_strength > 800"
+        action: "flag_for_verification"
+      - rule: "low_energy_density_warning"
+        condition: "energy_density < 50 AND predicted_density < 95"
+        action: "suggest_parameter_increase"
+      - rule: "heat_treatment_validation"
+        condition: "post_build_heat_treatment == 'none' AND predicted_hardness > 400"
+        action: "recommend_heat_treatment"
+
+  deployment:
+    inference_mode: "batch"
+    batch_size: 16
+    max_latency_ms: 12000
+    model_format: "joblib"
+    artifact_path: "/models/mechanical_property_predictor/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "ks_test"
+      threshold: 0.05
+      features: ["laser_power", "scan_speed", "energy_density", "build_temperature"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["mse", "mae", "r2", "explained_variance"]
+      alert_thresholds:
+        mse: 10000.0
+        mae: 50.0
+        r2: 0.8
+    explainability:
+      enabled: true
+      method: "shap"
+      sample_size: 2000
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.1
+    schedule: "monthly"
+    data_requirements:
+      min_samples: 2000
+      material_balance_threshold: 0.1
+      
+  quality_assurance:
+    enabled: true
+    mechanical_testing_required: true
+    minimum_test_samples: 3
+    confidence_interval: 0.95
+    property_correlation_check: true

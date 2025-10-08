@@ -1,0 +1,492 @@
+# CT Scan Features Configuration
+# =============================
+
+features:
+  name: "ct_scan_features"
+  version: "1.0.0"
+  description: "Features extracted from CT scan images for PBF-LB/M defect detection and quality assessment"
+  
+  # Feature metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["ct_scan", "image_features", "defect_detection", "quality_assessment"]
+
+# Data Sources
+data_sources:
+  primary:
+    type: "s3"
+    bucket: "pbf-data-lake"
+    path: "ct_scans/raw"
+    format: "dicom"
+    schema:
+      image_id: "string"
+      process_id: "string"
+      layer_number: "integer"
+      scan_timestamp: "datetime"
+      voxel_size: "array"
+      image_dimensions: "array"
+      hounsfield_units: "array"
+      
+  secondary:
+    type: "postgresql"
+    table: "ct_scan_metadata"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    schema:
+      image_id: "string"
+      process_id: "string"
+      layer_number: "integer"
+      scan_parameters: "json"
+      quality_metrics: "json"
+      defect_annotations: "json"
+
+# Feature Definitions
+feature_definitions:
+  # Basic image features
+  - name: "image_mean_intensity"
+    type: "statistical"
+    method: "mean"
+    source_field: "hounsfield_units"
+    description: "Mean intensity of CT scan image"
+    
+  - name: "image_std_intensity"
+    type: "statistical"
+    method: "std"
+    source_field: "hounsfield_units"
+    description: "Standard deviation of CT scan image intensity"
+    
+  - name: "image_min_intensity"
+    type: "statistical"
+    method: "min"
+    source_field: "hounsfield_units"
+    description: "Minimum intensity of CT scan image"
+    
+  - name: "image_max_intensity"
+    type: "statistical"
+    method: "max"
+    source_field: "hounsfield_units"
+    description: "Maximum intensity of CT scan image"
+    
+  - name: "image_intensity_range"
+    type: "derived"
+    formula: "image_max_intensity - image_min_intensity"
+    dependencies: ["image_max_intensity", "image_min_intensity"]
+    description: "Intensity range of CT scan image"
+
+  # Histogram features
+  - name: "histogram_entropy"
+    type: "histogram"
+    method: "entropy"
+    source_field: "hounsfield_units"
+    bins: 256
+    description: "Entropy of intensity histogram"
+    
+  - name: "histogram_skewness"
+    type: "histogram"
+    method: "skewness"
+    source_field: "hounsfield_units"
+    bins: 256
+    description: "Skewness of intensity histogram"
+    
+  - name: "histogram_kurtosis"
+    type: "histogram"
+    method: "kurtosis"
+    source_field: "hounsfield_units"
+    bins: 256
+    description: "Kurtosis of intensity histogram"
+    
+  - name: "histogram_mode"
+    type: "histogram"
+    method: "mode"
+    source_field: "hounsfield_units"
+    bins: 256
+    description: "Mode of intensity histogram"
+    
+  - name: "histogram_median"
+    type: "histogram"
+    method: "median"
+    source_field: "hounsfield_units"
+    bins: 256
+    description: "Median of intensity histogram"
+
+  # Texture features
+  - name: "glcm_contrast"
+    type: "texture"
+    method: "glcm_contrast"
+    source_field: "hounsfield_units"
+    distances: [1, 2, 3]
+    angles: [0, 45, 90, 135]
+    description: "Gray-level co-occurrence matrix contrast"
+    
+  - name: "glcm_dissimilarity"
+    type: "texture"
+    method: "glcm_dissimilarity"
+    source_field: "hounsfield_units"
+    distances: [1, 2, 3]
+    angles: [0, 45, 90, 135]
+    description: "Gray-level co-occurrence matrix dissimilarity"
+    
+  - name: "glcm_homogeneity"
+    type: "texture"
+    method: "glcm_homogeneity"
+    source_field: "hounsfield_units"
+    distances: [1, 2, 3]
+    angles: [0, 45, 90, 135]
+    description: "Gray-level co-occurrence matrix homogeneity"
+    
+  - name: "glcm_energy"
+    type: "texture"
+    method: "glcm_energy"
+    source_field: "hounsfield_units"
+    distances: [1, 2, 3]
+    angles: [0, 45, 90, 135]
+    description: "Gray-level co-occurrence matrix energy"
+    
+  - name: "glcm_correlation"
+    type: "texture"
+    method: "glcm_correlation"
+    source_field: "hounsfield_units"
+    distances: [1, 2, 3]
+    angles: [0, 45, 90, 135]
+    description: "Gray-level co-occurrence matrix correlation"
+
+  # Local Binary Pattern features
+  - name: "lbp_uniform"
+    type: "texture"
+    method: "lbp_uniform"
+    source_field: "hounsfield_units"
+    radius: 1
+    n_points: 8
+    description: "Uniform Local Binary Pattern"
+    
+  - name: "lbp_rotation_invariant"
+    type: "texture"
+    method: "lbp_rotation_invariant"
+    source_field: "hounsfield_units"
+    radius: 1
+    n_points: 8
+    description: "Rotation-invariant Local Binary Pattern"
+    
+  - name: "lbp_histogram"
+    type: "texture"
+    method: "lbp_histogram"
+    source_field: "hounsfield_units"
+    radius: 1
+    n_points: 8
+    bins: 10
+    description: "Local Binary Pattern histogram"
+
+  # Gabor filter features
+  - name: "gabor_mean"
+    type: "filter"
+    method: "gabor_mean"
+    source_field: "hounsfield_units"
+    frequencies: [0.1, 0.2, 0.3]
+    orientations: [0, 45, 90, 135]
+    description: "Mean response to Gabor filters"
+    
+  - name: "gabor_std"
+    type: "filter"
+    method: "gabor_std"
+    source_field: "hounsfield_units"
+    frequencies: [0.1, 0.2, 0.3]
+    orientations: [0, 45, 90, 135]
+    description: "Standard deviation of Gabor filter responses"
+    
+  - name: "gabor_energy"
+    type: "filter"
+    method: "gabor_energy"
+    source_field: "hounsfield_units"
+    frequencies: [0.1, 0.2, 0.3]
+    orientations: [0, 45, 90, 135]
+    description: "Energy of Gabor filter responses"
+
+  # Edge features
+  - name: "edge_density"
+    type: "edge"
+    method: "canny_density"
+    source_field: "hounsfield_units"
+    low_threshold: 0.1
+    high_threshold: 0.2
+    description: "Density of Canny edge pixels"
+    
+  - name: "edge_length"
+    type: "edge"
+    method: "canny_length"
+    source_field: "hounsfield_units"
+    low_threshold: 0.1
+    high_threshold: 0.2
+    description: "Total length of Canny edges"
+    
+  - name: "edge_orientation"
+    type: "edge"
+    method: "canny_orientation"
+    source_field: "hounsfield_units"
+    low_threshold: 0.1
+    high_threshold: 0.2
+    description: "Dominant orientation of Canny edges"
+
+  # Morphological features
+  - name: "morphology_area"
+    type: "morphology"
+    method: "area"
+    source_field: "hounsfield_units"
+    threshold: 0.5
+    description: "Area of morphological components"
+    
+  - name: "morphology_perimeter"
+    type: "morphology"
+    method: "perimeter"
+    source_field: "hounsfield_units"
+    threshold: 0.5
+    description: "Perimeter of morphological components"
+    
+  - name: "morphology_eccentricity"
+    type: "morphology"
+    method: "eccentricity"
+    source_field: "hounsfield_units"
+    threshold: 0.5
+    description: "Eccentricity of morphological components"
+    
+  - name: "morphology_solidity"
+    type: "morphology"
+    method: "solidity"
+    source_field: "hounsfield_units"
+    threshold: 0.5
+    description: "Solidity of morphological components"
+
+  # Frequency domain features
+  - name: "fft_energy"
+    type: "frequency"
+    method: "fft_energy"
+    source_field: "hounsfield_units"
+    description: "Energy of FFT coefficients"
+    
+  - name: "fft_spectral_centroid"
+    type: "frequency"
+    method: "fft_spectral_centroid"
+    source_field: "hounsfield_units"
+    description: "Spectral centroid of FFT"
+    
+  - name: "fft_spectral_bandwidth"
+    type: "frequency"
+    method: "fft_spectral_bandwidth"
+    source_field: "hounsfield_units"
+    description: "Spectral bandwidth of FFT"
+    
+  - name: "fft_spectral_rolloff"
+    type: "frequency"
+    method: "fft_spectral_rolloff"
+    source_field: "hounsfield_units"
+    rolloff_percent: 0.85
+    description: "Spectral rolloff of FFT"
+
+  # Wavelet features
+  - name: "wavelet_energy"
+    type: "wavelet"
+    method: "energy"
+    source_field: "hounsfield_units"
+    wavelet: "db4"
+    levels: 3
+    description: "Energy of wavelet coefficients"
+    
+  - name: "wavelet_entropy"
+    type: "wavelet"
+    method: "entropy"
+    source_field: "hounsfield_units"
+    wavelet: "db4"
+    levels: 3
+    description: "Entropy of wavelet coefficients"
+    
+  - name: "wavelet_std"
+    type: "wavelet"
+    method: "std"
+    source_field: "hounsfield_units"
+    wavelet: "db4"
+    levels: 3
+    description: "Standard deviation of wavelet coefficients"
+
+  # Defect-specific features
+  - name: "porosity_density"
+    type: "defect"
+    method: "porosity_density"
+    source_field: "hounsfield_units"
+    threshold: 0.3
+    description: "Density of porosity defects"
+    
+  - name: "crack_length"
+    type: "defect"
+    method: "crack_length"
+    source_field: "hounsfield_units"
+    threshold: 0.5
+    description: "Total length of crack defects"
+    
+  - name: "delamination_area"
+    type: "defect"
+    method: "delamination_area"
+    source_field: "hounsfield_units"
+    threshold: 0.4
+    description: "Total area of delamination defects"
+    
+  - name: "inclusion_count"
+    type: "defect"
+    method: "inclusion_count"
+    source_field: "hounsfield_units"
+    threshold: 0.6
+    description: "Count of inclusion defects"
+
+  # Quality assessment features
+  - name: "density_uniformity"
+    type: "quality"
+    method: "density_uniformity"
+    source_field: "hounsfield_units"
+    description: "Uniformity of material density"
+    
+  - name: "surface_roughness"
+    type: "quality"
+    method: "surface_roughness"
+    source_field: "hounsfield_units"
+    description: "Surface roughness from CT scan"
+    
+  - name: "dimensional_accuracy"
+    type: "quality"
+    method: "dimensional_accuracy"
+    source_field: "hounsfield_units"
+    reference_dimensions: "reference_dimensions"
+    description: "Dimensional accuracy compared to reference"
+
+# Feature Validation
+validation:
+  image_dimensions:
+    min_width: 64
+    max_width: 2048
+    min_height: 64
+    max_height: 2048
+    min_depth: 1
+    max_depth: 1024
+    
+  voxel_size:
+    min_size: 0.001
+    max_size: 1.0
+    unit: "mm"
+    
+  hounsfield_units:
+    min_value: -1000
+    max_value: 3000
+    null_threshold: 0.01
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+
+# Feature Storage
+storage:
+  online_store:
+    type: "redis"
+    host: "redis"
+    port: 6379
+    db: 7
+    ttl: "2h"
+    key_prefix: "ct_scan_features:"
+    
+  offline_store:
+    type: "parquet"
+    path: "s3://pbf-data-lake/features/ct_scan_features"
+    partitioning: ["year", "month", "day", "hour"]
+    compression: "snappy"
+    
+  # Feature caching
+  caching:
+    enabled: true
+    cache_size: 5000
+    ttl: "1h"
+    eviction_policy: "lru"
+
+# Feature Engineering Pipeline
+pipeline:
+  # Processing steps
+  steps:
+    - name: "image_loading"
+      type: "image_loader"
+      config:
+        format: "dicom"
+        normalization: "hounsfield_units"
+        
+    - name: "image_preprocessing"
+      type: "image_preprocessor"
+      config:
+        resizing: true
+        target_size: [512, 512]
+        interpolation: "bilinear"
+        noise_reduction: true
+        contrast_enhancement: true
+        
+    - name: "feature_computation"
+      type: "feature_computer"
+      config:
+        features: "feature_definitions"
+        parallel_processing: true
+        num_workers: 4
+        
+    - name: "feature_validation"
+      type: "feature_validator"
+      config:
+        validation_rules: "validation"
+        
+    - name: "feature_storage"
+      type: "feature_storer"
+      config:
+        storage: "storage"
+  
+  # Pipeline scheduling
+  scheduling:
+    trigger: "batch"  # streaming, batch, cron
+    batch_size: 100
+    processing_interval: "1h"
+    
+  # Error handling
+  error_handling:
+    retry_policy:
+      max_retries: 3
+      backoff_factor: 2
+    failure_notification:
+      channels: ["email", "slack"]
+      recipients: ["ml-team@company.com"]
+
+# Feature Monitoring
+monitoring:
+  # Feature quality monitoring
+  quality:
+    enabled: true
+    metrics:
+      - "completeness"
+      - "accuracy"
+      - "consistency"
+      - "timeliness"
+    thresholds:
+      completeness: 0.95
+      accuracy: 0.98
+      consistency: 0.90
+      timeliness: 3600  # seconds
+  
+  # Feature drift monitoring
+  drift:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+    methods:
+      - "statistical"
+      - "distribution"
+      - "correlation"
+  
+  # Feature performance monitoring
+  performance:
+    enabled: true
+    metrics:
+      - "computation_time"
+      - "memory_usage"
+      - "throughput"
+    thresholds:
+      computation_time: 1000  # milliseconds
+      memory_usage: 2048  # MB
+      throughput: 100  # features per second

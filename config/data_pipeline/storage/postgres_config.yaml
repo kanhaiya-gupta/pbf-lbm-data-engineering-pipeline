@@ -1,0 +1,388 @@
+# PBF-LB/M Data Pipeline - PostgreSQL Configuration
+# This file contains PostgreSQL-specific configuration settings
+
+postgresql:
+  # PostgreSQL connection configuration
+  connection:
+    host: "${POSTGRES_HOST}"
+    port: 5432
+    database: "${POSTGRES_DATABASE}"
+    username: "${POSTGRES_USERNAME}"
+    password: "${POSTGRES_PASSWORD}"
+    ssl_mode: "prefer"
+    ssl_cert: "${POSTGRES_SSL_CERT}"
+    ssl_key: "${POSTGRES_SSL_KEY}"
+    ssl_root_cert: "${POSTGRES_SSL_ROOT_CERT}"
+    
+  # PostgreSQL database configuration
+  databases:
+    # Development Database
+    dev_db:
+      name: "pbf_lbm_dev"
+      comment: "Development database for PBF-LB/M data pipeline"
+      
+    # Staging Database
+    staging_db:
+      name: "pbf_lbm_staging"
+      comment: "Staging database for PBF-LB/M data pipeline"
+      
+    # Production Database
+    prod_db:
+      name: "pbf_lbm_prod"
+      comment: "Production database for PBF-LB/M data pipeline"
+      
+  # PostgreSQL schema configuration
+  schemas:
+    # Public Schema
+    public:
+      name: "public"
+      comment: "Public schema for PBF-LB/M data pipeline"
+      
+    # Operational Schema
+    operational:
+      name: "operational"
+      comment: "Operational schema for PBF-LB/M data pipeline"
+      
+    # Audit Schema
+    audit:
+      name: "audit"
+      comment: "Audit schema for PBF-LB/M data pipeline"
+      
+  # PostgreSQL table configuration
+  tables:
+    # Operational Tables
+    operational_tables:
+      pbf_process_data:
+        name: "pbf_process_data"
+        schema: "public"
+        comment: "PBF process data table"
+        columns:
+          - name: "process_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "start_time"
+            type: "TIMESTAMP"
+            nullable: false
+          - name: "end_time"
+            type: "TIMESTAMP"
+            nullable: true
+          - name: "machine_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "material_type"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "powder_batch_id"
+            type: "VARCHAR(255)"
+            nullable: true
+          - name: "process_status"
+            type: "VARCHAR(50)"
+            nullable: false
+          - name: "total_layers"
+            type: "INTEGER"
+            nullable: true
+          - name: "build_height_mm"
+            type: "DECIMAL(10,4)"
+            nullable: true
+          - name: "laser_power_w"
+            type: "DECIMAL(10,2)"
+            nullable: true
+          - name: "scan_speed_mm_s"
+            type: "DECIMAL(10,2)"
+            nullable: true
+          - name: "layer_thickness_um"
+            type: "DECIMAL(10,2)"
+            nullable: true
+          - name: "atmosphere_type"
+            type: "VARCHAR(100)"
+            nullable: true
+          - name: "oxygen_content_ppm"
+            type: "DECIMAL(10,2)"
+            nullable: true
+          - name: "quality_score"
+            type: "DECIMAL(5,4)"
+            nullable: true
+          - name: "notes"
+            type: "TEXT"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP"
+            nullable: false
+          - name: "updated_at"
+            type: "TIMESTAMP"
+            nullable: false
+            
+      ispm_monitoring_data:
+        name: "ispm_monitoring_data"
+        schema: "public"
+        comment: "ISPM monitoring data table"
+        columns:
+          - name: "monitoring_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "process_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "sensor_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "timestamp"
+            type: "TIMESTAMP"
+            nullable: false
+          - name: "sensor_type"
+            type: "VARCHAR(100)"
+            nullable: false
+          - name: "sensor_value"
+            type: "DECIMAL(10,4)"
+            nullable: false
+          - name: "unit"
+            type: "VARCHAR(50)"
+            nullable: true
+          - name: "layer_number"
+            type: "INTEGER"
+            nullable: true
+          - name: "scan_vector_id"
+            type: "VARCHAR(255)"
+            nullable: true
+          - name: "metadata"
+            type: "JSONB"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP"
+            nullable: false
+            
+      ct_scan_data:
+        name: "ct_scan_data"
+        schema: "public"
+        comment: "CT scan data table"
+        columns:
+          - name: "scan_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "process_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "timestamp"
+            type: "TIMESTAMP"
+            nullable: false
+          - name: "voxel_dimensions"
+            type: "INTEGER[]"
+            nullable: false
+          - name: "resolution"
+            type: "DECIMAL(10,6)"
+            nullable: false
+          - name: "file_path"
+            type: "VARCHAR(1000)"
+            nullable: false
+          - name: "file_size"
+            type: "BIGINT"
+            nullable: false
+          - name: "quality_score"
+            type: "DECIMAL(5,4)"
+            nullable: true
+          - name: "defect_count"
+            type: "INTEGER"
+            nullable: true
+          - name: "defect_types"
+            type: "VARCHAR(50)[]"
+            nullable: true
+          - name: "processing_status"
+            type: "VARCHAR(50)"
+            nullable: false
+          - name: "metadata"
+            type: "JSONB"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP"
+            nullable: false
+            
+      powder_bed_data:
+        name: "powder_bed_data"
+        schema: "public"
+        comment: "Powder bed monitoring data table"
+        columns:
+          - name: "powder_bed_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "process_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "camera_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "timestamp"
+            type: "TIMESTAMP"
+            nullable: false
+          - name: "layer_number"
+            type: "INTEGER"
+            nullable: false
+          - name: "image_path"
+            type: "VARCHAR(1000)"
+            nullable: false
+          - name: "image_size"
+            type: "BIGINT"
+            nullable: false
+          - name: "image_width"
+            type: "INTEGER"
+            nullable: true
+          - name: "image_height"
+            type: "INTEGER"
+            nullable: true
+          - name: "surface_roughness"
+            type: "DECIMAL(10,4)"
+            nullable: true
+          - name: "surface_quality_score"
+            type: "DECIMAL(5,4)"
+            nullable: true
+          - name: "particle_analysis"
+            type: "JSONB"
+            nullable: true
+          - name: "recoat_quality_score"
+            type: "DECIMAL(5,4)"
+            nullable: true
+          - name: "anomalies_detected"
+            type: "VARCHAR(100)[]"
+            nullable: true
+          - name: "metadata"
+            type: "JSONB"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP"
+            nullable: false
+            
+  # PostgreSQL indexes configuration
+  indexes:
+    pbf_process_data:
+      - name: "idx_pbf_process_machine_id"
+        columns: ["machine_id"]
+        type: "btree"
+      - name: "idx_pbf_process_start_time"
+        columns: ["start_time"]
+        type: "btree"
+      - name: "idx_pbf_process_status"
+        columns: ["process_status"]
+        type: "btree"
+      - name: "idx_pbf_process_updated_at"
+        columns: ["updated_at"]
+        type: "btree"
+        
+    ispm_monitoring_data:
+      - name: "idx_ispm_process_id"
+        columns: ["process_id"]
+        type: "btree"
+      - name: "idx_ispm_timestamp"
+        columns: ["timestamp"]
+        type: "btree"
+      - name: "idx_ispm_sensor_type"
+        columns: ["sensor_type"]
+        type: "btree"
+      - name: "idx_ispm_created_at"
+        columns: ["created_at"]
+        type: "btree"
+        
+    ct_scan_data:
+      - name: "idx_ct_scan_process_id"
+        columns: ["process_id"]
+        type: "btree"
+      - name: "idx_ct_scan_timestamp"
+        columns: ["timestamp"]
+        type: "btree"
+      - name: "idx_ct_scan_status"
+        columns: ["processing_status"]
+        type: "btree"
+      - name: "idx_ct_scan_created_at"
+        columns: ["created_at"]
+        type: "btree"
+        
+    powder_bed_data:
+      - name: "idx_powder_bed_process_id"
+        columns: ["process_id"]
+        type: "btree"
+      - name: "idx_powder_bed_timestamp"
+        columns: ["timestamp"]
+        type: "btree"
+      - name: "idx_powder_bed_layer_number"
+        columns: ["layer_number"]
+        type: "btree"
+      - name: "idx_powder_bed_created_at"
+        columns: ["created_at"]
+        type: "btree"
+        
+  # PostgreSQL connection pool configuration
+  connection_pool:
+    min_connections: 2
+    max_connections: 10
+    connection_timeout: 30
+    idle_timeout: 300
+    max_lifetime: 3600
+    
+  # PostgreSQL security configuration
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: true
+    audit_logging: true
+    
+  # PostgreSQL monitoring configuration
+  monitoring:
+    enabled: true
+    metrics_enabled: true
+    query_monitoring: true
+    performance_monitoring: true
+    health_check_interval: 60
+    
+  # PostgreSQL performance tuning
+  performance:
+    # Memory settings
+    shared_buffers: "256MB"
+    effective_cache_size: "1GB"
+    work_mem: "4MB"
+    maintenance_work_mem: "64MB"
+    
+    # Checkpoint settings
+    checkpoint_completion_target: 0.9
+    wal_buffers: "16MB"
+    checkpoint_timeout: "5min"
+    
+    # Query optimization
+    random_page_cost: 1.1
+    effective_io_concurrency: 1
+    
+  # PostgreSQL environment-specific overrides
+  environments:
+    development:
+      host: "localhost"
+      port: 5432
+      database: "pbf_lbm_dev"
+      username: "dev_user"
+      password: "dev_password"
+      ssl_mode: "disable"
+      connection_pool:
+        min_connections: 1
+        max_connections: 5
+        
+    staging:
+      host: "staging-postgres.example.com"
+      port: 5432
+      database: "pbf_lbm_staging"
+      username: "staging_user"
+      password: "${POSTGRES_STAGING_PASSWORD}"
+      ssl_mode: "prefer"
+      connection_pool:
+        min_connections: 2
+        max_connections: 8
+        
+    production:
+      host: "prod-postgres-cluster.example.com"
+      port: 5432
+      database: "pbf_lbm_prod"
+      username: "prod_user"
+      password: "${POSTGRES_PROD_PASSWORD}"
+      ssl_mode: "require"
+      connection_pool:
+        min_connections: 5
+        max_connections: 20

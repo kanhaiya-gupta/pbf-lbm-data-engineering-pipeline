@@ -1,0 +1,419 @@
+# PBF-LB/M Data Pipeline - Quality Rules Configuration
+# This file contains data quality validation rules and configurations
+
+quality_rules:
+  # General quality settings
+  general:
+    default_severity: "warning"
+    default_timeout: 300  # 5 minutes
+    default_retry_attempts: 3
+    default_retry_delay: 5  # seconds
+    
+  # PBF Process Data Quality Rules
+  pbf_process_data:
+    table_name: "pbf_process_data"
+    enabled: true
+    rules:
+      # Completeness rules
+      - name: "process_id_not_null"
+        type: "not_null"
+        column: "process_id"
+        severity: "error"
+        description: "Process ID must not be null"
+        
+      - name: "start_time_not_null"
+        type: "not_null"
+        column: "start_time"
+        severity: "error"
+        description: "Start time must not be null"
+        
+      - name: "machine_id_not_null"
+        type: "not_null"
+        column: "machine_id"
+        severity: "error"
+        description: "Machine ID must not be null"
+        
+      - name: "material_type_not_null"
+        type: "not_null"
+        column: "material_type"
+        severity: "error"
+        description: "Material type must not be null"
+        
+      # Validity rules
+      - name: "process_status_valid"
+        type: "in_list"
+        column: "process_status"
+        values: ["pending", "running", "paused", "completed", "failed", "cancelled"]
+        severity: "error"
+        description: "Process status must be a valid value"
+        
+      - name: "quality_score_range"
+        type: "range"
+        column: "quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "warning"
+        description: "Quality score must be between 0 and 1"
+        
+      - name: "laser_power_positive"
+        type: "greater_than"
+        column: "laser_power_w"
+        value: 0
+        severity: "warning"
+        description: "Laser power must be positive"
+        
+      - name: "scan_speed_positive"
+        type: "greater_than"
+        column: "scan_speed_mm_s"
+        value: 0
+        severity: "warning"
+        description: "Scan speed must be positive"
+        
+      - name: "layer_thickness_positive"
+        type: "greater_than"
+        column: "layer_thickness_um"
+        value: 0
+        severity: "warning"
+        description: "Layer thickness must be positive"
+        
+      - name: "total_layers_positive"
+        type: "greater_than_or_equal"
+        column: "total_layers"
+        value: 0
+        severity: "warning"
+        description: "Total layers must be non-negative"
+        
+      # Consistency rules
+      - name: "end_time_after_start_time"
+        type: "custom"
+        expression: "end_time IS NULL OR end_time >= start_time"
+        severity: "error"
+        description: "End time must be after start time"
+        
+      - name: "build_height_positive"
+        type: "greater_than"
+        column: "build_height_mm"
+        value: 0
+        severity: "warning"
+        description: "Build height must be positive"
+        
+  # ISPM Monitoring Data Quality Rules
+  ispm_monitoring_data:
+    table_name: "ispm_monitoring_data"
+    enabled: true
+    rules:
+      # Completeness rules
+      - name: "monitoring_id_not_null"
+        type: "not_null"
+        column: "monitoring_id"
+        severity: "error"
+        description: "Monitoring ID must not be null"
+        
+      - name: "process_id_not_null"
+        type: "not_null"
+        column: "process_id"
+        severity: "error"
+        description: "Process ID must not be null"
+        
+      - name: "sensor_id_not_null"
+        type: "not_null"
+        column: "sensor_id"
+        severity: "error"
+        description: "Sensor ID must not be null"
+        
+      - name: "timestamp_not_null"
+        type: "not_null"
+        column: "timestamp"
+        severity: "error"
+        description: "Timestamp must not be null"
+        
+      - name: "sensor_type_not_null"
+        type: "not_null"
+        column: "sensor_type"
+        severity: "error"
+        description: "Sensor type must not be null"
+        
+      - name: "sensor_value_not_null"
+        type: "not_null"
+        column: "sensor_value"
+        severity: "error"
+        description: "Sensor value must not be null"
+        
+      # Validity rules
+      - name: "sensor_type_valid"
+        type: "in_list"
+        column: "sensor_type"
+        values: ["temperature", "pressure", "laser_power", "scan_speed", "vibration", "acoustic", "optical"]
+        severity: "error"
+        description: "Sensor type must be a valid value"
+        
+      - name: "sensor_value_range"
+        type: "range"
+        column: "sensor_value"
+        min_value: 0
+        max_value: 10000
+        severity: "warning"
+        description: "Sensor value must be within reasonable range"
+        
+      - name: "layer_number_positive"
+        type: "greater_than_or_equal"
+        column: "layer_number"
+        value: 0
+        severity: "warning"
+        description: "Layer number must be non-negative"
+        
+      # Consistency rules
+      - name: "temperature_range"
+        type: "custom"
+        expression: "sensor_type != 'temperature' OR (sensor_value >= 20 AND sensor_value <= 3000)"
+        severity: "warning"
+        description: "Temperature values must be within reasonable range"
+        
+      - name: "pressure_range"
+        type: "custom"
+        expression: "sensor_type != 'pressure' OR (sensor_value >= 0 AND sensor_value <= 1000)"
+        severity: "warning"
+        description: "Pressure values must be within reasonable range"
+        
+      - name: "laser_power_range"
+        type: "custom"
+        expression: "sensor_type != 'laser_power' OR (sensor_value >= 0 AND sensor_value <= 1000)"
+        severity: "warning"
+        description: "Laser power values must be within reasonable range"
+        
+  # CT Scan Data Quality Rules
+  ct_scan_data:
+    table_name: "ct_scan_data"
+    enabled: true
+    rules:
+      # Completeness rules
+      - name: "scan_id_not_null"
+        type: "not_null"
+        column: "scan_id"
+        severity: "error"
+        description: "Scan ID must not be null"
+        
+      - name: "process_id_not_null"
+        type: "not_null"
+        column: "process_id"
+        severity: "error"
+        description: "Process ID must not be null"
+        
+      - name: "timestamp_not_null"
+        type: "not_null"
+        column: "timestamp"
+        severity: "error"
+        description: "Timestamp must not be null"
+        
+      - name: "voxel_dimensions_not_null"
+        type: "not_null"
+        column: "voxel_dimensions"
+        severity: "error"
+        description: "Voxel dimensions must not be null"
+        
+      - name: "resolution_not_null"
+        type: "not_null"
+        column: "resolution"
+        severity: "error"
+        description: "Resolution must not be null"
+        
+      - name: "file_path_not_null"
+        type: "not_null"
+        column: "file_path"
+        severity: "error"
+        description: "File path must not be null"
+        
+      - name: "file_size_not_null"
+        type: "not_null"
+        column: "file_size"
+        severity: "error"
+        description: "File size must not be null"
+        
+      # Validity rules
+      - name: "resolution_positive"
+        type: "greater_than"
+        column: "resolution"
+        value: 0
+        severity: "error"
+        description: "Resolution must be positive"
+        
+      - name: "file_size_positive"
+        type: "greater_than"
+        column: "file_size"
+        value: 0
+        severity: "error"
+        description: "File size must be positive"
+        
+      - name: "quality_score_range"
+        type: "range"
+        column: "quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "warning"
+        description: "Quality score must be between 0 and 1"
+        
+      - name: "defect_count_positive"
+        type: "greater_than_or_equal"
+        column: "defect_count"
+        value: 0
+        severity: "warning"
+        description: "Defect count must be non-negative"
+        
+      - name: "processing_status_valid"
+        type: "in_list"
+        column: "processing_status"
+        values: ["pending", "processing", "completed", "failed"]
+        severity: "error"
+        description: "Processing status must be a valid value"
+        
+      # Consistency rules
+      - name: "voxel_dimensions_positive"
+        type: "custom"
+        expression: "array_length(voxel_dimensions, 1) = 3 AND voxel_dimensions[1] > 0 AND voxel_dimensions[2] > 0 AND voxel_dimensions[3] > 0"
+        severity: "error"
+        description: "Voxel dimensions must be a 3-element array with positive values"
+        
+  # Powder Bed Data Quality Rules
+  powder_bed_data:
+    table_name: "powder_bed_data"
+    enabled: true
+    rules:
+      # Completeness rules
+      - name: "powder_bed_id_not_null"
+        type: "not_null"
+        column: "powder_bed_id"
+        severity: "error"
+        description: "Powder bed ID must not be null"
+        
+      - name: "process_id_not_null"
+        type: "not_null"
+        column: "process_id"
+        severity: "error"
+        description: "Process ID must not be null"
+        
+      - name: "camera_id_not_null"
+        type: "not_null"
+        column: "camera_id"
+        severity: "error"
+        description: "Camera ID must not be null"
+        
+      - name: "timestamp_not_null"
+        type: "not_null"
+        column: "timestamp"
+        severity: "error"
+        description: "Timestamp must not be null"
+        
+      - name: "layer_number_not_null"
+        type: "not_null"
+        column: "layer_number"
+        severity: "error"
+        description: "Layer number must not be null"
+        
+      - name: "image_path_not_null"
+        type: "not_null"
+        column: "image_path"
+        severity: "error"
+        description: "Image path must not be null"
+        
+      - name: "image_size_not_null"
+        type: "not_null"
+        column: "image_size"
+        severity: "error"
+        description: "Image size must not be null"
+        
+      # Validity rules
+      - name: "layer_number_positive"
+        type: "greater_than_or_equal"
+        column: "layer_number"
+        value: 0
+        severity: "error"
+        description: "Layer number must be non-negative"
+        
+      - name: "image_size_positive"
+        type: "greater_than"
+        column: "image_size"
+        value: 0
+        severity: "error"
+        description: "Image size must be positive"
+        
+      - name: "surface_quality_score_range"
+        type: "range"
+        column: "surface_quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "warning"
+        description: "Surface quality score must be between 0 and 1"
+        
+      - name: "recoat_quality_score_range"
+        type: "range"
+        column: "recoat_quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "warning"
+        description: "Recoat quality score must be between 0 and 1"
+        
+      - name: "surface_roughness_positive"
+        type: "greater_than_or_equal"
+        column: "surface_roughness"
+        value: 0
+        severity: "warning"
+        description: "Surface roughness must be non-negative"
+        
+      # Consistency rules
+      - name: "image_dimensions_positive"
+        type: "custom"
+        expression: "(image_width IS NULL OR image_width > 0) AND (image_height IS NULL OR image_height > 0)"
+        severity: "warning"
+        description: "Image dimensions must be positive when specified"
+        
+  # Cross-table quality rules
+  cross_table_rules:
+    - name: "process_id_consistency"
+      type: "referential_integrity"
+      source_table: "pbf_process_data"
+      source_column: "process_id"
+      target_table: "ispm_monitoring_data"
+      target_column: "process_id"
+      severity: "error"
+      description: "Process ID must exist in PBF process data"
+      
+    - name: "process_id_consistency_ct"
+      type: "referential_integrity"
+      source_table: "pbf_process_data"
+      source_column: "process_id"
+      target_table: "ct_scan_data"
+      target_column: "process_id"
+      severity: "error"
+      description: "Process ID must exist in PBF process data"
+      
+    - name: "process_id_consistency_powder"
+      type: "referential_integrity"
+      source_table: "pbf_process_data"
+      source_column: "process_id"
+      target_table: "powder_bed_data"
+      target_column: "process_id"
+      severity: "error"
+      description: "Process ID must exist in PBF process data"
+      
+  # Data quality thresholds
+  quality_thresholds:
+    overall_quality: 0.8
+    completeness: 0.95
+    accuracy: 0.90
+    consistency: 0.85
+    timeliness: 0.80
+    
+  # Quality monitoring configuration
+  monitoring:
+    enabled: true
+    real_time_monitoring: true
+    batch_monitoring: true
+    alerting_enabled: true
+    reporting_enabled: true
+    
+  # Quality remediation configuration
+  remediation:
+    enabled: true
+    auto_fix_enabled: false
+    manual_review_required: true
+    escalation_enabled: true

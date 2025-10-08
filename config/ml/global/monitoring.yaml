@@ -1,0 +1,290 @@
+# Global Monitoring Configuration
+# Configuration for ML system monitoring
+
+monitoring:
+  name: "pbf_lbm_monitoring"
+  version: "1.0.0"
+  description: "Global monitoring configuration for PBF-LBM ML system"
+  
+  system_info:
+    environment: "production"
+    cluster: "kubernetes"
+    namespace: "ml-production"
+    region: "us-west-2"
+    timezone: "UTC"
+    
+  monitoring_stack:
+    prometheus:
+      enabled: true
+      endpoint: "http://prometheus:9090"
+      retention: "30d"
+      scrape_interval: "15s"
+      replicas: 2
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+        
+    grafana:
+      enabled: true
+      endpoint: "http://grafana:3000"
+      replicas: 2
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+      dashboards:
+        - name: "ml-models"
+          url: "http://grafana:3000/d/ml-models"
+        - name: "ml-pipelines"
+          url: "http://grafana:3000/d/ml-pipelines"
+        - name: "ml-serving"
+          url: "http://grafana:3000/d/ml-serving"
+        - name: "ml-features"
+          url: "http://grafana:3000/d/ml-features"
+        - name: "ml-monitoring"
+          url: "http://grafana:3000/d/ml-monitoring"
+          
+    elasticsearch:
+      enabled: true
+      endpoint: "http://elasticsearch:9200"
+      replicas: 3
+      resources:
+        cpu: "4000m"
+        memory: "16Gi"
+      storage:
+        size: "200Gi"
+        storage_class: "fast-ssd"
+        
+    kibana:
+      enabled: true
+      endpoint: "http://kibana:5601"
+      replicas: 2
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+        
+  metrics:
+    system_metrics:
+      - name: "cpu_usage"
+        type: "gauge"
+        labels: ["node", "pod", "container"]
+      - name: "memory_usage"
+        type: "gauge"
+        labels: ["node", "pod", "container"]
+      - name: "disk_usage"
+        type: "gauge"
+        labels: ["node", "pod", "container"]
+      - name: "network_usage"
+        type: "gauge"
+        labels: ["node", "pod", "container"]
+        
+    application_metrics:
+      - name: "request_count"
+        type: "counter"
+        labels: ["service", "endpoint", "status_code"]
+      - name: "request_duration"
+        type: "histogram"
+        labels: ["service", "endpoint"]
+      - name: "error_count"
+        type: "counter"
+        labels: ["service", "endpoint", "error_type"]
+      - name: "active_connections"
+        type: "gauge"
+        labels: ["service"]
+        
+    ml_metrics:
+      - name: "model_accuracy"
+        type: "gauge"
+        labels: ["model_name", "version"]
+      - name: "model_latency"
+        type: "histogram"
+        labels: ["model_name", "endpoint"]
+      - name: "model_throughput"
+        type: "gauge"
+        labels: ["model_name", "endpoint"]
+      - name: "model_health"
+        type: "gauge"
+        labels: ["model_name", "status"]
+      - name: "feature_quality"
+        type: "gauge"
+        labels: ["feature_name", "quality_metric"]
+      - name: "feature_drift"
+        type: "gauge"
+        labels: ["feature_name", "drift_metric"]
+      - name: "pipeline_status"
+        type: "gauge"
+        labels: ["pipeline_name", "status"]
+      - name: "training_duration"
+        type: "histogram"
+        labels: ["model_name", "algorithm"]
+        
+  alerts:
+    system_alerts:
+      - name: "high_cpu_usage"
+        condition: "cpu_usage > 0.85"
+        severity: "warning"
+        duration: "5m"
+        labels: ["system", "cpu"]
+      - name: "high_memory_usage"
+        condition: "memory_usage > 0.85"
+        severity: "warning"
+        duration: "5m"
+        labels: ["system", "memory"]
+      - name: "high_disk_usage"
+        condition: "disk_usage > 0.9"
+        severity: "critical"
+        duration: "2m"
+        labels: ["system", "disk"]
+      - name: "high_network_usage"
+        condition: "network_usage > 0.8"
+        severity: "warning"
+        duration: "5m"
+        labels: ["system", "network"]
+        
+    application_alerts:
+      - name: "high_error_rate"
+        condition: "error_rate > 0.05"
+        severity: "critical"
+        duration: "2m"
+        labels: ["application", "error"]
+      - name: "high_latency"
+        condition: "request_duration_p95 > 2000"
+        severity: "warning"
+        duration: "5m"
+        labels: ["application", "latency"]
+      - name: "low_throughput"
+        condition: "request_count < 100"
+        severity: "warning"
+        duration: "10m"
+        labels: ["application", "throughput"]
+      - name: "high_connection_count"
+        condition: "active_connections > 1000"
+        severity: "warning"
+        duration: "5m"
+        labels: ["application", "connections"]
+        
+    ml_alerts:
+      - name: "low_model_accuracy"
+        condition: "model_accuracy < 0.8"
+        severity: "critical"
+        duration: "5m"
+        labels: ["ml", "accuracy"]
+      - name: "high_model_latency"
+        condition: "model_latency_p95 > 2000"
+        severity: "warning"
+        duration: "5m"
+        labels: ["ml", "latency"]
+      - name: "low_model_throughput"
+        condition: "model_throughput < 100"
+        severity: "warning"
+        duration: "10m"
+        labels: ["ml", "throughput"]
+      - name: "model_unhealthy"
+        condition: "model_health == 'unhealthy'"
+        severity: "critical"
+        duration: "1m"
+        labels: ["ml", "health"]
+      - name: "high_feature_drift"
+        condition: "feature_drift > 0.1"
+        severity: "critical"
+        duration: "2m"
+        labels: ["ml", "drift"]
+      - name: "low_feature_quality"
+        condition: "feature_quality < 0.9"
+        severity: "warning"
+        duration: "5m"
+        labels: ["ml", "quality"]
+      - name: "pipeline_failure"
+        condition: "pipeline_status == 'failed'"
+        severity: "critical"
+        duration: "1m"
+        labels: ["ml", "pipeline"]
+      - name: "long_training_time"
+        condition: "training_duration > 2_hours"
+        severity: "info"
+        duration: "10m"
+        labels: ["ml", "training"]
+        
+  alerting:
+    channels:
+      - name: "slack"
+        enabled: true
+        webhook_url: "https://hooks.slack.com/services/..."
+        channel: "#ml-alerts"
+        severity_levels: ["warning", "critical"]
+      - name: "email"
+        enabled: true
+        smtp_server: "smtp.company.com"
+        smtp_port: 587
+        username: "alerts@company.com"
+        password_secret: "email-password"
+        recipients: ["ml-team@company.com", "data-team@company.com"]
+        severity_levels: ["critical"]
+      - name: "pagerduty"
+        enabled: true
+        integration_key: "pagerduty-integration-key"
+        severity_levels: ["critical"]
+      - name: "webhook"
+        enabled: true
+        url: "https://webhook.company.com/alerts"
+        severity_levels: ["warning", "critical"]
+        
+    escalation:
+      enabled: true
+      levels:
+        - level: 1
+          delay: "5m"
+          channels: ["slack"]
+        - level: 2
+          delay: "15m"
+          channels: ["slack", "email"]
+        - level: 3
+          delay: "30m"
+          channels: ["slack", "email", "pagerduty"]
+          
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["ml_team", "data_team", "management"]
+    include_metrics:
+      - "system_summary"
+      - "application_summary"
+      - "ml_summary"
+      - "alert_summary"
+      - "trend_analysis"
+    dashboard:
+      enabled: true
+      url: "http://grafana:3000"
+      refresh_interval: "5_minutes"
+      
+  storage:
+    metrics:
+      type: "prometheus"
+      endpoint: "http://prometheus:9090"
+      retention_days: 30
+    logs:
+      type: "elasticsearch"
+      endpoint: "http://elasticsearch:9200"
+      index: "ml-monitoring"
+      retention_days: 30
+    alerts:
+      type: "prometheus"
+      endpoint: "http://prometheus:9090"
+      retention_days: 30
+      
+  integration:
+    kubernetes:
+      enabled: true
+      namespace: "ml-production"
+      service_account: "monitoring"
+    mlflow:
+      enabled: true
+      tracking_uri: "http://mlflow:5000"
+    feast:
+      enabled: true
+      registry_path: "/data/feature_store/registry/"
+      online_store: "redis://redis-feature-store:6379"
+    airflow:
+      enabled: true
+      dag_id: "monitoring_pipeline"
+      schedule_interval: "0 * * * *"

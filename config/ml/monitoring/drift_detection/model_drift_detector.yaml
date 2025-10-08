@@ -1,0 +1,480 @@
+# Model Drift Detector Configuration
+# =================================
+
+drift_detector:
+  name: "pbf_model_drift_detector"
+  version: "1.0.0"
+  description: "Configuration for detecting model drift in PBF-LB/M ML models"
+  owner: "ml-ops@company.com"
+  
+  # Detector metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["model_drift", "drift_detection", "ml_monitoring", "pbf"]
+
+# Input Data Configuration
+input_data:
+  # Current model predictions
+  current_predictions:
+    source_type: "kafka"
+    topic: "ml_predictions"
+    bootstrap_servers: "kafka:9092"
+    schema_registry_url: "http://schema-registry:8081"
+    value_format: "avro"
+    consumer_group: "model_drift_detector"
+    starting_offsets: "latest"
+    
+  # Reference model predictions
+  reference_predictions:
+    source_type: "s3"
+    path: "s3://pbf-data-lake/reference_data/model_predictions_{{ model_name }}_{{ model_version }}"
+    format: "parquet"
+    partitioning: ["year", "month", "day"]
+    compression: "snappy"
+    
+  # Ground truth data
+  ground_truth:
+    source_type: "postgresql"
+    table: "ground_truth_labels"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    query: "SELECT * FROM ground_truth_labels WHERE created_at >= '{{ start_date }}' AND created_at < '{{ end_date }}'"
+    batch_size: 1000
+
+# Monitoring Schedule
+monitoring_schedule:
+  type: "scheduled"
+  interval_minutes: 60  # Check for drift every hour
+  timezone: "UTC"
+  enabled: true
+  
+  # Schedule variations
+  schedule_variations:
+    - name: "hourly_drift_check"
+      schedule: "0 * * * *"
+      description: "Hourly drift detection check"
+    - name: "daily_drift_analysis"
+      schedule: "0 2 * * *"
+      description: "Daily comprehensive drift analysis"
+    - name: "weekly_drift_report"
+      schedule: "0 3 * * 0"
+      description: "Weekly drift report generation"
+
+# Models to Monitor
+models_to_monitor:
+  - name: "defect_detector"
+    version: "production"
+    type: "classification"
+    framework: "tensorflow"
+    drift_methods: ["prediction_drift", "accuracy_drift", "performance_drift"]
+    thresholds:
+      prediction_drift: 0.1
+      accuracy_drift: 0.05
+      performance_drift: 0.1
+    monitoring_frequency: "hourly"
+    
+  - name: "quality_assessor"
+    version: "production"
+    type: "regression"
+    framework: "scikit-learn"
+    drift_methods: ["prediction_drift", "residual_drift", "performance_drift"]
+    thresholds:
+      prediction_drift: 0.1
+      residual_drift: 0.1
+      performance_drift: 0.1
+    monitoring_frequency: "hourly"
+    
+  - name: "process_optimizer"
+    version: "production"
+    type: "multi_objective_optimization"
+    framework: "genetic_algorithm"
+    drift_methods: ["solution_quality_drift", "convergence_drift", "diversity_drift"]
+    thresholds:
+      solution_quality_drift: 0.1
+      convergence_drift: 0.1
+      diversity_drift: 0.1
+    monitoring_frequency: "daily"
+    
+  - name: "equipment_health_monitor"
+    version: "production"
+    type: "anomaly_detection"
+    framework: "isolation_forest"
+    drift_methods: ["anomaly_score_drift", "detection_rate_drift", "false_positive_drift"]
+    thresholds:
+      anomaly_score_drift: 0.1
+      detection_rate_drift: 0.1
+      false_positive_drift: 0.1
+    monitoring_frequency: "hourly"
+
+# Drift Detection Methods
+drift_detection_methods:
+  # Prediction drift detection
+  prediction_drift:
+    enabled: true
+    methods:
+      - type: "kolmogorov_smirnov"
+        threshold: 0.05
+        description: "KS test for prediction distribution drift"
+      - type: "wasserstein_distance"
+        threshold: 0.1
+        description: "Wasserstein distance for prediction drift"
+      - type: "earth_movers_distance"
+        threshold: 0.1
+        description: "Earth Mover's Distance for prediction drift"
+      - type: "jensen_shannon_divergence"
+        threshold: 0.1
+        description: "Jensen-Shannon divergence for prediction drift"
+        
+  # Accuracy drift detection
+  accuracy_drift:
+    enabled: true
+    methods:
+      - type: "accuracy_comparison"
+        threshold: 0.05
+        description: "Accuracy comparison between current and reference"
+      - type: "f1_score_comparison"
+        threshold: 0.05
+        description: "F1 score comparison between current and reference"
+      - type: "precision_comparison"
+        threshold: 0.05
+        description: "Precision comparison between current and reference"
+      - type: "recall_comparison"
+        threshold: 0.05
+        description: "Recall comparison between current and reference"
+        
+  # Performance drift detection
+  performance_drift:
+    enabled: true
+    methods:
+      - type: "latency_drift"
+        threshold: 0.2
+        description: "Latency drift detection"
+      - type: "throughput_drift"
+        threshold: 0.2
+        description: "Throughput drift detection"
+      - type: "memory_usage_drift"
+        threshold: 0.2
+        description: "Memory usage drift detection"
+      - type: "cpu_usage_drift"
+        threshold: 0.2
+        description: "CPU usage drift detection"
+        
+  # Residual drift detection
+  residual_drift:
+    enabled: true
+    methods:
+      - type: "residual_distribution_drift"
+        threshold: 0.1
+        description: "Residual distribution drift detection"
+      - type: "residual_mean_drift"
+        threshold: 0.1
+        description: "Residual mean drift detection"
+      - type: "residual_variance_drift"
+        threshold: 0.1
+        description: "Residual variance drift detection"
+        
+  # Solution quality drift detection
+  solution_quality_drift:
+    enabled: true
+    methods:
+      - type: "hypervolume_drift"
+        threshold: 0.1
+        description: "Hypervolume drift detection"
+      - type: "pareto_front_drift"
+        threshold: 0.1
+        description: "Pareto front drift detection"
+      - type: "convergence_rate_drift"
+        threshold: 0.1
+        description: "Convergence rate drift detection"
+        
+  # Anomaly score drift detection
+  anomaly_score_drift:
+    enabled: true
+    methods:
+      - type: "anomaly_score_distribution_drift"
+        threshold: 0.1
+        description: "Anomaly score distribution drift detection"
+      - type: "anomaly_threshold_drift"
+        threshold: 0.1
+        description: "Anomaly threshold drift detection"
+      - type: "detection_rate_drift"
+        threshold: 0.1
+        description: "Detection rate drift detection"
+
+# Drift Detection Engine
+drift_detection_engine:
+  type: "spark"  # or "evidently", "custom_python"
+  
+  # Spark configuration
+  spark:
+    app_name: "model_drift_detector"
+    master: "spark://spark-master:7077"
+    driver_memory: "4g"
+    executor_memory: "8g"
+    executor_cores: 4
+    num_executors: 4
+    max_result_size: "2g"
+    
+  # Processing configuration
+  processing:
+    batch_size: 10000
+    parallelism: 8
+    timeout: "1h"
+    checkpoint_interval: "10m"
+    
+  # Memory configuration
+  memory:
+    driver_memory: "4g"
+    executor_memory: "8g"
+    managed_memory_fraction: 0.4
+    network_memory_fraction: 0.2
+
+# Alerting Configuration
+alerting:
+  enabled: true
+  channels: ["slack", "email", "pagerduty"]
+  recipients: ["ml-ops@company.com", "on-call@company.com"]
+  
+  # Alert severity mapping
+  severity_mapping:
+    low: "INFO"
+    medium: "WARNING"
+    high: "CRITICAL"
+    critical: "CRITICAL"
+    
+  # Alert templates
+  alert_templates:
+    prediction_drift: "Model drift detected in '{model_name}' (version {model_version}). Prediction drift score: {drift_score}. Threshold: {threshold}. Details: {details_url}"
+    accuracy_drift: "Accuracy drift detected in '{model_name}' (version {model_version}). Accuracy drop: {accuracy_drop}. Threshold: {threshold}. Details: {details_url}"
+    performance_drift: "Performance drift detected in '{model_name}' (version {model_version}). Performance metric: {metric_name}, Current: {current_value}, Reference: {reference_value}. Details: {details_url}"
+    
+  # Alert thresholds
+  alert_thresholds:
+    prediction_drift:
+      low: 0.05
+      medium: 0.1
+      high: 0.2
+      critical: 0.3
+    accuracy_drift:
+      low: 0.02
+      medium: 0.05
+      high: 0.1
+      critical: 0.15
+    performance_drift:
+      low: 0.1
+      medium: 0.2
+      high: 0.3
+      critical: 0.5
+
+# Reporting Configuration
+reporting:
+  enabled: true
+  report_format: "html"
+  report_destination: "s3://pbf-data-lake/drift_reports/model/{{ ds }}"
+  
+  # Report types
+  report_types:
+    - "executive_summary"
+    - "technical_report"
+    - "visualization_dashboard"
+    - "model_comparison"
+    
+  # Report formats
+  formats:
+    - "html"
+    - "pdf"
+    - "json"
+    - "csv"
+    
+  # Visualizations
+  visualizations:
+    - type: "drift_score_timeline"
+    - type: "prediction_distribution_comparison"
+    - type: "accuracy_trend_analysis"
+    - type: "performance_metric_comparison"
+    - type: "residual_analysis"
+    - type: "anomaly_score_distribution"
+    
+  # Dashboard integration
+  dashboard_integration:
+    enabled: true
+    tool: "grafana"
+    tags: ["model_drift", "pbf_ml"]
+    refresh_interval: "5m"
+
+# Action on Drift
+action_on_drift:
+  # Automatic actions
+  automatic_actions:
+    - type: "retrain_model"
+      enabled: true
+      trigger_threshold_severity: "high"
+      pipeline_to_trigger: "model_retraining_pipeline"
+      delay_minutes: 30
+      
+    - type: "rollback_model"
+      enabled: true
+      trigger_threshold_severity: "critical"
+      target_model_version: "previous_stable"
+      delay_minutes: 15
+      
+    - type: "notify_stakeholders"
+      enabled: true
+      trigger_threshold_severity: "medium"
+      stakeholders: ["ml-team@company.com", "engineering-team@company.com"]
+      delay_minutes: 5
+      
+  # Manual actions
+  manual_actions:
+    - type: "investigate_drift"
+      description: "Investigate the root cause of model drift"
+      assignee: "ml-ops@company.com"
+      priority: "high"
+      
+    - type: "update_reference_data"
+      description: "Update reference data for drift detection"
+      assignee: "data-team@company.com"
+      priority: "medium"
+      
+    - type: "adjust_drift_thresholds"
+      description: "Adjust drift detection thresholds if needed"
+      assignee: "ml-ops@company.com"
+      priority: "low"
+
+# Model Metadata
+metadata:
+  model_name: "{{ model_name }}"
+  model_version: "{{ model_version }}"
+  model_type: "{{ model_type }}"
+  framework: "{{ framework }}"
+  training_date: "{{ training_date }}"
+  last_updated: "{{ last_updated }}"
+  
+  # Model performance baseline
+  baseline_performance:
+    accuracy: 0.95
+    precision: 0.92
+    recall: 0.90
+    f1_score: 0.91
+    latency_ms: 100
+    throughput_qps: 1000
+    
+  # Model configuration
+  model_config:
+    input_features: 20
+    output_classes: 3
+    model_size_mb: 50
+    memory_usage_mb: 256
+    cpu_usage_percent: 10
+
+# Monitoring Configuration
+monitoring:
+  # Drift detection monitoring
+  drift_monitoring:
+    enabled: true
+    metrics:
+      - "drift_score"
+      - "drift_detection_time"
+      - "drift_false_positive_rate"
+      - "drift_false_negative_rate"
+      - "drift_detection_accuracy"
+      
+  # Performance monitoring
+  performance_monitoring:
+    enabled: true
+    metrics:
+      - "detection_latency"
+      - "processing_throughput"
+      - "memory_usage"
+      - "cpu_usage"
+      - "error_rate"
+      
+  # Alert monitoring
+  alert_monitoring:
+    enabled: true
+    metrics:
+      - "alert_count"
+      - "alert_response_time"
+      - "alert_resolution_time"
+      - "alert_accuracy"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/model_drift_detector.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+      
+  # Drift-specific logging
+  drift_logging:
+    enabled: true
+    log_drift_scores: true
+    log_drift_details: true
+    log_alert_events: true
+    log_action_taken: true
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    secret_key: "${JWT_SECRET_KEY}"
+    expiration_hours: 24
+    
+  # Authorization
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles: ["ml_ops", "ml_admin"]
+    
+  # Data encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+
+# Pipeline Dependencies
+dependencies:
+  # Data dependencies
+  data_dependencies:
+    - source: "kafka"
+      topic: "ml_predictions"
+      min_partitions: 3
+    - source: "s3"
+      bucket: "pbf-data-lake"
+      path: "reference_data"
+    - source: "postgresql"
+      table: "ground_truth_labels"
+      min_rows: 1000
+      
+  # Model dependencies
+  model_dependencies:
+    - type: "model_registry"
+      name: "defect_detector"
+      stage: "production"
+    - type: "model_registry"
+      name: "quality_assessor"
+      stage: "production"
+    - type: "model_registry"
+      name: "process_optimizer"
+      stage: "production"
+    - type: "model_registry"
+      name: "equipment_health_monitor"
+      stage: "production"
+      
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "spark"
+      endpoint: "spark://spark-master:7077"
+    - service: "kafka"
+      endpoint: "kafka:9092"
+    - service: "s3"
+      endpoint: "s3://pbf-data-lake"
+    - service: "postgresql"
+      endpoint: "postgres:5432"

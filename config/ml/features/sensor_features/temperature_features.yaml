@@ -1,0 +1,451 @@
+# Temperature Features Configuration
+# Feature engineering for temperature sensor data in PBF-LBM processes
+
+features:
+  name: "temperature_features"
+  version: "1.0.0"
+  description: "Feature engineering for temperature sensor data in PBF-LBM manufacturing"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "sensor_id"
+      - "temperature_value"
+    optional_fields:
+      - "sensor_type"
+      - "sensor_position_x"
+      - "sensor_position_y"
+      - "sensor_position_z"
+      - "sensor_orientation"
+      - "measurement_range_min"
+      - "measurement_range_max"
+      - "accuracy"
+      - "resolution"
+      - "response_time"
+      - "drift_rate"
+      - "calibration_date"
+      - "calibration_interval"
+      - "ambient_temperature"
+      - "humidity"
+      - "pressure"
+      - "air_flow_rate"
+      - "heat_source_distance"
+      - "heat_source_power"
+      - "cooling_rate"
+      - "thermal_mass"
+      - "emissivity"
+      - "reflectivity"
+      - "convection_coefficient"
+      - "radiation_coefficient"
+      - "sensor_quality"
+      - "data_quality_score"
+      - "noise_level"
+      - "signal_strength"
+      - "battery_level"
+      - "maintenance_status"
+      
+  feature_groups:
+    - name: "basic_statistics"
+      description: "Basic statistical features from temperature data"
+      features:
+        - name: "mean_temperature"
+          description: "Mean temperature value"
+          formula: "mean(temperature_value)"
+          type: "numerical"
+          range: [-50.0, 2000.0]
+          
+        - name: "std_temperature"
+          description: "Standard deviation of temperature"
+          formula: "std(temperature_value)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "min_temperature"
+          description: "Minimum temperature value"
+          formula: "min(temperature_value)"
+          type: "numerical"
+          range: [-50.0, 2000.0]
+          
+        - name: "max_temperature"
+          description: "Maximum temperature value"
+          formula: "max(temperature_value)"
+          type: "numerical"
+          range: [-50.0, 2000.0]
+          
+        - name: "temperature_range"
+          description: "Range of temperature values"
+          formula: "max_temperature - min_temperature"
+          type: "numerical"
+          range: [0.0, 2050.0]
+          
+        - name: "temperature_variance"
+          description: "Variance of temperature values"
+          formula: "var(temperature_value)"
+          type: "numerical"
+          range: [0.0, 10000.0]
+          
+        - name: "temperature_skewness"
+          description: "Skewness of temperature distribution"
+          formula: "skewness(temperature_value)"
+          type: "numerical"
+          range: [-3.0, 3.0]
+          
+        - name: "temperature_kurtosis"
+          description: "Kurtosis of temperature distribution"
+          formula: "kurtosis(temperature_value)"
+          type: "numerical"
+          range: [0.0, 20.0]
+          
+    - name: "temporal_features"
+      description: "Temporal features from temperature data"
+      features:
+        - name: "temperature_trend"
+          description: "Temperature trend over time"
+          formula: "calculate_trend(temperature_value)"
+          type: "numerical"
+          range: [-10.0, 10.0]
+          
+        - name: "temperature_velocity"
+          description: "Temperature change rate"
+          formula: "calculate_velocity(temperature_value)"
+          type: "numerical"
+          range: [-100.0, 100.0]
+          
+        - name: "temperature_acceleration"
+          description: "Temperature acceleration"
+          formula: "calculate_acceleration(temperature_value)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+          
+        - name: "temperature_volatility"
+          description: "Temperature volatility"
+          formula: "std(temperature_velocity)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "temperature_stability"
+          description: "Temperature stability index"
+          formula: "1 / (std_temperature + 1)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "temperature_consistency"
+          description: "Temperature consistency index"
+          formula: "1 / (temperature_volatility + 1)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "temperature_oscillation"
+          description: "Temperature oscillation frequency"
+          formula: "calculate_oscillation_frequency(temperature_value)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+    - name: "thermal_features"
+      description: "Thermal-specific features"
+      features:
+        - name: "thermal_gradient"
+          description: "Thermal gradient"
+          formula: "calculate_thermal_gradient(temperature_value, sensor_position)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "heat_flux"
+          description: "Heat flux estimate"
+          formula: "thermal_gradient * thermal_conductivity"
+          type: "numerical"
+          range: [0.0, 100000.0]
+          
+        - name: "thermal_energy"
+          description: "Thermal energy content"
+          formula: "mean_temperature * thermal_mass * specific_heat"
+          type: "numerical"
+          range: [0.0, 1000000.0]
+          
+        - name: "cooling_rate"
+          description: "Cooling rate"
+          formula: "calculate_cooling_rate(temperature_value)"
+          type: "numerical"
+          range: [-100.0, 0.0]
+          
+        - name: "heating_rate"
+          description: "Heating rate"
+          formula: "calculate_heating_rate(temperature_value)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "thermal_equilibrium"
+          description: "Thermal equilibrium index"
+          formula: "1 / (abs(temperature_trend) + 1)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "thermal_overshoot"
+          description: "Thermal overshoot"
+          formula: "max_temperature - target_temperature"
+          type: "numerical"
+          range: [0.0, 500.0]
+          
+        - name: "thermal_undershoot"
+          description: "Thermal undershoot"
+          formula: "target_temperature - min_temperature"
+          type: "numerical"
+          range: [0.0, 500.0]
+          
+    - name: "frequency_features"
+      description: "Frequency domain features"
+      features:
+        - name: "dominant_frequency"
+          description: "Dominant frequency component"
+          formula: "calculate_dominant_frequency(temperature_value)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "spectral_centroid"
+          description: "Spectral centroid"
+          formula: "calculate_spectral_centroid(temperature_value)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "spectral_bandwidth"
+          description: "Spectral bandwidth"
+          formula: "calculate_spectral_bandwidth(temperature_value)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "spectral_rolloff"
+          description: "Spectral rolloff"
+          formula: "calculate_spectral_rolloff(temperature_value)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "spectral_flatness"
+          description: "Spectral flatness"
+          formula: "calculate_spectral_flatness(temperature_value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spectral_contrast"
+          description: "Spectral contrast"
+          formula: "calculate_spectral_contrast(temperature_value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "control_features"
+      description: "Control system features"
+      features:
+        - name: "setpoint_deviation"
+          description: "Deviation from setpoint"
+          formula: "abs(mean_temperature - setpoint_temperature)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "control_error"
+          description: "Control error"
+          formula: "setpoint_temperature - mean_temperature"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+          
+        - name: "control_stability"
+          description: "Control stability index"
+          formula: "1 / (setpoint_deviation + 1)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "control_accuracy"
+          description: "Control accuracy"
+          formula: "1 - (setpoint_deviation / setpoint_temperature)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "control_precision"
+          description: "Control precision"
+          formula: "1 / (std_temperature + 1)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "control_performance"
+          description: "Overall control performance"
+          formula: "(control_accuracy + control_precision) / 2"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "anomaly_features"
+      description: "Features for anomaly detection"
+      features:
+        - name: "anomaly_score"
+          description: "Anomaly detection score"
+          formula: "calculate_anomaly_score(temperature_value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "outlier_count"
+          description: "Number of temperature outliers"
+          formula: "count_outliers(temperature_value)"
+          type: "numerical"
+          range: [0, 1000]
+          
+        - name: "outlier_ratio"
+          description: "Ratio of outliers to total samples"
+          formula: "outlier_count / length(temperature_value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "change_point_score"
+          description: "Change point detection score"
+          formula: "calculate_change_point_score(temperature_value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "drift_score"
+          description: "Temperature drift score"
+          formula: "calculate_drift_score(temperature_value)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spike_count"
+          description: "Number of temperature spikes"
+          formula: "count_spikes(temperature_value)"
+          type: "numerical"
+          range: [0, 100]
+          
+        - name: "spike_intensity"
+          description: "Average spike intensity"
+          formula: "mean_spike_intensity(temperature_value)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+    - name: "sensor_quality_features"
+      description: "Features related to sensor quality"
+      features:
+        - name: "signal_to_noise_ratio"
+          description: "Signal to noise ratio"
+          formula: "20 * log10(mean_temperature / noise_level)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "measurement_accuracy"
+          description: "Measurement accuracy"
+          formula: "1 - (accuracy / mean_temperature)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "measurement_precision"
+          description: "Measurement precision"
+          formula: "1 - (std_temperature / mean_temperature)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "sensor_health_score"
+          description: "Sensor health score"
+          formula: "sensor_quality * (1 - drift_rate) * (battery_level / 100) * (signal_strength / 100)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "data_quality_index"
+          description: "Overall data quality index"
+          formula: "data_quality_score * measurement_accuracy * measurement_precision"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "measurement_reliability"
+          description: "Measurement reliability index"
+          formula: "data_quality_index * sensor_health_score"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "calibration_status"
+          description: "Calibration status"
+          formula: "days_since_calibration / calibration_interval"
+          type: "numerical"
+          range: [0.0, 2.0]
+          
+    - name: "environmental_features"
+      description: "Environmental features affecting temperature"
+      features:
+        - name: "ambient_influence"
+          description: "Ambient temperature influence"
+          formula: "correlation(temperature_value, ambient_temperature)"
+          type: "numerical"
+          range: [-1.0, 1.0]
+          
+        - name: "humidity_influence"
+          description: "Humidity influence on temperature"
+          formula: "correlation(temperature_value, humidity)"
+          type: "numerical"
+          range: [-1.0, 1.0]
+          
+        - name: "pressure_influence"
+          description: "Pressure influence on temperature"
+          formula: "correlation(temperature_value, pressure)"
+          type: "numerical"
+          range: [-1.0, 1.0]
+          
+        - name: "air_flow_influence"
+          description: "Air flow influence on temperature"
+          formula: "correlation(temperature_value, air_flow_rate)"
+          type: "numerical"
+          range: [-1.0, 1.0]
+          
+        - name: "heat_source_influence"
+          description: "Heat source influence"
+          formula: "heat_source_power / (heat_source_distance^2)"
+          type: "numerical"
+          range: [0.0, 10000.0]
+          
+        - name: "cooling_influence"
+          description: "Cooling influence"
+          formula: "cooling_rate * air_flow_rate"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["mean_temperature", "std_temperature", "min_temperature", "max_temperature",
+                "temperature_range", "temperature_variance", "temperature_skewness", "temperature_kurtosis",
+                "temperature_trend", "temperature_velocity", "temperature_acceleration", "temperature_volatility",
+                "temperature_stability", "temperature_consistency", "temperature_oscillation", "thermal_gradient",
+                "heat_flux", "thermal_energy", "cooling_rate", "heating_rate", "thermal_equilibrium",
+                "thermal_overshoot", "thermal_undershoot", "dominant_frequency", "spectral_centroid",
+                "spectral_bandwidth", "spectral_rolloff", "spectral_flatness", "spectral_contrast",
+                "setpoint_deviation", "control_error", "control_stability", "control_accuracy",
+                "control_precision", "control_performance", "anomaly_score", "outlier_count",
+                "outlier_ratio", "change_point_score", "drift_score", "spike_count", "spike_intensity",
+                "signal_to_noise_ratio", "measurement_accuracy", "measurement_precision", "sensor_health_score",
+                "data_quality_index", "measurement_reliability", "calibration_status", "ambient_influence",
+                "humidity_influence", "pressure_influence", "air_flow_influence", "heat_source_influence",
+                "cooling_influence"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 45
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "temperature_range_check"
+        condition: "min_temperature >= -50 AND max_temperature <= 2000"
+        action: "flag_invalid"
+      - name: "temperature_consistency_check"
+        condition: "temperature_range >= 0"
+        action: "flag_invalid"
+      - name: "control_error_check"
+        condition: "abs(control_error) <= 1000"
+        action: "flag_invalid"
+      - name: "quality_index_check"
+        condition: "data_quality_index >= 0 AND data_quality_index <= 1"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["mean_temperature", "std_temperature", "temperature_trend", "data_quality_index"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 20

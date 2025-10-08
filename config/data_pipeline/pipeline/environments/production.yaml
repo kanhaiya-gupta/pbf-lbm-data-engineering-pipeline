@@ -1,0 +1,123 @@
+# PBF-LB/M Data Pipeline - Production Environment Configuration
+# This file contains production-specific settings
+
+environment:
+  name: "production"
+  description: "Production environment for PBF-LB/M data pipeline"
+  
+  # Environment-specific settings
+  settings:
+    debug_mode: false
+    log_level: "WARN"
+    data_retention_days: 365
+    max_concurrent_jobs: 20
+    
+  # Production-specific configurations
+  production:
+    high_availability: true
+    disaster_recovery: true
+    performance_optimized: true
+    
+  # Resource allocation (high for production)
+  resources:
+    memory:
+      driver_memory: "8g"
+      executor_memory: "16g"
+      executor_cores: 4
+      
+    parallelism:
+      default_parallelism: 500
+      max_parallelism: 2000
+      
+  # Production databases
+  databases:
+    postgres:
+      host: "prod-postgres-cluster.example.com"
+      port: 5432
+      database: "pbf_lbm_prod"
+      username: "prod_user"
+      password: "${POSTGRES_PROD_PASSWORD}"
+      ssl_mode: "require"
+      
+    snowflake:
+      account: "prod_account"
+      warehouse: "PROD_WH"
+      database: "PBF_LBM_PROD"
+      schema: "PUBLIC"
+      
+    s3:
+      bucket: "pbf-lbm-prod-data"
+      region: "us-east-1"
+      endpoint: null
+      encryption: "AES256"
+      
+  # Production services
+  services:
+    kafka:
+      bootstrap_servers: "prod-kafka-cluster.example.com:9092"
+      auto_create_topics: false
+      security_protocol: "SASL_SSL"
+      
+    airflow:
+      webserver_url: "https://prod-airflow.example.com"
+      dag_folder: "/opt/airflow/dags"
+      
+    spark:
+      master: "yarn"
+      app_name: "PBF_LB_M_PROD"
+      
+  # Production monitoring
+  monitoring:
+    metrics:
+      enabled: true
+      collection_interval: 30
+      
+    logging:
+      enabled: true
+      level: "WARN"
+      console_output: false
+      centralized_logging: true
+      
+    alerting:
+      enabled: true
+      channels: ["email", "slack", "pagerduty"]
+      escalation_policy: "critical"
+      
+  # Production security (strict)
+  security:
+    encryption:
+      enabled: true
+      algorithm: "AES-256"
+      key_rotation: true
+      
+    authentication:
+      enabled: true
+      method: "oauth2"
+      mfa_required: true
+      
+    authorization:
+      enabled: true
+      rbac_enabled: true
+      audit_logging: true
+      
+  # Production backup (comprehensive)
+  backup:
+    enabled: true
+    frequency: "hourly"
+    retention_days: 90
+    compression: true
+    cross_region_replication: true
+    
+  # Production high availability
+  high_availability:
+    enabled: true
+    multi_zone: true
+    auto_failover: true
+    health_checks: true
+    
+  # Production disaster recovery
+  disaster_recovery:
+    enabled: true
+    rto_minutes: 60  # Recovery Time Objective
+    rpo_minutes: 15  # Recovery Point Objective
+    backup_region: "us-west-2"

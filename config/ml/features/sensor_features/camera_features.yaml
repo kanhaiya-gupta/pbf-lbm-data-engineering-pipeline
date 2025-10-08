@@ -1,0 +1,436 @@
+# Camera Features Configuration
+# Feature engineering for camera sensor data in PBF-LBM processes
+
+features:
+  name: "camera_features"
+  version: "1.0.0"
+  description: "Feature engineering for camera sensor data in PBF-LBM manufacturing"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "camera_id"
+      - "image_data"
+    optional_fields:
+      - "image_width"
+      - "image_height"
+      - "image_channels"
+      - "image_format"
+      - "camera_position_x"
+      - "camera_position_y"
+      - "camera_position_z"
+      - "camera_angle_x"
+      - "camera_angle_y"
+      - "camera_angle_z"
+      - "focal_length"
+      - "aperture"
+      - "exposure_time"
+      - "iso_sensitivity"
+      - "white_balance"
+      - "brightness"
+      - "contrast"
+      - "saturation"
+      - "sharpness"
+      - "noise_level"
+      - "image_quality_score"
+      - "lighting_conditions"
+      - "ambient_temperature"
+      - "humidity"
+      - "vibration_level"
+      
+  feature_groups:
+    - name: "image_statistics"
+      description: "Statistical features from image data"
+      features:
+        - name: "mean_intensity"
+          description: "Mean pixel intensity"
+          formula: "mean(image_data)"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "std_intensity"
+          description: "Standard deviation of pixel intensity"
+          formula: "std(image_data)"
+          type: "numerical"
+          range: [0.0, 128.0]
+          
+        - name: "min_intensity"
+          description: "Minimum pixel intensity"
+          formula: "min(image_data)"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "max_intensity"
+          description: "Maximum pixel intensity"
+          formula: "max(image_data)"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "intensity_range"
+          description: "Range of pixel intensities"
+          formula: "max_intensity - min_intensity"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "intensity_variance"
+          description: "Variance of pixel intensities"
+          formula: "var(image_data)"
+          type: "numerical"
+          range: [0.0, 16384.0]
+          
+        - name: "intensity_skewness"
+          description: "Skewness of pixel intensity distribution"
+          formula: "skewness(image_data)"
+          type: "numerical"
+          range: [-3.0, 3.0]
+          
+        - name: "intensity_kurtosis"
+          description: "Kurtosis of pixel intensity distribution"
+          formula: "kurtosis(image_data)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          
+    - name: "texture_features"
+      description: "Texture features from image data"
+      features:
+        - name: "contrast"
+          description: "Image contrast"
+          formula: "std_intensity / mean_intensity"
+          type: "numerical"
+          range: [0.0, 2.0]
+          
+        - name: "homogeneity"
+          description: "Image homogeneity"
+          formula: "calculate_homogeneity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "energy"
+          description: "Image energy"
+          formula: "calculate_energy(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "entropy"
+          description: "Image entropy"
+          formula: "calculate_entropy(image_data)"
+          type: "numerical"
+          range: [0.0, 8.0]
+          
+        - name: "correlation"
+          description: "Image correlation"
+          formula: "calculate_correlation(image_data)"
+          type: "numerical"
+          range: [-1.0, 1.0]
+          
+        - name: "dissimilarity"
+          description: "Image dissimilarity"
+          formula: "calculate_dissimilarity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "angular_second_moment"
+          description: "Angular second moment"
+          formula: "calculate_asm(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "edge_features"
+      description: "Edge detection features"
+      features:
+        - name: "edge_density"
+          description: "Density of edges in image"
+          formula: "count_edges(image_data) / (image_width * image_height)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "edge_strength"
+          description: "Average edge strength"
+          formula: "mean_edge_strength(image_data)"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "edge_orientation"
+          description: "Dominant edge orientation"
+          formula: "dominant_edge_orientation(image_data)"
+          type: "numerical"
+          range: [0.0, 180.0]
+          
+        - name: "edge_length"
+          description: "Average edge length"
+          formula: "mean_edge_length(image_data)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "edge_curvature"
+          description: "Average edge curvature"
+          formula: "mean_edge_curvature(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "color_features"
+      description: "Color-based features"
+      features:
+        - name: "color_mean_r"
+          description: "Mean red channel intensity"
+          formula: "mean(image_data[:,:,0])"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "color_mean_g"
+          description: "Mean green channel intensity"
+          formula: "mean(image_data[:,:,1])"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "color_mean_b"
+          description: "Mean blue channel intensity"
+          formula: "mean(image_data[:,:,2])"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "color_std_r"
+          description: "Standard deviation of red channel"
+          formula: "std(image_data[:,:,0])"
+          type: "numerical"
+          range: [0.0, 128.0]
+          
+        - name: "color_std_g"
+          description: "Standard deviation of green channel"
+          formula: "std(image_data[:,:,1])"
+          type: "numerical"
+          range: [0.0, 128.0]
+          
+        - name: "color_std_b"
+          description: "Standard deviation of blue channel"
+          formula: "std(image_data[:,:,2])"
+          type: "numerical"
+          range: [0.0, 128.0]
+          
+        - name: "color_dominance"
+          description: "Dominant color channel"
+          formula: "argmax([color_mean_r, color_mean_g, color_mean_b])"
+          type: "categorical"
+          categories: ["red", "green", "blue"]
+          
+        - name: "color_balance"
+          description: "Color balance index"
+          formula: "1 - std([color_mean_r, color_mean_g, color_mean_b]) / mean([color_mean_r, color_mean_g, color_mean_b])"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "frequency_features"
+      description: "Frequency domain features"
+      features:
+        - name: "spectral_centroid"
+          description: "Spectral centroid"
+          formula: "calculate_spectral_centroid(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spectral_rolloff"
+          description: "Spectral rolloff"
+          formula: "calculate_spectral_rolloff(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spectral_bandwidth"
+          description: "Spectral bandwidth"
+          formula: "calculate_spectral_bandwidth(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spectral_contrast"
+          description: "Spectral contrast"
+          formula: "calculate_spectral_contrast(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spectral_flatness"
+          description: "Spectral flatness"
+          formula: "calculate_spectral_flatness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "geometric_features"
+      description: "Geometric features from image"
+      features:
+        - name: "aspect_ratio"
+          description: "Image aspect ratio"
+          formula: "image_width / image_height"
+          type: "numerical"
+          range: [0.1, 10.0]
+          
+        - name: "image_area"
+          description: "Total image area"
+          formula: "image_width * image_height"
+          type: "numerical"
+          range: [1000, 10000000]
+          
+        - name: "centroid_x"
+          description: "X-coordinate of image centroid"
+          formula: "calculate_centroid_x(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "centroid_y"
+          description: "Y-coordinate of image centroid"
+          formula: "calculate_centroid_y(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "compactness"
+          description: "Image compactness"
+          formula: "calculate_compactness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "circularity"
+          description: "Image circularity"
+          formula: "calculate_circularity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "camera_parameters"
+      description: "Features derived from camera parameters"
+      features:
+        - name: "exposure_category"
+          description: "Exposure time category"
+          formula: "categorize_exposure(exposure_time)"
+          type: "categorical"
+          categories: ["very_short", "short", "normal", "long", "very_long"]
+          
+        - name: "aperture_category"
+          description: "Aperture category"
+          formula: "categorize_aperture(aperture)"
+          type: "categorical"
+          categories: ["wide_open", "open", "normal", "closed", "very_closed"]
+          
+        - name: "iso_category"
+          description: "ISO sensitivity category"
+          formula: "categorize_iso(iso_sensitivity)"
+          type: "categorical"
+          categories: ["low", "medium", "high", "very_high", "extreme"]
+          
+        - name: "camera_quality_index"
+          description: "Overall camera quality index"
+          formula: "image_quality_score * (1 - noise_level / 100) * (1 - vibration_level / 100)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "camera_stability"
+          description: "Camera stability index"
+          formula: "1 / (vibration_level + noise_level + 1)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "environmental_features"
+      description: "Environmental features affecting camera"
+      features:
+        - name: "lighting_quality"
+          description: "Lighting quality index"
+          formula: "brightness * contrast * (1 - noise_level / 100)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "environmental_stability"
+          description: "Environmental stability index"
+          formula: "1 / (vibration_level + abs(ambient_temperature - 25) / 10 + humidity / 100)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "lighting_category"
+          description: "Lighting conditions category"
+          formula: "categorize_lighting(lighting_conditions, brightness)"
+          type: "categorical"
+          categories: ["excellent", "good", "fair", "poor", "critical"]
+          
+        - name: "environmental_category"
+          description: "Environmental conditions category"
+          formula: "categorize_environment(ambient_temperature, humidity, vibration_level)"
+          type: "categorical"
+          categories: ["optimal", "good", "fair", "poor", "harsh"]
+          
+    - name: "defect_detection_features"
+      description: "Features for defect detection"
+      features:
+        - name: "defect_probability"
+          description: "Probability of defects in image"
+          formula: "calculate_defect_probability(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "surface_roughness"
+          description: "Surface roughness indicator"
+          formula: "calculate_surface_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "porosity_indicator"
+          description: "Porosity indicator"
+          formula: "calculate_porosity_indicator(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "crack_indicator"
+          description: "Crack indicator"
+          formula: "calculate_crack_indicator(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "inclusion_indicator"
+          description: "Inclusion indicator"
+          formula: "calculate_inclusion_indicator(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["mean_intensity", "std_intensity", "min_intensity", "max_intensity", "intensity_range",
+                "intensity_variance", "intensity_skewness", "intensity_kurtosis", "contrast", "homogeneity",
+                "energy", "entropy", "correlation", "dissimilarity", "angular_second_moment", "edge_density",
+                "edge_strength", "edge_orientation", "edge_length", "edge_curvature", "color_mean_r",
+                "color_mean_g", "color_mean_b", "color_std_r", "color_std_g", "color_std_b", "color_balance",
+                "spectral_centroid", "spectral_rolloff", "spectral_bandwidth", "spectral_contrast",
+                "spectral_flatness", "aspect_ratio", "image_area", "centroid_x", "centroid_y", "compactness",
+                "circularity", "camera_quality_index", "camera_stability", "lighting_quality",
+                "environmental_stability", "defect_probability", "surface_roughness", "porosity_indicator",
+                "crack_indicator", "inclusion_indicator"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["color_dominance", "exposure_category", "aperture_category", "iso_category",
+                "lighting_category", "environmental_category"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 50
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "image_dimensions_check"
+        condition: "image_width > 0 AND image_height > 0"
+        action: "flag_invalid"
+      - name: "intensity_range_check"
+        condition: "min_intensity >= 0 AND max_intensity <= 255"
+        action: "flag_invalid"
+      - name: "camera_quality_check"
+        condition: "camera_quality_index >= 0 AND camera_quality_index <= 1"
+        action: "flag_invalid"
+      - name: "defect_probability_check"
+        condition: "defect_probability >= 0 AND defect_probability <= 1"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["mean_intensity", "contrast", "edge_density", "camera_quality_index"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 30

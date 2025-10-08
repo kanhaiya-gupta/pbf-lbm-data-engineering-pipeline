@@ -1,0 +1,253 @@
+# Data Drift Detection Configuration
+# Configuration for detecting data drift in ML features
+
+drift_detection:
+  name: "data_drift_detection"
+  version: "1.0.0"
+  description: "Data drift detection configuration for PBF-LBM ML features"
+  
+  detection_methods:
+    - name: "statistical_tests"
+      enabled: true
+      methods:
+        - name: "ks_test"
+          description: "Kolmogorov-Smirnov test for distribution comparison"
+          threshold: 0.05
+          features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "energy_density"]
+        - name: "chi_square_test"
+          description: "Chi-square test for categorical features"
+          threshold: 0.05
+          features: ["material_type", "build_orientation", "support_type"]
+        - name: "mann_whitney_u"
+          description: "Mann-Whitney U test for non-parametric comparison"
+          threshold: 0.05
+          features: ["build_temperature", "chamber_temperature", "laser_temperature"]
+        - name: "wasserstein_distance"
+          description: "Wasserstein distance for distribution comparison"
+          threshold: 0.1
+          features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness"]
+          
+    - name: "distance_metrics"
+      enabled: true
+      methods:
+        - name: "jensen_shannon_divergence"
+          description: "Jensen-Shannon divergence for distribution comparison"
+          threshold: 0.1
+          features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "energy_density"]
+        - name: "kl_divergence"
+          description: "Kullback-Leibler divergence for distribution comparison"
+          threshold: 0.1
+          features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness"]
+        - name: "earth_movers_distance"
+          description: "Earth Mover's Distance for distribution comparison"
+          threshold: 0.1
+          features: ["build_temperature", "chamber_temperature", "laser_temperature"]
+        - name: "hellinger_distance"
+          description: "Hellinger distance for distribution comparison"
+          threshold: 0.1
+          features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness"]
+          
+    - name: "psi"
+      enabled: true
+      description: "Population Stability Index for feature drift detection"
+      threshold: 0.1
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "energy_density", 
+                "build_temperature", "chamber_temperature", "laser_temperature", "material_type", 
+                "build_orientation", "support_type"]
+      bins: 10
+      
+    - name: "feature_importance_drift"
+      enabled: true
+      description: "Feature importance drift detection"
+      threshold: 0.2
+      method: "permutation_importance"
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "energy_density"]
+      
+  reference_data:
+    source: "training_data"
+    window_size: "30_days"
+    min_samples: 1000
+    update_frequency: "daily"
+    storage:
+      type: "s3"
+      bucket: "ml-reference-data"
+      path: "drift_detection/reference/"
+      
+  comparison_data:
+    source: "production_data"
+    window_size: "1_day"
+    min_samples: 100
+    sampling_strategy: "random"
+    sampling_ratio: 0.1
+    
+  drift_thresholds:
+    warning: 0.1
+    critical: 0.2
+    severity_levels:
+      - level: "low"
+        threshold: 0.05
+        action: "log"
+      - level: "medium"
+        threshold: 0.1
+        action: "alert"
+      - level: "high"
+        threshold: 0.2
+        action: "alert_and_retrain"
+      - level: "critical"
+        threshold: 0.3
+        action: "alert_and_rollback"
+        
+  feature_groups:
+    - name: "process_parameters"
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "energy_density"]
+      importance_weight: 1.0
+    - name: "environmental_conditions"
+      features: ["build_temperature", "chamber_temperature", "laser_temperature", "humidity"]
+      importance_weight: 0.8
+    - name: "material_properties"
+      features: ["material_type", "powder_size", "powder_flowability"]
+      importance_weight: 0.9
+    - name: "build_geometry"
+      features: ["build_orientation", "support_type", "part_volume", "surface_area"]
+      importance_weight: 0.7
+      
+  monitoring_schedule:
+    frequency: "hourly"
+    batch_size: 1000
+    timeout: "5_minutes"
+    retry_attempts: 3
+    retry_delay: "1_minute"
+    
+  alerting:
+    enabled: true
+    channels: ["email", "slack", "webhook"]
+    escalation_matrix:
+      - level: "warning"
+        threshold: 0.1
+        recipients: ["data_team", "ml_team"]
+        delay: "5_minutes"
+      - level: "critical"
+        threshold: 0.2
+        recipients: ["data_team", "ml_team", "engineering_team"]
+        delay: "1_minute"
+    notification_templates:
+      warning: |
+        Data drift detected in feature: {feature_name}
+        Drift score: {drift_score}
+        Threshold: {threshold}
+        Time: {timestamp}
+      critical: |
+        CRITICAL: High data drift detected in feature: {feature_name}
+        Drift score: {drift_score}
+        Threshold: {threshold}
+        Time: {timestamp}
+        Action required: {recommended_action}
+        
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["ml_team", "data_team", "management"]
+    include_metrics:
+      - "drift_scores"
+      - "feature_importance"
+      - "distribution_comparisons"
+      - "trend_analysis"
+    dashboard:
+      enabled: true
+      url: "http://monitoring-dashboard:3000/drift-detection"
+      refresh_interval: "5_minutes"
+      
+  storage:
+    results:
+      type: "s3"
+      bucket: "ml-monitoring-results"
+      path: "drift_detection/results/"
+      retention_days: 90
+    metrics:
+      type: "prometheus"
+      endpoint: "http://prometheus:9090"
+      retention_days: 30
+    logs:
+      type: "elasticsearch"
+      endpoint: "http://elasticsearch:9200"
+      index: "ml-drift-detection"
+      retention_days: 30
+      
+  model_retraining:
+    enabled: true
+    trigger_threshold: 0.2
+    validation_required: true
+    staging_deployment: true
+    rollback_on_failure: true
+    notification_channels: ["slack", "email"]
+    
+  performance_monitoring:
+    enabled: true
+    metrics:
+      - name: "drift_detection_time"
+        type: "histogram"
+        buckets: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+      - name: "drift_detection_accuracy"
+        type: "gauge"
+      - name: "false_positive_rate"
+        type: "gauge"
+      - name: "false_negative_rate"
+        type: "gauge"
+    alerts:
+      - name: "high_detection_time"
+        condition: "drift_detection_time_p95 > 5.0"
+        severity: "warning"
+      - name: "low_accuracy"
+        condition: "drift_detection_accuracy < 0.9"
+        severity: "critical"
+      - name: "high_false_positive_rate"
+        condition: "false_positive_rate > 0.1"
+        severity: "warning"
+      - name: "high_false_negative_rate"
+        condition: "false_negative_rate > 0.05"
+        severity: "critical"
+        
+  feature_engineering:
+    enabled: true
+    transformations:
+      - name: "normalization"
+        method: "standard_scaler"
+        features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness"]
+      - name: "categorical_encoding"
+        method: "one_hot_encoding"
+        features: ["material_type", "build_orientation", "support_type"]
+      - name: "temporal_features"
+        method: "time_based_features"
+        features: ["timestamp"]
+        include: ["hour", "day_of_week", "month"]
+        
+  validation:
+    enabled: true
+    checks:
+      - name: "data_quality"
+        condition: "missing_value_ratio < 0.1"
+        action: "flag_invalid"
+      - name: "data_freshness"
+        condition: "data_age < 24_hours"
+        action: "flag_stale"
+      - name: "sample_size"
+        condition: "sample_count >= 100"
+        action: "flag_insufficient"
+      - name: "feature_range"
+        condition: "feature_value in expected_range"
+        action: "flag_outlier"
+        
+  integration:
+    mlflow:
+      enabled: true
+      tracking_uri: "http://mlflow:5000"
+      experiment_name: "drift_detection"
+    feast:
+      enabled: true
+      registry_path: "/data/feature_store/registry/"
+      online_store: "redis://redis-feature-store:6379"
+    airflow:
+      enabled: true
+      dag_id: "drift_detection_pipeline"
+      schedule_interval: "0 * * * *"

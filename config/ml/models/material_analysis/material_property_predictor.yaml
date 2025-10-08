@@ -1,0 +1,430 @@
+# Material Property Predictor Model Configuration
+# ==============================================
+
+model:
+  name: "material_property_predictor"
+  version: "1.0.0"
+  type: "regression"
+  algorithm: "neural_network"
+  description: "Neural network model for predicting material properties in PBF-LB/M processes"
+  
+  # Model metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["material_analysis", "material_properties", "neural_network", "regression"]
+
+# Model Architecture
+architecture:
+  input_shape: [20]  # 20 input features
+  output_shape: [8]  # 8 material properties
+  
+  # Neural network layers
+  layers:
+    - type: "Dense"
+      units: 128
+      activation: "relu"
+      dropout: 0.2
+      input_shape: [20]
+    
+    - type: "Dense"
+      units: 64
+      activation: "relu"
+      dropout: 0.2
+    
+    - type: "Dense"
+      units: 32
+      activation: "relu"
+      dropout: 0.2
+    
+    - type: "Dense"
+      units: 16
+      activation: "relu"
+      dropout: 0.1
+    
+    - type: "Dense"
+      units: 8
+      activation: "linear"
+  
+  # Model compilation
+  optimizer: "adam"
+  loss_function: "mse"
+  metrics: ["mae", "rmse", "r2_score"]
+
+# Training Configuration
+training:
+  # Hyperparameters
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 200
+  
+  # Early stopping
+  early_stopping:
+    patience: 20
+    monitor: "val_loss"
+    mode: "min"
+    restore_best_weights: true
+    min_delta: 0.001
+  
+  # Learning rate scheduling
+  learning_rate_schedule:
+    type: "reduce_on_plateau"
+    factor: 0.5
+    patience: 10
+    min_lr: 0.0001
+  
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Regularization
+  regularization:
+    l1: 0.0
+    l2: 0.01
+    dropout: 0.2
+
+# Data Configuration
+data:
+  # Input features
+  features:
+    - name: "material_type"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]
+    - name: "laser_power"
+      type: "continuous"
+      range: [50, 1000]
+      unit: "W"
+    - name: "scan_speed"
+      type: "continuous"
+      range: [100, 2000]
+      unit: "mm/s"
+    - name: "layer_thickness"
+      type: "continuous"
+      range: [0.02, 0.1]
+      unit: "mm"
+    - name: "hatch_spacing"
+      type: "continuous"
+      range: [0.05, 0.5]
+      unit: "mm"
+    - name: "focus_offset"
+      type: "continuous"
+      range: [-2, 2]
+      unit: "mm"
+    - name: "chamber_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "oxygen_level"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "ppm"
+    - name: "powder_bed_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "powder_flow_rate"
+      type: "continuous"
+      range: [0, 50]
+      unit: "g/min"
+    - name: "recoater_speed"
+      type: "continuous"
+      range: [10, 200]
+      unit: "mm/s"
+    - name: "build_plate_temperature"
+      type: "continuous"
+      range: [20, 300]
+      unit: "°C"
+    - name: "atmospheric_pressure"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "mbar"
+    - name: "humidity"
+      type: "continuous"
+      range: [0, 100]
+      unit: "%"
+    - name: "vibration_level"
+      type: "continuous"
+      range: [0, 10]
+      unit: "mm/s"
+    - name: "energy_density"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "J/mm³"
+    - name: "build_time"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "hours"
+    - name: "cooling_rate"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "°C/s"
+    - name: "heat_treatment"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["None", "Stress_Relief", "Solution_Annealing", "Aging"]
+    - name: "post_processing"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["None", "Machining", "Polishing", "Coating"]
+  
+  # Target variables
+  targets:
+    - name: "density"
+      type: "continuous"
+      range: [0, 1]
+      unit: "g/cm³"
+      description: "Material density"
+    - name: "hardness"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "HV"
+      description: "Vickers hardness"
+    - name: "tensile_strength"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "MPa"
+      description: "Ultimate tensile strength"
+    - name: "yield_strength"
+      type: "continuous"
+      range: [0, 1500]
+      unit: "MPa"
+      description: "Yield strength"
+    - name: "elongation"
+      type: "continuous"
+      range: [0, 50]
+      unit: "%"
+      description: "Elongation at break"
+    - name: "elastic_modulus"
+      type: "continuous"
+      range: [0, 500]
+      unit: "GPa"
+      description: "Elastic modulus"
+    - name: "fatigue_strength"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "MPa"
+      description: "Fatigue strength at 10⁶ cycles"
+    - name: "thermal_conductivity"
+      type: "continuous"
+      range: [0, 500]
+      unit: "W/m·K"
+      description: "Thermal conductivity"
+  
+  # Data preprocessing
+  preprocessing:
+    normalization: "standard_scaler"
+    missing_value_strategy: "interpolate"
+    outlier_detection: "iqr"
+    outlier_threshold: 3.0
+    feature_selection: true
+    feature_selection_method: "mutual_information"
+    n_features: 20
+  
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    random_state: 42
+
+# Performance Requirements
+performance:
+  # Accuracy thresholds
+  r2_threshold: 0.85
+  mse_threshold: 0.05
+  mae_threshold: 0.1
+  rmse_threshold: 0.2
+  
+  # Latency requirements
+  latency_threshold: 100  # milliseconds
+  throughput_threshold: 2000  # predictions per second
+  
+  # Memory requirements
+  memory_threshold: 256  # MB
+  model_size_threshold: 50  # MB
+
+# Model Validation
+validation:
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Validation metrics
+  metrics:
+    - "r2_score"
+    - "mse"
+    - "mae"
+    - "rmse"
+    - "mape"
+    - "explained_variance"
+  
+  # Validation thresholds
+  thresholds:
+    min_r2: 0.80
+    max_mse: 0.08
+    max_mae: 0.15
+    max_rmse: 0.25
+
+# Model Serving
+serving:
+  # API configuration
+  api:
+    endpoint: "/api/v1/predict/material_properties"
+    method: "POST"
+    content_type: "application/json"
+  
+  # Input schema
+  input_schema:
+    type: "object"
+    properties:
+      material_type: {"type": "string", "enum": ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]}
+      laser_power: {"type": "number", "minimum": 50, "maximum": 1000}
+      scan_speed: {"type": "number", "minimum": 100, "maximum": 2000}
+      layer_thickness: {"type": "number", "minimum": 0.02, "maximum": 0.1}
+      hatch_spacing: {"type": "number", "minimum": 0.05, "maximum": 0.5}
+      focus_offset: {"type": "number", "minimum": -2, "maximum": 2}
+      chamber_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      oxygen_level: {"type": "number", "minimum": 0, "maximum": 1000}
+      powder_bed_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      powder_flow_rate: {"type": "number", "minimum": 0, "maximum": 50}
+      recoater_speed: {"type": "number", "minimum": 10, "maximum": 200}
+      build_plate_temperature: {"type": "number", "minimum": 20, "maximum": 300}
+      atmospheric_pressure: {"type": "number", "minimum": 0, "maximum": 2000}
+      humidity: {"type": "number", "minimum": 0, "maximum": 100}
+      vibration_level: {"type": "number", "minimum": 0, "maximum": 10}
+      energy_density: {"type": "number", "minimum": 0, "maximum": 1000}
+      build_time: {"type": "number", "minimum": 0, "maximum": 1000}
+      cooling_rate: {"type": "number", "minimum": 0, "maximum": 1000}
+      heat_treatment: {"type": "string", "enum": ["None", "Stress_Relief", "Solution_Annealing", "Aging"]}
+      post_processing: {"type": "string", "enum": ["None", "Machining", "Polishing", "Coating"]}
+    required: ["material_type", "laser_power", "scan_speed", "layer_thickness", "hatch_spacing"]
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      material_properties:
+        type: "object"
+        properties:
+          density: {"type": "number", "minimum": 0, "maximum": 1}
+          hardness: {"type": "number", "minimum": 0, "maximum": 1000}
+          tensile_strength: {"type": "number", "minimum": 0, "maximum": 2000}
+          yield_strength: {"type": "number", "minimum": 0, "maximum": 1500}
+          elongation: {"type": "number", "minimum": 0, "maximum": 50}
+          elastic_modulus: {"type": "number", "minimum": 0, "maximum": 500}
+          fatigue_strength: {"type": "number", "minimum": 0, "maximum": 1000}
+          thermal_conductivity: {"type": "number", "minimum": 0, "maximum": 500}
+      property_ranges:
+        type: "object"
+        properties:
+          density_range: {"type": "array", "items": {"type": "number"}}
+          hardness_range: {"type": "array", "items": {"type": "number"}}
+          tensile_strength_range: {"type": "array", "items": {"type": "number"}}
+          yield_strength_range: {"type": "array", "items": {"type": "number"}}
+          elongation_range: {"type": "array", "items": {"type": "number"}}
+          elastic_modulus_range: {"type": "array", "items": {"type": "number"}}
+          fatigue_strength_range: {"type": "array", "items": {"type": "number"}}
+          thermal_conductivity_range: {"type": "array", "items": {"type": "number"}}
+      confidence_scores:
+        type: "object"
+        properties:
+          density_confidence: {"type": "number", "minimum": 0, "maximum": 1}
+          hardness_confidence: {"type": "number", "minimum": 0, "maximum": 1}
+          tensile_strength_confidence: {"type": "number", "minimum": 0, "maximum": 1}
+          yield_strength_confidence: {"type": "number", "minimum": 0, "maximum": 1}
+          elongation_confidence: {"type": "number", "minimum": 0, "maximum": 1}
+          elastic_modulus_confidence: {"type": "number", "minimum": 0, "maximum": 1}
+          fatigue_strength_confidence: {"type": "number", "minimum": 0, "maximum": 1}
+          thermal_conductivity_confidence: {"type": "number", "minimum": 0, "maximum": 1}
+      overall_confidence: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+        description: "Overall confidence score for all predictions"
+      timestamp: 
+        type: "string"
+        format: "date-time"
+      model_version: 
+        type: "string"
+      processing_time_ms: 
+        type: "number"
+        minimum: 0
+      feature_importance: 
+        type: "array"
+        items: {"type": "number"}
+        description: "Feature importance scores"
+    required: ["material_properties", "property_ranges", "confidence_scores", "overall_confidence", "timestamp"]
+
+# Monitoring Configuration
+monitoring:
+  # Model performance monitoring
+  performance:
+    enabled: true
+    metrics_interval: 60  # seconds
+    retention_days: 30
+  
+  # Drift detection
+  drift_detection:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      r2_drop: 0.05
+      latency_increase: 50  # milliseconds
+      error_rate: 0.05
+
+# Model Deployment
+deployment:
+  # Deployment configuration
+  strategy: "rolling"
+  replicas: 2
+  resources:
+    cpu: "1"
+    memory: "2Gi"
+    gpu: "0"
+  
+  # Health checks
+  health_checks:
+    initial_delay: 30
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    min_replicas: 2
+    max_replicas: 8
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Model Versioning
+versioning:
+  # Version strategy
+  strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Version requirements
+  requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    trigger_threshold: 0.05  # 5% performance drop
+    automatic: false  # Manual rollback required

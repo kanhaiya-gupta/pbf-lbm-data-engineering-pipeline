@@ -1,0 +1,337 @@
+# Model Drift Detection Configuration
+# Configuration for detecting model performance drift
+
+drift_detection:
+  name: "model_drift_detection"
+  version: "1.0.0"
+  description: "Model drift detection configuration for PBF-LBM ML models"
+  
+  detection_methods:
+    - name: "performance_metrics"
+      enabled: true
+      metrics:
+        - name: "accuracy"
+          description: "Model accuracy drift detection"
+          threshold: 0.05
+          window_size: "7_days"
+          min_samples: 100
+        - name: "precision"
+          description: "Model precision drift detection"
+          threshold: 0.05
+          window_size: "7_days"
+          min_samples: 100
+        - name: "recall"
+          description: "Model recall drift detection"
+          threshold: 0.05
+          window_size: "7_days"
+          min_samples: 100
+        - name: "f1_score"
+          description: "Model F1 score drift detection"
+          threshold: 0.05
+          window_size: "7_days"
+          min_samples: 100
+        - name: "mae"
+          description: "Mean Absolute Error drift detection"
+          threshold: 0.1
+          window_size: "7_days"
+          min_samples: 100
+        - name: "rmse"
+          description: "Root Mean Square Error drift detection"
+          threshold: 0.1
+          window_size: "7_days"
+          min_samples: 100
+        - name: "r2_score"
+          description: "R-squared score drift detection"
+          threshold: 0.05
+          window_size: "7_days"
+          min_samples: 100
+          
+    - name: "prediction_distribution"
+      enabled: true
+      methods:
+        - name: "prediction_ks_test"
+          description: "Kolmogorov-Smirnov test for prediction distribution"
+          threshold: 0.05
+          window_size: "7_days"
+          min_samples: 100
+        - name: "prediction_psi"
+          description: "Population Stability Index for predictions"
+          threshold: 0.1
+          window_size: "7_days"
+          min_samples: 100
+        - name: "prediction_chi_square"
+          description: "Chi-square test for prediction distribution"
+          threshold: 0.05
+          window_size: "7_days"
+          min_samples: 100
+          
+    - name: "residual_analysis"
+      enabled: true
+      methods:
+        - name: "residual_mean"
+          description: "Residual mean drift detection"
+          threshold: 0.1
+          window_size: "7_days"
+          min_samples: 100
+        - name: "residual_std"
+          description: "Residual standard deviation drift detection"
+          threshold: 0.1
+          window_size: "7_days"
+          min_samples: 100
+        - name: "residual_skewness"
+          description: "Residual skewness drift detection"
+          threshold: 0.2
+          window_size: "7_days"
+          min_samples: 100
+        - name: "residual_kurtosis"
+          description: "Residual kurtosis drift detection"
+          threshold: 0.2
+          window_size: "7_days"
+          min_samples: 100
+          
+    - name: "feature_importance_drift"
+      enabled: true
+      description: "Feature importance drift detection"
+      threshold: 0.2
+      method: "permutation_importance"
+      window_size: "7_days"
+      min_samples: 100
+      
+  model_specific_configs:
+    - name: "quality_score_predictor"
+      model_type: "regression"
+      target_metric: "r2_score"
+      threshold: 0.05
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "energy_density"]
+      monitoring_frequency: "hourly"
+      
+    - name: "dimensional_accuracy_predictor"
+      model_type: "regression"
+      target_metric: "mae"
+      threshold: 0.1
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "contour_speed", "contour_power"]
+      monitoring_frequency: "hourly"
+      
+    - name: "surface_finish_predictor"
+      model_type: "regression"
+      target_metric: "mae"
+      threshold: 0.1
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "contour_speed", "contour_power"]
+      monitoring_frequency: "hourly"
+      
+    - name: "mechanical_property_predictor"
+      model_type: "regression"
+      target_metric: "r2_score"
+      threshold: 0.05
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", "energy_density"]
+      monitoring_frequency: "hourly"
+      
+    - name: "equipment_health_monitor"
+      model_type: "anomaly_detection"
+      target_metric: "f1_score"
+      threshold: 0.05
+      features: ["laser_power_actual", "laser_temperature", "galvo_temperature", "chamber_temperature", "system_load"]
+      monitoring_frequency: "hourly"
+      
+    - name: "failure_predictor"
+      model_type: "classification"
+      target_metric: "f1_score"
+      threshold: 0.05
+      features: ["laser_power_actual", "laser_power_stability", "galvo_vibration_level", "powder_feeder_consistency", "chamber_temperature"]
+      monitoring_frequency: "hourly"
+      
+    - name: "maintenance_scheduler"
+      model_type: "regression"
+      target_metric: "mae"
+      threshold: 0.1
+      features: ["laser_operating_hours", "laser_power_degradation", "galvo_operating_hours", "powder_system_operating_hours", "maintenance_interval"]
+      monitoring_frequency: "hourly"
+      
+  reference_data:
+    source: "validation_data"
+    window_size: "30_days"
+    min_samples: 1000
+    update_frequency: "daily"
+    storage:
+      type: "s3"
+      bucket: "ml-reference-data"
+      path: "model_drift_detection/reference/"
+      
+  comparison_data:
+    source: "production_predictions"
+    window_size: "1_day"
+    min_samples: 100
+    sampling_strategy: "random"
+    sampling_ratio: 0.1
+    
+  drift_thresholds:
+    warning: 0.05
+    critical: 0.1
+    severity_levels:
+      - level: "low"
+        threshold: 0.02
+        action: "log"
+      - level: "medium"
+        threshold: 0.05
+        action: "alert"
+      - level: "high"
+        threshold: 0.1
+        action: "alert_and_retrain"
+      - level: "critical"
+        threshold: 0.15
+        action: "alert_and_rollback"
+        
+  model_groups:
+    - name: "quality_assessment"
+      models: ["quality_score_predictor", "dimensional_accuracy_predictor", "surface_finish_predictor", "mechanical_property_predictor"]
+      importance_weight: 1.0
+    - name: "predictive_maintenance"
+      models: ["equipment_health_monitor", "failure_predictor", "maintenance_scheduler"]
+      importance_weight: 0.9
+    - name: "process_optimization"
+      models: ["process_optimizer", "parameter_tuner", "quality_controller"]
+      importance_weight: 0.8
+      
+  monitoring_schedule:
+    frequency: "hourly"
+    batch_size: 1000
+    timeout: "10_minutes"
+    retry_attempts: 3
+    retry_delay: "2_minutes"
+    
+  alerting:
+    enabled: true
+    channels: ["email", "slack", "webhook"]
+    escalation_matrix:
+      - level: "warning"
+        threshold: 0.05
+        recipients: ["ml_team", "data_team"]
+        delay: "5_minutes"
+      - level: "critical"
+        threshold: 0.1
+        recipients: ["ml_team", "data_team", "engineering_team"]
+        delay: "1_minute"
+    notification_templates:
+      warning: |
+        Model drift detected in model: {model_name}
+        Metric: {metric_name}
+        Drift score: {drift_score}
+        Threshold: {threshold}
+        Time: {timestamp}
+      critical: |
+        CRITICAL: High model drift detected in model: {model_name}
+        Metric: {metric_name}
+        Drift score: {drift_score}
+        Threshold: {threshold}
+        Time: {timestamp}
+        Action required: {recommended_action}
+        
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["ml_team", "data_team", "management"]
+    include_metrics:
+      - "performance_metrics"
+      - "prediction_distributions"
+      - "residual_analysis"
+      - "feature_importance"
+      - "trend_analysis"
+    dashboard:
+      enabled: true
+      url: "http://monitoring-dashboard:3000/model-drift-detection"
+      refresh_interval: "5_minutes"
+      
+  storage:
+    results:
+      type: "s3"
+      bucket: "ml-monitoring-results"
+      path: "model_drift_detection/results/"
+      retention_days: 90
+    metrics:
+      type: "prometheus"
+      endpoint: "http://prometheus:9090"
+      retention_days: 30
+    logs:
+      type: "elasticsearch"
+      endpoint: "http://elasticsearch:9200"
+      index: "ml-model-drift-detection"
+      retention_days: 30
+      
+  model_retraining:
+    enabled: true
+    trigger_threshold: 0.1
+    validation_required: true
+    staging_deployment: true
+    rollback_on_failure: true
+    notification_channels: ["slack", "email"]
+    
+  performance_monitoring:
+    enabled: true
+    metrics:
+      - name: "model_drift_detection_time"
+        type: "histogram"
+        buckets: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+      - name: "model_drift_detection_accuracy"
+        type: "gauge"
+      - name: "false_positive_rate"
+        type: "gauge"
+      - name: "false_negative_rate"
+        type: "gauge"
+    alerts:
+      - name: "high_detection_time"
+        condition: "model_drift_detection_time_p95 > 10.0"
+        severity: "warning"
+      - name: "low_accuracy"
+        condition: "model_drift_detection_accuracy < 0.9"
+        severity: "critical"
+      - name: "high_false_positive_rate"
+        condition: "false_positive_rate > 0.1"
+        severity: "warning"
+      - name: "high_false_negative_rate"
+        condition: "false_negative_rate > 0.05"
+        severity: "critical"
+        
+  feature_engineering:
+    enabled: true
+    transformations:
+      - name: "normalization"
+        method: "standard_scaler"
+        features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness"]
+      - name: "categorical_encoding"
+        method: "one_hot_encoding"
+        features: ["material_type", "build_orientation", "support_type"]
+      - name: "temporal_features"
+        method: "time_based_features"
+        features: ["timestamp"]
+        include: ["hour", "day_of_week", "month"]
+        
+  validation:
+    enabled: true
+    checks:
+      - name: "prediction_quality"
+        condition: "prediction_confidence > 0.8"
+        action: "flag_low_confidence"
+      - name: "prediction_freshness"
+        condition: "prediction_age < 1_hour"
+        action: "flag_stale"
+      - name: "sample_size"
+        condition: "sample_count >= 100"
+        action: "flag_insufficient"
+      - name: "prediction_range"
+        condition: "prediction_value in expected_range"
+        action: "flag_outlier"
+        
+  integration:
+    mlflow:
+      enabled: true
+      tracking_uri: "http://mlflow:5000"
+      experiment_name: "model_drift_detection"
+    feast:
+      enabled: true
+      registry_path: "/data/feature_store/registry/"
+      online_store: "redis://redis-feature-store:6379"
+    airflow:
+      enabled: true
+      dag_id: "model_drift_detection_pipeline"
+      schedule_interval: "0 * * * *"

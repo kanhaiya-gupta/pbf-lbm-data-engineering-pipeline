@@ -1,0 +1,356 @@
+# PBF-LB/M Data Pipeline - Snowflake Configuration
+# This file contains Snowflake-specific configuration settings
+
+snowflake:
+  # Snowflake connection configuration
+  connection:
+    account: "${SNOWFLAKE_ACCOUNT}"
+    user: "${SNOWFLAKE_USER}"
+    password: "${SNOWFLAKE_PASSWORD}"
+    role: "${SNOWFLAKE_ROLE}"
+    warehouse: "${SNOWFLAKE_WAREHOUSE}"
+    database: "${SNOWFLAKE_DATABASE}"
+    schema: "${SNOWFLAKE_SCHEMA}"
+    region: "${SNOWFLAKE_REGION}"
+    
+  # Snowflake warehouse configuration
+  warehouses:
+    # Development Warehouse
+    dev_wh:
+      name: "DEV_WH"
+      size: "SMALL"
+      auto_suspend: 60
+      auto_resume: true
+      initially_suspended: true
+      comment: "Development warehouse for PBF-LB/M data pipeline"
+      
+    # Staging Warehouse
+    staging_wh:
+      name: "STAGING_WH"
+      size: "MEDIUM"
+      auto_suspend: 300
+      auto_resume: true
+      initially_suspended: true
+      comment: "Staging warehouse for PBF-LB/M data pipeline"
+      
+    # Production Warehouse
+    prod_wh:
+      name: "PROD_WH"
+      size: "LARGE"
+      auto_suspend: 600
+      auto_resume: true
+      initially_suspended: true
+      comment: "Production warehouse for PBF-LB/M data pipeline"
+      
+  # Snowflake database configuration
+  databases:
+    # Development Database
+    dev_db:
+      name: "PBF_LBM_DEV"
+      comment: "Development database for PBF-LB/M data pipeline"
+      
+    # Staging Database
+    staging_db:
+      name: "PBF_LBM_STAGING"
+      comment: "Staging database for PBF-LB/M data pipeline"
+      
+    # Production Database
+    prod_db:
+      name: "PBF_LBM_PROD"
+      comment: "Production database for PBF-LB/M data pipeline"
+      
+  # Snowflake schema configuration
+  schemas:
+    # Public Schema
+    public:
+      name: "PUBLIC"
+      comment: "Public schema for PBF-LB/M data pipeline"
+      
+    # Quality Schema
+    quality:
+      name: "QUALITY"
+      comment: "Quality schema for PBF-LB/M data pipeline"
+      
+    # Alerts Schema
+    alerts:
+      name: "ALERTS"
+      comment: "Alerts schema for PBF-LB/M data pipeline"
+      
+    # Staging Schema
+    staging:
+      name: "STAGING"
+      comment: "Staging schema for PBF-LB/M data pipeline"
+      
+  # Snowflake table configuration
+  tables:
+    # Fact Tables
+    fact_tables:
+      fct_pbf_process:
+        name: "fct_pbf_process"
+        schema: "PUBLIC"
+        comment: "Fact table for PBF process data"
+        columns:
+          - name: "process_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "start_time"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+          - name: "end_time"
+            type: "TIMESTAMP_NTZ"
+            nullable: true
+          - name: "machine_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "material_type"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "process_status"
+            type: "VARCHAR(50)"
+            nullable: false
+          - name: "quality_score"
+            type: "DECIMAL(5,4)"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+          - name: "updated_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+            
+      fct_ispm_monitoring:
+        name: "fct_ispm_monitoring"
+        schema: "PUBLIC"
+        comment: "Fact table for ISPM monitoring data"
+        columns:
+          - name: "monitoring_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "process_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "sensor_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "timestamp"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+          - name: "sensor_type"
+            type: "VARCHAR(100)"
+            nullable: false
+          - name: "sensor_value"
+            type: "DECIMAL(10,4)"
+            nullable: false
+          - name: "unit"
+            type: "VARCHAR(50)"
+            nullable: true
+          - name: "layer_number"
+            type: "INTEGER"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+            
+      fct_ct_scan:
+        name: "fct_ct_scan"
+        schema: "PUBLIC"
+        comment: "Fact table for CT scan data"
+        columns:
+          - name: "scan_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "process_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "timestamp"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+          - name: "voxel_dimensions"
+            type: "ARRAY"
+            nullable: false
+          - name: "resolution"
+            type: "DECIMAL(10,6)"
+            nullable: false
+          - name: "file_path"
+            type: "VARCHAR(1000)"
+            nullable: false
+          - name: "file_size"
+            type: "BIGINT"
+            nullable: false
+          - name: "quality_score"
+            type: "DECIMAL(5,4)"
+            nullable: true
+          - name: "defect_count"
+            type: "INTEGER"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+            
+      fct_powder_bed:
+        name: "fct_powder_bed"
+        schema: "PUBLIC"
+        comment: "Fact table for powder bed monitoring data"
+        columns:
+          - name: "powder_bed_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "process_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "camera_id"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "timestamp"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+          - name: "layer_number"
+            type: "INTEGER"
+            nullable: false
+          - name: "image_path"
+            type: "VARCHAR(1000)"
+            nullable: false
+          - name: "image_size"
+            type: "BIGINT"
+            nullable: false
+          - name: "surface_quality_score"
+            type: "DECIMAL(5,4)"
+            nullable: true
+          - name: "recoat_quality_score"
+            type: "DECIMAL(5,4)"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+            
+    # Dimension Tables
+    dimension_tables:
+      dim_machines:
+        name: "dim_machines"
+        schema: "PUBLIC"
+        comment: "Dimension table for machines"
+        columns:
+          - name: "machine_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "machine_name"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "machine_type"
+            type: "VARCHAR(100)"
+            nullable: false
+          - name: "manufacturer"
+            type: "VARCHAR(255)"
+            nullable: true
+          - name: "model"
+            type: "VARCHAR(255)"
+            nullable: true
+          - name: "serial_number"
+            type: "VARCHAR(255)"
+            nullable: true
+          - name: "installation_date"
+            type: "DATE"
+            nullable: true
+          - name: "status"
+            type: "VARCHAR(50)"
+            nullable: false
+          - name: "created_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+          - name: "updated_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+            
+      dim_materials:
+        name: "dim_materials"
+        schema: "PUBLIC"
+        comment: "Dimension table for materials"
+        columns:
+          - name: "material_id"
+            type: "VARCHAR(255)"
+            nullable: false
+            primary_key: true
+          - name: "material_name"
+            type: "VARCHAR(255)"
+            nullable: false
+          - name: "material_type"
+            type: "VARCHAR(100)"
+            nullable: false
+          - name: "composition"
+            type: "VARCHAR(500)"
+            nullable: true
+          - name: "density"
+            type: "DECIMAL(10,4)"
+            nullable: true
+          - name: "melting_point"
+            type: "DECIMAL(10,2)"
+            nullable: true
+          - name: "thermal_conductivity"
+            type: "DECIMAL(10,6)"
+            nullable: true
+          - name: "created_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+          - name: "updated_at"
+            type: "TIMESTAMP_NTZ"
+            nullable: false
+            
+  # Snowflake security configuration
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: true
+    audit_logging: true
+    
+  # Snowflake monitoring configuration
+  monitoring:
+    enabled: true
+    metrics_enabled: true
+    query_monitoring: true
+    performance_monitoring: true
+    
+  # Snowflake performance tuning
+  performance:
+    # Query optimization
+    query_optimization:
+      enabled: true
+      auto_clustering: true
+      auto_compression: true
+      
+    # Caching
+    caching:
+      enabled: true
+      cache_size: "LARGE"
+      
+    # Parallelism
+    parallelism:
+      max_parallelism: 8
+      default_parallelism: 4
+      
+  # Snowflake environment-specific overrides
+  environments:
+    development:
+      warehouse: "DEV_WH"
+      database: "PBF_LBM_DEV"
+      schema: "PUBLIC"
+      size: "SMALL"
+      auto_suspend: 60
+      
+    staging:
+      warehouse: "STAGING_WH"
+      database: "PBF_LBM_STAGING"
+      schema: "PUBLIC"
+      size: "MEDIUM"
+      auto_suspend: 300
+      
+    production:
+      warehouse: "PROD_WH"
+      database: "PBF_LBM_PROD"
+      schema: "PUBLIC"
+      size: "LARGE"
+      auto_suspend: 600

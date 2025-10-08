@@ -1,0 +1,258 @@
+# Surface Finish Predictor Configuration
+# Model for predicting surface finish quality of PBF-LBM parts
+
+model:
+  name: "surface_finish_predictor"
+  version: "1.0.0"
+  type: "regression"
+  framework: "scikit-learn"
+  
+  architecture:
+    algorithm: "RandomForestRegressor"
+    parameters:
+      n_estimators: 300
+      max_depth: 12
+      min_samples_split: 5
+      min_samples_leaf: 2
+      random_state: 42
+      max_features: "sqrt"
+      bootstrap: true
+    
+  input_features:
+    # Process Parameters
+    - name: "laser_power"
+      type: "numerical"
+      description: "Laser power setting (W)"
+      range: [50.0, 1000.0]
+    - name: "scan_speed"
+      type: "numerical"
+      description: "Laser scan speed (mm/s)"
+      range: [100.0, 2000.0]
+    - name: "hatch_spacing"
+      type: "numerical"
+      description: "Hatch spacing between scan lines (mm)"
+      range: [0.05, 0.3]
+    - name: "layer_thickness"
+      type: "numerical"
+      description: "Layer thickness (mm)"
+      range: [0.02, 0.1]
+    - name: "contour_speed"
+      type: "numerical"
+      description: "Contour scan speed (mm/s)"
+      range: [50.0, 1000.0]
+    - name: "contour_power"
+      type: "numerical"
+      description: "Contour laser power (W)"
+      range: [25.0, 500.0]
+    - name: "contour_offset"
+      type: "numerical"
+      description: "Contour offset from part boundary (mm)"
+      range: [0.0, 0.5]
+    - name: "skin_speed"
+      type: "numerical"
+      description: "Skin layer scan speed (mm/s)"
+      range: [50.0, 1000.0]
+    - name: "skin_power"
+      type: "numerical"
+      description: "Skin layer laser power (W)"
+      range: [25.0, 500.0]
+    
+    # Build Parameters
+    - name: "build_orientation"
+      type: "categorical"
+      description: "Primary build orientation"
+      categories: ["horizontal", "vertical", "angled_30", "angled_45", "angled_60"]
+    - name: "surface_angle"
+      type: "numerical"
+      description: "Surface angle relative to build plate (degrees)"
+      range: [0.0, 90.0]
+    - name: "support_contact_area"
+      type: "numerical"
+      description: "Support contact area ratio"
+      range: [0.0, 1.0]
+    - name: "support_removal_method"
+      type: "categorical"
+      description: "Method used for support removal"
+      categories: ["manual", "wire_edm", "machining", "chemical", "electrochemical"]
+    
+    # Geometry Features
+    - name: "surface_curvature"
+      type: "numerical"
+      description: "Average surface curvature (1/mm)"
+      range: [0.0, 10.0]
+    - name: "feature_size"
+      type: "numerical"
+      description: "Characteristic feature size (mm)"
+      range: [0.1, 100.0]
+    - name: "wall_thickness"
+      type: "numerical"
+      description: "Wall thickness at surface (mm)"
+      range: [0.1, 50.0]
+    - name: "overhang_angle"
+      type: "numerical"
+      description: "Overhang angle at surface (degrees)"
+      range: [0.0, 90.0]
+    - name: "surface_area_ratio"
+      type: "numerical"
+      description: "Ratio of surface area to projected area"
+      range: [1.0, 10.0]
+    
+    # Material Properties
+    - name: "material_type"
+      type: "categorical"
+      description: "Material type"
+      categories: ["Ti6Al4V", "Inconel718", "AlSi10Mg", "316L", "CoCr", "MaragingSteel"]
+    - name: "powder_particle_size_d50"
+      type: "numerical"
+      description: "50th percentile particle size (μm)"
+      range: [20.0, 150.0]
+    - name: "powder_sphericity"
+      type: "numerical"
+      description: "Powder particle sphericity"
+      range: [0.5, 1.0]
+    - name: "melting_temperature"
+      type: "numerical"
+      description: "Material melting temperature (°C)"
+      range: [500.0, 2000.0]
+    - name: "thermal_conductivity"
+      type: "numerical"
+      description: "Material thermal conductivity (W/m·K)"
+      range: [1.0, 500.0]
+    - name: "surface_tension"
+      type: "numerical"
+      description: "Material surface tension (N/m)"
+      range: [0.5, 3.0]
+    
+    # Environmental Conditions
+    - name: "chamber_temperature"
+      type: "numerical"
+      description: "Build chamber temperature (°C)"
+      range: [20.0, 200.0]
+    - name: "preheat_temperature"
+      type: "numerical"
+      description: "Powder bed preheat temperature (°C)"
+      range: [20.0, 300.0]
+    - name: "atmosphere_purity"
+      type: "numerical"
+      description: "Atmosphere purity (ppm oxygen)"
+      range: [0.0, 1000.0]
+    - name: "cooling_rate"
+      type: "numerical"
+      description: "Average cooling rate (°C/s)"
+      range: [0.1, 1000.0]
+
+  output_targets:
+    - name: "surface_roughness_ra"
+      description: "Average surface roughness Ra (μm)"
+      range: [0.1, 50.0]
+    - name: "surface_roughness_rz"
+      description: "Maximum height of profile Rz (μm)"
+      range: [0.5, 200.0]
+    - name: "surface_roughness_rq"
+      description: "Root mean square roughness Rq (μm)"
+      range: [0.1, 60.0]
+    - name: "waviness_wa"
+      description: "Average waviness Wa (μm)"
+      range: [0.5, 100.0]
+    - name: "surface_porosity"
+      description: "Surface porosity percentage (%)"
+      range: [0.0, 20.0]
+    - name: "surface_hardness"
+      description: "Surface hardness (HV)"
+      range: [100.0, 1000.0]
+
+  training:
+    dataset_path: "/data/training/surface_finish_dataset.csv"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "kfold"
+      n_splits: 5
+    metrics:
+      primary: "neg_mean_squared_error"
+      secondary: ["neg_mean_absolute_error", "r2", "explained_variance"]
+    early_stopping:
+      enabled: true
+      patience: 15
+      monitor: "val_neg_mean_squared_error"
+    
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness",
+                "contour_speed", "contour_power", "contour_offset", "skin_speed",
+                "skin_power", "surface_angle", "support_contact_area", "surface_curvature",
+                "feature_size", "wall_thickness", "overhang_angle", "surface_area_ratio",
+                "powder_particle_size_d50", "powder_sphericity", "melting_temperature",
+                "thermal_conductivity", "surface_tension", "chamber_temperature",
+                "preheat_temperature", "atmosphere_purity", "cooling_rate"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["build_orientation", "support_removal_method", "material_type"]
+    feature_engineering:
+      - name: "energy_density"
+        formula: "laser_power / (scan_speed * hatch_spacing * layer_thickness)"
+      - name: "contour_energy_density"
+        formula: "contour_power / (contour_speed * layer_thickness)"
+      - name: "skin_energy_density"
+        formula: "skin_power / (skin_speed * layer_thickness)"
+      - name: "surface_complexity"
+        formula: "surface_curvature * surface_area_ratio / feature_size"
+      - name: "thermal_gradient"
+        formula: "(laser_power * thermal_conductivity) / (scan_speed * layer_thickness)"
+      - name: "powder_quality_index"
+        formula: "powder_sphericity * (1 - powder_particle_size_d50 / 100)"
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 30
+      
+  validation:
+    business_rules:
+      - rule: "overhang_surface_quality"
+        condition: "overhang_angle > 45 AND predicted_ra > 15"
+        action: "flag_for_post_processing"
+      - rule: "thin_wall_surface_check"
+        condition: "wall_thickness < 1.0 AND predicted_ra > 10"
+        action: "suggest_parameter_optimization"
+      - rule: "high_energy_surface_warning"
+        condition: "energy_density > 250 AND predicted_ra > 20"
+        action: "recommend_contour_optimization"
+
+  deployment:
+    inference_mode: "batch"
+    batch_size: 32
+    max_latency_ms: 8000
+    model_format: "joblib"
+    artifact_path: "/models/surface_finish_predictor/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["laser_power", "scan_speed", "energy_density", "surface_angle"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["mse", "mae", "r2", "explained_variance"]
+      alert_thresholds:
+        mse: 25.0
+        mae: 3.0
+        r2: 0.75
+    explainability:
+      enabled: true
+      method: "shap"
+      sample_size: 1500
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.08
+    schedule: "monthly"
+    data_requirements:
+      min_samples: 1200
+      material_balance_threshold: 0.1
+      
+  post_processing:
+    enabled: true
+    methods: ["polishing", "machining", "chemical_treatment", "shot_peening"]
+    cost_estimation: true
+    quality_improvement_prediction: true

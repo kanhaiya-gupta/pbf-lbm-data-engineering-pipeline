@@ -1,0 +1,408 @@
+# Model Evaluation Pipeline Configuration
+# =======================================
+
+pipeline:
+  name: "model_evaluation_pipeline"
+  version: "1.0.0"
+  description: "Comprehensive model evaluation pipeline for performance assessment"
+  
+  # Pipeline metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["evaluation", "model_assessment", "performance", "validation"]
+
+# Pipeline Stages
+stages:
+  - name: "data_preparation"
+    type: "data_preparator"
+    description: "Prepare evaluation datasets"
+    config:
+      datasets:
+        - name: "test_set"
+          source: "postgresql"
+          table: "test_data"
+          filters:
+            date_range: "last_30_days"
+            quality_threshold: 0.95
+        - name: "validation_set"
+          source: "postgresql"
+          table: "validation_data"
+          filters:
+            date_range: "last_7_days"
+            quality_threshold: 0.98
+        - name: "holdout_set"
+          source: "postgresql"
+          table: "holdout_data"
+          filters:
+            date_range: "last_90_days"
+            quality_threshold: 0.99
+      preprocessing:
+        normalization: true
+        feature_engineering: true
+        data_cleaning: true
+      output: "evaluation_datasets"
+      
+  - name: "model_loading"
+    type: "model_loader"
+    description: "Load models for evaluation"
+    config:
+      models:
+        - name: "current_model"
+          registry: "mlflow"
+          stage: "production"
+          version: "latest"
+        - name: "baseline_model"
+          registry: "mlflow"
+          stage: "production"
+          version: "previous"
+        - name: "candidate_model"
+          registry: "mlflow"
+          stage: "staging"
+          version: "latest"
+      loading_strategy: "parallel"
+      caching: true
+      output: "loaded_models"
+      
+  - name: "performance_evaluation"
+    type: "performance_evaluator"
+    description: "Evaluate model performance metrics"
+    config:
+      metrics:
+        classification:
+          - "accuracy"
+          - "precision_macro"
+          - "recall_macro"
+          - "f1_macro"
+          - "precision_weighted"
+          - "recall_weighted"
+          - "f1_weighted"
+          - "roc_auc"
+          - "average_precision"
+        regression:
+          - "mse"
+          - "rmse"
+          - "mae"
+          - "r2_score"
+          - "mape"
+        custom:
+          - "business_metric_1"
+          - "business_metric_2"
+      evaluation_strategies:
+        - type: "holdout"
+          test_size: 0.2
+        - type: "cross_validation"
+          folds: 5
+          shuffle: true
+        - type: "time_series_split"
+          n_splits: 5
+      output: "performance_metrics"
+      
+  - name: "bias_fairness_evaluation"
+    type: "bias_evaluator"
+    description: "Evaluate model bias and fairness"
+    config:
+      protected_attributes:
+        - "material_type"
+        - "build_orientation"
+        - "part_complexity"
+      fairness_metrics:
+        - "demographic_parity"
+        - "equalized_odds"
+        - "equal_opportunity"
+        - "calibration"
+      bias_detection:
+        enabled: true
+        threshold: 0.1
+        methods: ["statistical_parity", "equalized_odds"]
+      output: "bias_metrics"
+      
+  - name: "robustness_evaluation"
+    type: "robustness_evaluator"
+    description: "Evaluate model robustness and reliability"
+    config:
+      robustness_tests:
+        - type: "adversarial_attacks"
+          methods: ["fgsm", "pgd"]
+          epsilon: [0.01, 0.05, 0.1]
+        - type: "noise_injection"
+          noise_types: ["gaussian", "uniform"]
+          noise_levels: [0.01, 0.05, 0.1]
+        - type: "data_drift"
+          drift_types: ["covariate", "concept"]
+          detection_methods: ["ks_test", "psi"]
+        - type: "outlier_detection"
+          methods: ["isolation_forest", "one_class_svm"]
+      output: "robustness_metrics"
+      
+  - name: "explainability_evaluation"
+    type: "explainability_evaluator"
+    description: "Evaluate model explainability and interpretability"
+    config:
+      explainability_methods:
+        - type: "shap"
+          background_samples: 1000
+          max_evals: 10000
+        - type: "lime"
+          num_features: 10
+          num_samples: 5000
+        - type: "permutation_importance"
+          n_repeats: 10
+          random_state: 42
+        - type: "feature_importance"
+          method: "tree_based"
+      evaluation_metrics:
+        - "consistency"
+        - "stability"
+        - "completeness"
+        - "accuracy"
+      output: "explainability_metrics"
+      
+  - name: "latency_evaluation"
+    type: "latency_evaluator"
+    description: "Evaluate model inference latency and throughput"
+    config:
+      latency_tests:
+        - type: "single_inference"
+          iterations: 1000
+          warmup: 100
+        - type: "batch_inference"
+          batch_sizes: [1, 10, 100, 1000]
+          iterations: 100
+        - type: "concurrent_inference"
+          concurrent_users: [1, 10, 100, 1000]
+          duration: "5min"
+      performance_metrics:
+        - "p50_latency"
+        - "p95_latency"
+        - "p99_latency"
+        - "throughput"
+        - "memory_usage"
+        - "cpu_usage"
+      output: "latency_metrics"
+      
+  - name: "comparative_analysis"
+    type: "comparative_analyzer"
+    description: "Compare models and generate comparative analysis"
+    config:
+      comparison_metrics:
+        - "performance"
+        - "bias"
+        - "robustness"
+        - "explainability"
+        - "latency"
+      statistical_tests:
+        - type: "t_test"
+          alpha: 0.05
+        - type: "wilcoxon"
+          alpha: 0.05
+        - type: "mann_whitney"
+          alpha: 0.05
+      ranking_method:
+        type: "weighted_sum"
+        weights:
+          performance: 0.4
+          bias: 0.2
+          robustness: 0.2
+          explainability: 0.1
+          latency: 0.1
+      output: "comparative_analysis"
+      
+  - name: "report_generation"
+    type: "report_generator"
+    description: "Generate comprehensive evaluation report"
+    config:
+      report_types:
+        - "executive_summary"
+        - "technical_report"
+        - "visualization_dashboard"
+        - "comparative_analysis"
+      formats:
+        - "html"
+        - "pdf"
+        - "json"
+        - "csv"
+      visualizations:
+        - type: "confusion_matrix"
+        - type: "roc_curve"
+        - type: "precision_recall_curve"
+        - type: "feature_importance"
+        - type: "shap_summary"
+        - type: "performance_comparison"
+      output: "evaluation_report"
+
+# Pipeline Scheduling
+scheduling:
+  trigger: "cron"
+  schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM
+  timezone: "UTC"
+  enabled: true
+  
+  # Retry configuration
+  retry_policy:
+    max_retries: 2
+    backoff_factor: 2
+    retry_delay: 600  # 10 minutes
+
+# Resource Requirements
+resources:
+  cpu: "8"
+  memory: "16Gi"
+  gpu: "2"
+  storage: "100Gi"
+  
+  # Resource limits
+  limits:
+    cpu: "16"
+    memory: "32Gi"
+    gpu: "4"
+    storage: "200Gi"
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "tensorflow==2.16.1"
+    - "scikit-learn==1.3.0"
+    - "pandas==2.0.3"
+    - "numpy==1.24.3"
+    - "mlflow==2.9.2"
+    - "shap==0.42.1"
+    - "lime==0.2.0.1"
+    - "matplotlib==3.7.2"
+    - "seaborn==0.12.2"
+    - "plotly==5.15.0"
+  
+  # Environment variables
+  env_vars:
+    MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Retry policy
+  retry_policy:
+    max_retries: 2
+    backoff_factor: 2
+    retry_delay: 600
+  
+  # Failure handling
+  failure_handling:
+    strategy: "stop_on_failure"
+    cleanup_on_failure: true
+    preserve_logs: true
+  
+  # Notification
+  notification:
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    on_success: true
+    on_failure: true
+
+# Monitoring and Logging
+monitoring:
+  # Pipeline monitoring
+  pipeline_monitoring:
+    enabled: true
+    metrics:
+      - "execution_time"
+      - "memory_usage"
+      - "cpu_usage"
+      - "stage_duration"
+    
+  # Evaluation monitoring
+  evaluation_monitoring:
+    enabled: true
+    metrics:
+      - "evaluation_accuracy"
+      - "evaluation_time"
+      - "model_comparison_score"
+      - "bias_score"
+    
+  # Resource monitoring
+  resource_monitoring:
+    enabled: true
+    metrics:
+      - "gpu_utilization"
+      - "memory_utilization"
+      - "cpu_utilization"
+      - "storage_usage"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/model_evaluation.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+  
+  # Stage-specific logging
+  stage_logging:
+    enabled: true
+    log_inputs: true
+    log_outputs: true
+    log_metrics: true
+    log_artifacts: true
+
+# Artifact Management
+artifacts:
+  # Artifact storage
+  storage:
+    type: "s3"
+    bucket: "pbf-ml-artifacts"
+    path: "evaluation/reports"
+    compression: "gzip"
+  
+  # Artifact retention
+  retention:
+    enabled: true
+    days: 90
+    keep_best: 10
+    keep_latest: 20
+  
+  # Artifact types
+  types:
+    - "evaluation_report"
+    - "performance_metrics"
+    - "bias_metrics"
+    - "robustness_metrics"
+    - "explainability_metrics"
+    - "latency_metrics"
+    - "visualizations"
+    - "comparative_analysis"
+
+# Pipeline Dependencies
+dependencies:
+  # Data dependencies
+  data_dependencies:
+    - source: "postgresql"
+      table: "test_data"
+      min_rows: 1000
+    - source: "postgresql"
+      table: "validation_data"
+      min_rows: 500
+    - source: "postgresql"
+      table: "holdout_data"
+      min_rows: 2000
+  
+  # Model dependencies
+  model_dependencies:
+    - type: "model_registry"
+      name: "defect_detector"
+      stage: "production"
+    - type: "model_registry"
+      name: "process_optimizer"
+      stage: "production"
+  
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "mlflow"
+      endpoint: "http://mlflow:5000"
+    - service: "postgresql"
+      endpoint: "postgres:5432"
+    - service: "s3"
+      endpoint: "s3://pbf-ml-artifacts"

@@ -1,0 +1,550 @@
+# Accuracy Monitor Configuration
+# =============================
+
+performance_monitor:
+  name: "pbf_accuracy_monitor"
+  version: "1.0.0"
+  description: "Configuration for monitoring ML model accuracy in PBF-LB/M processes"
+  owner: "ml-ops@company.com"
+  
+  # Monitor metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["accuracy_monitoring", "performance_monitoring", "ml_monitoring", "pbf"]
+
+# Input Data Configuration
+input_data:
+  # Model predictions
+  predictions:
+    source_type: "kafka"
+    topic: "ml_predictions"
+    bootstrap_servers: "kafka:9092"
+    schema_registry_url: "http://schema-registry:8081"
+    value_format: "avro"
+    consumer_group: "accuracy_monitor"
+    starting_offsets: "latest"
+    
+  # Ground truth labels
+  ground_truth:
+    source_type: "postgresql"
+    table: "ground_truth_labels"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    query: "SELECT * FROM ground_truth_labels WHERE created_at >= '{{ start_date }}' AND created_at < '{{ end_date }}'"
+    batch_size: 1000
+    
+  # Model metadata
+  model_metadata:
+    source_type: "mlflow"
+    registry_uri: "http://mlflow:5000"
+    model_name: "{{ model_name }}"
+    model_version: "{{ model_version }}"
+    stage: "production"
+
+# Monitoring Schedule
+monitoring_schedule:
+  type: "scheduled"
+  interval_minutes: 30  # Check accuracy every 30 minutes
+  timezone: "UTC"
+  enabled: true
+  
+  # Schedule variations
+  schedule_variations:
+    - name: "real_time_accuracy_check"
+      schedule: "*/5 * * * *"
+      description: "Real-time accuracy monitoring every 5 minutes"
+    - name: "hourly_accuracy_analysis"
+      schedule: "0 * * * *"
+      description: "Hourly accuracy analysis"
+    - name: "daily_accuracy_report"
+      schedule: "0 2 * * *"
+      description: "Daily accuracy report generation"
+
+# Models to Monitor
+models_to_monitor:
+  - name: "defect_detector"
+    version: "production"
+    type: "classification"
+    framework: "tensorflow"
+    accuracy_metrics: ["accuracy", "precision", "recall", "f1_score", "auc_roc", "auc_pr"]
+    thresholds:
+      accuracy: 0.95
+      precision: 0.90
+      recall: 0.90
+      f1_score: 0.90
+      auc_roc: 0.95
+      auc_pr: 0.90
+    monitoring_frequency: "real_time"
+    
+  - name: "quality_assessor"
+    version: "production"
+    type: "regression"
+    framework: "scikit-learn"
+    accuracy_metrics: ["r2_score", "mse", "mae", "rmse", "mape", "explained_variance"]
+    thresholds:
+      r2_score: 0.90
+      mse: 0.01
+      mae: 0.05
+      rmse: 0.1
+      mape: 0.05
+      explained_variance: 0.90
+    monitoring_frequency: "real_time"
+    
+  - name: "process_optimizer"
+    version: "production"
+    type: "multi_objective_optimization"
+    framework: "genetic_algorithm"
+    accuracy_metrics: ["hypervolume", "generational_distance", "inverted_generational_distance", "spread", "epsilon_indicator"]
+    thresholds:
+      hypervolume: 0.8
+      generational_distance: 0.1
+      inverted_generational_distance: 0.1
+      spread: 0.1
+      epsilon_indicator: 0.1
+    monitoring_frequency: "hourly"
+    
+  - name: "equipment_health_monitor"
+    version: "production"
+    type: "anomaly_detection"
+    framework: "isolation_forest"
+    accuracy_metrics: ["roc_auc", "average_precision", "f1_score", "precision", "recall", "detection_rate"]
+    thresholds:
+      roc_auc: 0.90
+      average_precision: 0.85
+      f1_score: 0.85
+      precision: 0.85
+      recall: 0.85
+      detection_rate: 0.90
+    monitoring_frequency: "real_time"
+
+# Accuracy Metrics Configuration
+accuracy_metrics:
+  # Classification metrics
+  classification:
+    - name: "accuracy"
+      description: "Overall accuracy of the model"
+      calculation: "correct_predictions / total_predictions"
+      threshold: 0.95
+      weight: 0.3
+      
+    - name: "precision"
+      description: "Precision for each class"
+      calculation: "true_positives / (true_positives + false_positives)"
+      threshold: 0.90
+      weight: 0.2
+      
+    - name: "recall"
+      description: "Recall for each class"
+      calculation: "true_positives / (true_positives + false_negatives)"
+      threshold: 0.90
+      weight: 0.2
+      
+    - name: "f1_score"
+      description: "F1 score for each class"
+      calculation: "2 * (precision * recall) / (precision + recall)"
+      threshold: 0.90
+      weight: 0.2
+      
+    - name: "auc_roc"
+      description: "Area Under ROC Curve"
+      calculation: "roc_auc_score"
+      threshold: 0.95
+      weight: 0.1
+      
+    - name: "auc_pr"
+      description: "Area Under Precision-Recall Curve"
+      calculation: "average_precision_score"
+      threshold: 0.90
+      weight: 0.1
+      
+  # Regression metrics
+  regression:
+    - name: "r2_score"
+      description: "R-squared score"
+      calculation: "1 - (sum_squared_residuals / total_sum_squares)"
+      threshold: 0.90
+      weight: 0.3
+      
+    - name: "mse"
+      description: "Mean Squared Error"
+      calculation: "mean((y_true - y_pred)^2)"
+      threshold: 0.01
+      weight: 0.2
+      
+    - name: "mae"
+      description: "Mean Absolute Error"
+      calculation: "mean(|y_true - y_pred|)"
+      threshold: 0.05
+      weight: 0.2
+      
+    - name: "rmse"
+      description: "Root Mean Squared Error"
+      calculation: "sqrt(mean((y_true - y_pred)^2))"
+      threshold: 0.1
+      weight: 0.2
+      
+    - name: "mape"
+      description: "Mean Absolute Percentage Error"
+      calculation: "mean(|y_true - y_pred| / y_true) * 100"
+      threshold: 0.05
+      weight: 0.1
+      
+    - name: "explained_variance"
+      description: "Explained Variance Score"
+      calculation: "1 - (var(y_true - y_pred) / var(y_true))"
+      threshold: 0.90
+      weight: 0.1
+      
+  # Multi-objective optimization metrics
+  multi_objective:
+    - name: "hypervolume"
+      description: "Hypervolume indicator"
+      calculation: "hypervolume_calculation"
+      threshold: 0.8
+      weight: 0.4
+      
+    - name: "generational_distance"
+      description: "Generational Distance"
+      calculation: "generational_distance_calculation"
+      threshold: 0.1
+      weight: 0.2
+      
+    - name: "inverted_generational_distance"
+      description: "Inverted Generational Distance"
+      calculation: "inverted_generational_distance_calculation"
+      threshold: 0.1
+      weight: 0.2
+      
+    - name: "spread"
+      description: "Spread indicator"
+      calculation: "spread_calculation"
+      threshold: 0.1
+      weight: 0.1
+      
+    - name: "epsilon_indicator"
+      description: "Epsilon indicator"
+      calculation: "epsilon_indicator_calculation"
+      threshold: 0.1
+      weight: 0.1
+      
+  # Anomaly detection metrics
+  anomaly_detection:
+    - name: "roc_auc"
+      description: "Area Under ROC Curve"
+      calculation: "roc_auc_score"
+      threshold: 0.90
+      weight: 0.3
+      
+    - name: "average_precision"
+      description: "Average Precision Score"
+      calculation: "average_precision_score"
+      threshold: 0.85
+      weight: 0.3
+      
+    - name: "f1_score"
+      description: "F1 Score"
+      calculation: "2 * (precision * recall) / (precision + recall)"
+      threshold: 0.85
+      weight: 0.2
+      
+    - name: "precision"
+      description: "Precision"
+      calculation: "true_positives / (true_positives + false_positives)"
+      threshold: 0.85
+      weight: 0.1
+      
+    - name: "recall"
+      description: "Recall"
+      calculation: "true_positives / (true_positives + false_negatives)"
+      threshold: 0.85
+      weight: 0.1
+      
+    - name: "detection_rate"
+      description: "Anomaly Detection Rate"
+      calculation: "detected_anomalies / total_anomalies"
+      threshold: 0.90
+      weight: 0.1
+
+# Accuracy Calculation Engine
+accuracy_calculation_engine:
+  type: "spark"  # or "custom_python", "evidently"
+  
+  # Spark configuration
+  spark:
+    app_name: "accuracy_monitor"
+    master: "spark://spark-master:7077"
+    driver_memory: "4g"
+    executor_memory: "8g"
+    executor_cores: 4
+    num_executors: 4
+    max_result_size: "2g"
+    
+  # Processing configuration
+  processing:
+    batch_size: 10000
+    parallelism: 8
+    timeout: "1h"
+    checkpoint_interval: "10m"
+    
+  # Memory configuration
+  memory:
+    driver_memory: "4g"
+    executor_memory: "8g"
+    managed_memory_fraction: 0.4
+    network_memory_fraction: 0.2
+
+# Alerting Configuration
+alerting:
+  enabled: true
+  channels: ["slack", "email", "pagerduty"]
+  recipients: ["ml-ops@company.com", "on-call@company.com"]
+  
+  # Alert severity mapping
+  severity_mapping:
+    low: "INFO"
+    medium: "WARNING"
+    high: "CRITICAL"
+    critical: "CRITICAL"
+    
+  # Alert templates
+  alert_templates:
+    accuracy_drop: "Accuracy drop detected in '{model_name}' (version {model_version}). Current accuracy: {current_accuracy}, Threshold: {threshold}, Drop: {accuracy_drop}. Details: {details_url}"
+    precision_drop: "Precision drop detected in '{model_name}' (version {model_version}). Current precision: {current_precision}, Threshold: {threshold}, Drop: {precision_drop}. Details: {details_url}"
+    recall_drop: "Recall drop detected in '{model_name}' (version {model_version}). Current recall: {current_recall}, Threshold: {threshold}, Drop: {recall_drop}. Details: {details_url}"
+    f1_drop: "F1 score drop detected in '{model_name}' (version {model_version}). Current F1: {current_f1}, Threshold: {threshold}, Drop: {f1_drop}. Details: {details_url}"
+    
+  # Alert thresholds
+  alert_thresholds:
+    accuracy_drop:
+      low: 0.02
+      medium: 0.05
+      high: 0.1
+      critical: 0.15
+    precision_drop:
+      low: 0.02
+      medium: 0.05
+      high: 0.1
+      critical: 0.15
+    recall_drop:
+      low: 0.02
+      medium: 0.05
+      high: 0.1
+      critical: 0.15
+    f1_drop:
+      low: 0.02
+      medium: 0.05
+      high: 0.1
+      critical: 0.15
+
+# Reporting Configuration
+reporting:
+  enabled: true
+  report_format: "html"
+  report_destination: "s3://pbf-data-lake/accuracy_reports/{{ ds }}"
+  
+  # Report types
+  report_types:
+    - "executive_summary"
+    - "technical_report"
+    - "visualization_dashboard"
+    - "model_comparison"
+    
+  # Report formats
+  formats:
+    - "html"
+    - "pdf"
+    - "json"
+    - "csv"
+    
+  # Visualizations
+  visualizations:
+    - type: "accuracy_timeline"
+    - type: "precision_recall_curve"
+    - type: "roc_curve"
+    - type: "confusion_matrix"
+    - type: "residual_analysis"
+    - type: "error_distribution"
+    - type: "performance_comparison"
+    
+  # Dashboard integration
+  dashboard_integration:
+    enabled: true
+    tool: "grafana"
+    tags: ["accuracy_monitoring", "pbf_ml"]
+    refresh_interval: "5m"
+
+# Action on Accuracy Drop
+action_on_accuracy_drop:
+  # Automatic actions
+  automatic_actions:
+    - type: "retrain_model"
+      enabled: true
+      trigger_threshold_severity: "high"
+      pipeline_to_trigger: "model_retraining_pipeline"
+      delay_minutes: 30
+      
+    - type: "rollback_model"
+      enabled: true
+      trigger_threshold_severity: "critical"
+      target_model_version: "previous_stable"
+      delay_minutes: 15
+      
+    - type: "notify_stakeholders"
+      enabled: true
+      trigger_threshold_severity: "medium"
+      stakeholders: ["ml-team@company.com", "engineering-team@company.com"]
+      delay_minutes: 5
+      
+  # Manual actions
+  manual_actions:
+    - type: "investigate_accuracy_drop"
+      description: "Investigate the root cause of accuracy drop"
+      assignee: "ml-ops@company.com"
+      priority: "high"
+      
+    - type: "update_ground_truth"
+      description: "Update ground truth labels if needed"
+      assignee: "data-team@company.com"
+      priority: "medium"
+      
+    - type: "adjust_accuracy_thresholds"
+      description: "Adjust accuracy monitoring thresholds if needed"
+      assignee: "ml-ops@company.com"
+      priority: "low"
+
+# Model Metadata
+metadata:
+  model_name: "{{ model_name }}"
+  model_version: "{{ model_version }}"
+  model_type: "{{ model_type }}"
+  framework: "{{ framework }}"
+  training_date: "{{ training_date }}"
+  last_updated: "{{ last_updated }}"
+  
+  # Model performance baseline
+  baseline_performance:
+    accuracy: 0.95
+    precision: 0.92
+    recall: 0.90
+    f1_score: 0.91
+    auc_roc: 0.96
+    auc_pr: 0.93
+    
+  # Model configuration
+  model_config:
+    input_features: 20
+    output_classes: 3
+    model_size_mb: 50
+    memory_usage_mb: 256
+    cpu_usage_percent: 10
+
+# Monitoring Configuration
+monitoring:
+  # Accuracy monitoring
+  accuracy_monitoring:
+    enabled: true
+    metrics:
+      - "accuracy_score"
+      - "accuracy_trend"
+      - "accuracy_volatility"
+      - "accuracy_drift"
+      - "accuracy_consistency"
+      
+  # Performance monitoring
+  performance_monitoring:
+    enabled: true
+    metrics:
+      - "calculation_latency"
+      - "processing_throughput"
+      - "memory_usage"
+      - "cpu_usage"
+      - "error_rate"
+      
+  # Alert monitoring
+  alert_monitoring:
+    enabled: true
+    metrics:
+      - "alert_count"
+      - "alert_response_time"
+      - "alert_resolution_time"
+      - "alert_accuracy"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/accuracy_monitor.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+      
+  # Accuracy-specific logging
+  accuracy_logging:
+    enabled: true
+    log_accuracy_scores: true
+    log_accuracy_details: true
+    log_alert_events: true
+    log_action_taken: true
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    secret_key: "${JWT_SECRET_KEY}"
+    expiration_hours: 24
+    
+  # Authorization
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles: ["ml_ops", "ml_admin"]
+    
+  # Data encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+
+# Pipeline Dependencies
+dependencies:
+  # Data dependencies
+  data_dependencies:
+    - source: "kafka"
+      topic: "ml_predictions"
+      min_partitions: 3
+    - source: "postgresql"
+      table: "ground_truth_labels"
+      min_rows: 1000
+    - source: "mlflow"
+      registry_uri: "http://mlflow:5000"
+      
+  # Model dependencies
+  model_dependencies:
+    - type: "model_registry"
+      name: "defect_detector"
+      stage: "production"
+    - type: "model_registry"
+      name: "quality_assessor"
+      stage: "production"
+    - type: "model_registry"
+      name: "process_optimizer"
+      stage: "production"
+    - type: "model_registry"
+      name: "equipment_health_monitor"
+      stage: "production"
+      
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "spark"
+      endpoint: "spark://spark-master:7077"
+    - service: "kafka"
+      endpoint: "kafka:9092"
+    - service: "postgresql"
+      endpoint: "postgres:5432"
+    - service: "mlflow"
+      endpoint: "http://mlflow:5000"

@@ -1,0 +1,457 @@
+# NoSQL Schema Management Configuration
+# PBF-LB/M Data Pipeline - NoSQL Schema Registry and Validation
+
+# Schema Registry Configuration
+schema_registry:
+  enabled: true
+  
+  # MongoDB Schema Registry
+  mongodb_registry:
+    enabled: true
+    connection:
+      connection_string: "${MONGODB_CONNECTION_STRING}"
+      database_name: "${MONGODB_DATABASE_NAME}"
+      collection_name: "schema_registry"
+    
+    schema_management:
+      auto_discovery: true
+      versioning_enabled: true
+      compatibility_check: true
+      schema_evolution: true
+      
+      validation_rules:
+        strict_mode: false
+        required_fields_validation: true
+        data_type_validation: true
+        range_validation: true
+        business_rule_validation: true
+      
+      evolution_policies:
+        backward_compatibility: true
+        forward_compatibility: false
+        auto_migration: false
+        manual_approval_required: true
+  
+  # Redis Schema Registry
+  redis_registry:
+    enabled: true
+    connection:
+      host: "${REDIS_HOST}"
+      port: "${REDIS_PORT}"
+      password: "${REDIS_PASSWORD}"
+      db: 1  # Separate DB for schema registry
+    
+    schema_management:
+      key_patterns:
+        - "schema:mongodb:*"
+        - "schema:cassandra:*"
+        - "schema:elasticsearch:*"
+        - "schema:neo4j:*"
+      
+      ttl_policies:
+        schema_cache: 86400  # 24 hours
+        validation_cache: 3600  # 1 hour
+        compatibility_cache: 7200  # 2 hours
+      
+      validation_rules:
+        key_pattern_validation: true
+        ttl_validation: true
+        data_type_validation: true
+        serialization_validation: true
+  
+  # Cassandra Schema Registry
+  cassandra_registry:
+    enabled: true
+    connection:
+      hosts: ["${CASSANDRA_HOST}"]
+      keyspace: "${CASSANDRA_KEYSPACE}"
+      table_name: "schema_registry"
+    
+    schema_management:
+      table_creation_policy: "strict"
+      compression_enabled: true
+      compaction_strategy: "TimeWindowCompactionStrategy"
+      
+      validation_rules:
+        partition_key_validation: true
+        clustering_key_validation: true
+        data_type_validation: true
+        constraint_validation: true
+      
+      evolution_policies:
+        table_schema_evolution: true
+        column_addition: true
+        column_removal: false
+        data_type_changes: false
+  
+  # Elasticsearch Schema Registry
+  elasticsearch_registry:
+    enabled: true
+    connection:
+      hosts: ["${ELASTICSEARCH_HOST}"]
+      index_name: "schema_registry"
+    
+    schema_management:
+      index_settings:
+        number_of_shards: 1
+        number_of_replicas: 1
+        refresh_interval: "30s"
+      
+      mapping_management:
+        dynamic_mapping: false
+        strict_mapping: true
+        field_type_validation: true
+        analyzer_validation: true
+      
+      validation_rules:
+        mapping_validation: true
+        field_type_validation: true
+        analyzer_validation: true
+        index_settings_validation: true
+  
+  # Neo4j Schema Registry
+  neo4j_registry:
+    enabled: true
+    connection:
+      uri: "${NEO4J_URI}"
+      username: "${NEO4J_USERNAME}"
+      password: "${NEO4J_PASSWORD}"
+      database: "${NEO4J_DATABASE}"
+    
+    schema_management:
+      constraint_management: true
+      index_management: true
+      relationship_validation: true
+      property_validation: true
+      
+      validation_rules:
+        node_label_validation: true
+        relationship_type_validation: true
+        property_type_validation: true
+        constraint_validation: true
+      
+      evolution_policies:
+        constraint_evolution: true
+        index_evolution: true
+        relationship_evolution: true
+        property_evolution: true
+
+# Schema Validation Configuration
+schema_validation:
+  enabled: true
+  
+  # Validation Rules
+  validation_rules:
+    # Document Schema Validation (MongoDB)
+    document_validation:
+      enabled: true
+      validation_level: "strict"
+      
+      field_validation:
+        required_fields: ["process_id", "timestamp", "material_type"]
+        optional_fields: ["quality_metrics", "metadata", "defects"]
+        field_types:
+          process_id: "string"
+          timestamp: "datetime"
+          material_type: "string"
+          quality_metrics: "object"
+          metadata: "object"
+      
+      business_rules:
+        quality_threshold: 0.8
+        material_type_whitelist: ["Ti6Al4V", "Inconel718", "StainlessSteel316L", "AlSi10Mg"]
+        timestamp_range:
+          min: "2020-01-01T00:00:00Z"
+          max: "now"
+    
+    # Key-Value Schema Validation (Redis)
+    key_value_validation:
+      enabled: true
+      validation_level: "moderate"
+      
+      key_validation:
+        key_patterns: ["process:*", "sensor:*", "session:*", "analytics:*"]
+        key_length_limit: 255
+        key_character_validation: true
+      
+      value_validation:
+        serialization_format: "json"
+        compression_detection: true
+        ttl_validation: true
+        data_type_validation: true
+    
+    # Columnar Schema Validation (Cassandra)
+    columnar_validation:
+      enabled: true
+      validation_level: "strict"
+      
+      table_validation:
+        partition_key_required: true
+        clustering_key_validation: true
+        column_type_validation: true
+        constraint_validation: true
+      
+      data_validation:
+        timestamp_validation: true
+        numeric_range_validation: true
+        string_length_validation: true
+        null_value_validation: true
+    
+    # Search Schema Validation (Elasticsearch)
+    search_validation:
+      enabled: true
+      validation_level: "moderate"
+      
+      mapping_validation:
+        field_type_validation: true
+        analyzer_validation: true
+        index_settings_validation: true
+        dynamic_mapping_validation: true
+      
+      query_validation:
+        query_syntax_validation: true
+        field_existence_validation: true
+        data_type_compatibility: true
+        performance_validation: true
+    
+    # Graph Schema Validation (Neo4j)
+    graph_validation:
+      enabled: true
+      validation_level: "strict"
+      
+      node_validation:
+        label_validation: true
+        property_validation: true
+        constraint_validation: true
+        index_validation: true
+      
+      relationship_validation:
+        relationship_type_validation: true
+        property_validation: true
+        constraint_validation: true
+        cardinality_validation: true
+
+# Schema Evolution Configuration
+schema_evolution:
+  enabled: true
+  
+  # Evolution Policies
+  evolution_policies:
+    # Document Schema Evolution
+    document_evolution:
+      enabled: true
+      backward_compatibility: true
+      forward_compatibility: false
+      
+      allowed_changes:
+        - "add_optional_field"
+        - "add_index"
+        - "modify_field_description"
+        - "add_validation_rule"
+      
+      forbidden_changes:
+        - "remove_required_field"
+        - "change_field_type"
+        - "remove_index"
+        - "change_field_name"
+      
+      migration_strategy: "manual"
+      approval_required: true
+    
+    # Key-Value Schema Evolution
+    key_value_evolution:
+      enabled: true
+      backward_compatibility: true
+      forward_compatibility: true
+      
+      allowed_changes:
+        - "add_key_pattern"
+        - "modify_ttl_policy"
+        - "add_serialization_format"
+        - "add_compression"
+      
+      forbidden_changes:
+        - "remove_key_pattern"
+        - "change_serialization_format"
+        - "remove_compression"
+      
+      migration_strategy: "automatic"
+      approval_required: false
+    
+    # Columnar Schema Evolution
+    columnar_evolution:
+      enabled: true
+      backward_compatibility: true
+      forward_compatibility: false
+      
+      allowed_changes:
+        - "add_column"
+        - "add_index"
+        - "modify_compression"
+        - "add_constraint"
+      
+      forbidden_changes:
+        - "remove_column"
+        - "change_column_type"
+        - "remove_partition_key"
+        - "change_clustering_key"
+      
+      migration_strategy: "manual"
+      approval_required: true
+    
+    # Search Schema Evolution
+    search_evolution:
+      enabled: true
+      backward_compatibility: true
+      forward_compatibility: true
+      
+      allowed_changes:
+        - "add_field"
+        - "add_analyzer"
+        - "modify_index_settings"
+        - "add_alias"
+      
+      forbidden_changes:
+        - "remove_field"
+        - "change_field_type"
+        - "remove_analyzer"
+        - "change_mapping"
+      
+      migration_strategy: "automatic"
+      approval_required: false
+    
+    # Graph Schema Evolution
+    graph_evolution:
+      enabled: true
+      backward_compatibility: true
+      forward_compatibility: false
+      
+      allowed_changes:
+        - "add_node_label"
+        - "add_relationship_type"
+        - "add_property"
+        - "add_constraint"
+        - "add_index"
+      
+      forbidden_changes:
+        - "remove_node_label"
+        - "remove_relationship_type"
+        - "remove_property"
+        - "remove_constraint"
+        - "remove_index"
+      
+      migration_strategy: "manual"
+      approval_required: true
+
+# Cross-Model Schema Consistency
+cross_model_consistency:
+  enabled: true
+  
+  # Consistency Rules
+  consistency_rules:
+    # Process Data Consistency
+    process_data_consistency:
+      enabled: true
+      models: ["document", "key_value", "columnar", "search", "graph"]
+      
+      consistency_checks:
+        - "process_id_consistency"
+        - "timestamp_consistency"
+        - "material_type_consistency"
+        - "quality_metrics_consistency"
+      
+      validation_interval: 3600  # 1 hour
+      auto_correction: false
+      manual_review_required: true
+    
+    # Sensor Data Consistency
+    sensor_data_consistency:
+      enabled: true
+      models: ["columnar", "key_value", "search"]
+      
+      consistency_checks:
+        - "sensor_id_consistency"
+        - "timestamp_consistency"
+        - "value_range_consistency"
+        - "unit_consistency"
+      
+      validation_interval: 1800  # 30 minutes
+      auto_correction: true
+      manual_review_required: false
+    
+    # Quality Data Consistency
+    quality_data_consistency:
+      enabled: true
+      models: ["document", "columnar", "search", "graph"]
+      
+      consistency_checks:
+        - "quality_grade_consistency"
+        - "metrics_consistency"
+        - "threshold_consistency"
+        - "inspector_consistency"
+      
+      validation_interval: 7200  # 2 hours
+      auto_correction: false
+      manual_review_required: true
+
+# Schema Monitoring and Alerting
+schema_monitoring:
+  enabled: true
+  
+  # Monitoring Metrics
+  metrics:
+    schema_usage_metrics:
+      enabled: true
+      metrics_interval: 300  # 5 minutes
+      metrics_to_collect:
+        - "schema_validation_count"
+        - "schema_validation_success_rate"
+        - "schema_evolution_count"
+        - "consistency_violation_count"
+    
+    schema_performance_metrics:
+      enabled: true
+      metrics_interval: 60  # 1 minute
+      metrics_to_collect:
+        - "validation_latency"
+        - "evolution_duration"
+        - "consistency_check_duration"
+        - "schema_registry_response_time"
+  
+  # Alerting Rules
+  alerting:
+    enabled: true
+    alert_rules:
+      high_validation_failure_rate:
+        condition: "validation_success_rate < 0.95"
+        severity: "warning"
+        action: "notify"
+      
+      schema_evolution_failure:
+        condition: "evolution_success_rate < 1.0"
+        severity: "critical"
+        action: "page"
+      
+      consistency_violations:
+        condition: "consistency_violations > 5"
+        severity: "warning"
+        action: "notify"
+      
+      schema_registry_unavailable:
+        condition: "registry_response_time > 5000"
+        severity: "critical"
+        action: "page"
+  
+  # Dashboards
+  dashboards:
+    enabled: true
+    dashboard_url: "${GRAFANA_URL}"
+    refresh_interval: 30  # seconds
+    
+    panels:
+      - "schema_validation_overview"
+      - "schema_evolution_status"
+      - "cross_model_consistency"
+      - "schema_performance_metrics"
+      - "validation_error_rates"
+      - "consistency_violations"

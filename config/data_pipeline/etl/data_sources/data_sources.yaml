@@ -1,0 +1,72 @@
+# PBF-LB/M Data Pipeline - General Data Source Configurations
+# This file contains general data source configurations
+
+data_sources:
+  # General data source settings
+  general:
+    default_batch_size: 10000
+    default_timeout_minutes: 60
+    default_retry_attempts: 3
+    default_retry_delay_seconds: 5
+    
+  # Connection pool settings
+  connection_pools:
+    postgresql:
+      min_connections: 2
+      max_connections: 10
+      connection_timeout: 30
+      idle_timeout: 300
+      
+    kafka:
+      bootstrap_servers: "localhost:9092"
+      consumer_timeout: 1000
+      producer_timeout: 30000
+      
+    s3:
+      max_connections: 50
+      connection_timeout: 60
+      read_timeout: 60
+      
+  # Data source types
+  types:
+    postgresql:
+      driver: "org.postgresql.Driver"
+      default_port: 5432
+      default_schema: "public"
+      
+    mysql:
+      driver: "com.mysql.cj.jdbc.Driver"
+      default_port: 3306
+      default_schema: "public"
+      
+    oracle:
+      driver: "oracle.jdbc.driver.OracleDriver"
+      default_port: 1521
+      default_schema: "public"
+      
+    kafka:
+      default_consumer_group: "pbf_lbm_consumer"
+      default_auto_offset_reset: "earliest"
+      default_enable_auto_commit: true
+      
+    s3:
+      default_region: "us-east-1"
+      default_encryption: "AES256"
+      
+  # Data source validation
+  validation:
+    enabled: true
+    timeout_seconds: 30
+    retry_attempts: 3
+    
+  # Data source monitoring
+  monitoring:
+    enabled: true
+    health_check_interval: 60
+    metrics_collection: true
+    
+  # Data source security
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: true

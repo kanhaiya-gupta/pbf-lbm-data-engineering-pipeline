@@ -1,0 +1,473 @@
+# LIME Explainer Configuration
+# ===========================
+
+explainability_config:
+  name: "pbf_lime_explainer"
+  version: "1.0.0"
+  description: "Configuration for generating LIME explanations for PBF-LB/M ML models"
+  owner: "ml-ops@company.com"
+  
+  # Explainer metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["lime", "explainability", "model_interpretation", "pbf"]
+
+# Model to Explain
+model_to_explain:
+  name: "defect_detector"
+  version: "production"
+  framework: "tensorflow"
+  format: "savedmodel"
+  mlflow_uri: "http://mlflow:5000"
+  
+  # Model configuration
+  model_config:
+    input_shape: [20]
+    output_shape: [3]
+    model_type: "classification"
+    classes: ["NONE", "POROSITY", "LACK_OF_FUSION"]
+    
+  # Model serving
+  serving:
+    endpoint: "http://defect-detection-service:8080/predict"
+    timeout: 5000  # 5 seconds
+    retry_attempts: 3
+    retry_delay: 1000  # 1 second
+
+# Data for Explanation
+data_for_explanation:
+  # Input data source
+  source_type: "kafka"
+  topic: "ml_predictions"
+  bootstrap_servers: "kafka:9092"
+  schema_registry_url: "http://schema-registry:8081"
+  value_format: "avro"
+  consumer_group: "lime_explainer"
+  starting_offsets: "latest"
+  
+  # Data preprocessing
+  preprocessing:
+    normalization: "standard_scaler"
+    feature_names: [
+      "laser_power", "scan_speed", "melt_pool_temperature", "melt_pool_size",
+      "spatter_count", "powder_flow_rate", "chamber_pressure", "oxygen_level",
+      "layer_thickness", "hatch_spacing", "focus_offset", "chamber_temperature",
+      "powder_bed_temperature", "recoater_speed", "build_plate_temperature",
+      "atmospheric_pressure", "humidity", "vibration_level", "energy_density",
+      "cooling_rate"
+    ]
+    feature_types: [
+      "continuous", "continuous", "continuous", "continuous",
+      "discrete", "continuous", "continuous", "continuous",
+      "continuous", "continuous", "continuous", "continuous",
+      "continuous", "continuous", "continuous",
+      "continuous", "continuous", "continuous", "continuous",
+      "continuous"
+    ]
+    
+  # Sample data for background
+  background_data:
+    source_type: "s3"
+    path: "s3://pbf-data-lake/background_data/defect_detector_training"
+    format: "parquet"
+    sample_size: 1000
+    sampling_strategy: "random"
+    
+  # Explanation data
+  explanation_data:
+    source_type: "kafka"
+    topic: "explanation_requests"
+    bootstrap_servers: "kafka:9092"
+    schema_registry_url: "http://schema-registry:8081"
+    value_format: "avro"
+    consumer_group: "lime_explainer"
+    starting_offsets: "latest"
+
+# LIME Configuration
+lime_config:
+  # LIME parameters
+  parameters:
+    num_features: 10  # Number of top features to explain
+    num_samples: 5000  # Number of samples to generate
+    distance_metric: "euclidean"
+    kernel_width: 0.75
+    feature_selection: "auto"
+    discretize_continuous: true
+    discretizer: "quartile"
+    sample_around_instance: true
+    random_state: 42
+    
+  # Explanation types
+  explanation_types:
+    - type: "tabular"
+      enabled: true
+      description: "Tabular data explanation"
+    - type: "text"
+      enabled: false
+      description: "Text data explanation"
+    - type: "image"
+      enabled: false
+      description: "Image data explanation"
+      
+  # Feature importance
+  feature_importance:
+    enabled: true
+    method: "permutation"
+    n_repeats: 10
+    scoring: "accuracy"
+    
+  # Explanation quality
+  explanation_quality:
+    enabled: true
+    metrics:
+      - "stability"
+      - "consistency"
+      - "fidelity"
+      - "completeness"
+    thresholds:
+      stability: 0.8
+      consistency: 0.8
+      fidelity: 0.8
+      completeness: 0.8
+
+# Explanation Generation
+explanation_generation:
+  # Generation strategy
+  strategy: "on_demand"  # on_demand, batch, streaming
+  
+  # Batch processing
+  batch_processing:
+    enabled: true
+    batch_size: 100
+    processing_interval: "5m"
+    max_processing_time: "1h"
+    
+  # Streaming processing
+  streaming_processing:
+    enabled: true
+    processing_interval: "1s"
+    max_processing_time: "10s"
+    
+  # On-demand processing
+  on_demand_processing:
+    enabled: true
+    max_processing_time: "30s"
+    timeout: "60s"
+    
+  # Explanation caching
+  caching:
+    enabled: true
+    cache_type: "redis"
+    cache_ttl: "1h"
+    max_cache_size: 10000
+    eviction_policy: "lru"
+
+# Output Configuration
+output_settings:
+  # Output destinations
+  destinations:
+    - type: "kafka"
+      topic: "lime_explanations"
+      bootstrap_servers: "kafka:9092"
+      schema_registry_url: "http://schema-registry:8081"
+      value_format: "avro"
+      key_format: "string"
+      delivery_guarantee: "at_least_once"
+      
+    - type: "s3"
+      bucket: "pbf-ml-explanations"
+      path: "lime_explanations/{{ ds }}"
+      format: "json"
+      compression: "gzip"
+      partitioning: ["year", "month", "day", "hour"]
+      
+    - type: "postgresql"
+      table: "lime_explanations"
+      connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+      batch_size: 1000
+      upsert: true
+      conflict_resolution: "update"
+      
+  # Output format
+  output_format: "json"
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      explanation_id: {"type": "string"}
+      model_name: {"type": "string"}
+      model_version: {"type": "string"}
+      prediction_id: {"type": "string"}
+      input_features: {"type": "object"}
+      prediction: {"type": "string"}
+      prediction_confidence: {"type": "number"}
+      explanation:
+        type: "object"
+        properties:
+          feature_importance:
+            type: "array"
+            items:
+              type: "object"
+              properties:
+                feature_name: {"type": "string"}
+                importance_score: {"type": "number"}
+                feature_value: {"type": "number"}
+                feature_contribution: {"type": "number"}
+          explanation_quality:
+            type: "object"
+            properties:
+              stability: {"type": "number"}
+              consistency: {"type": "number"}
+              fidelity: {"type": "number"}
+              completeness: {"type": "number"}
+          explanation_metadata:
+            type: "object"
+            properties:
+              num_features: {"type": "integer"}
+              num_samples: {"type": "integer"}
+              processing_time_ms: {"type": "number"}
+              explanation_method: {"type": "string"}
+      timestamp: {"type": "string", "format": "date-time"}
+      model_version: {"type": "string"}
+      processing_time_ms: {"type": "number"}
+      
+  # Visualizations
+  visualizations:
+    enabled: true
+    formats: ["html", "png", "svg"]
+    plots:
+      - type: "feature_importance_plot"
+        plot_type: "bar"
+        title: "Feature Importance for Defect Detection"
+        x_label: "Features"
+        y_label: "Importance Score"
+        color_scheme: "viridis"
+        
+      - type: "feature_contribution_plot"
+        plot_type: "waterfall"
+        title: "Feature Contributions to Prediction"
+        x_label: "Features"
+        y_label: "Contribution"
+        color_scheme: "coolwarm"
+        
+      - type: "explanation_summary_plot"
+        plot_type: "summary"
+        title: "LIME Explanation Summary"
+        include_confidence: true
+        include_quality_metrics: true
+
+# Explanation Quality Assessment
+explanation_quality:
+  # Quality metrics
+  quality_metrics:
+    - name: "stability"
+      description: "Stability of explanations across multiple runs"
+      calculation: "jaccard_similarity"
+      threshold: 0.8
+      weight: 0.3
+      
+    - name: "consistency"
+      description: "Consistency of explanations for similar inputs"
+      calculation: "cosine_similarity"
+      threshold: 0.8
+      weight: 0.3
+      
+    - name: "fidelity"
+      description: "Fidelity of explanations to the original model"
+      calculation: "explanation_accuracy"
+      threshold: 0.8
+      weight: 0.2
+      
+    - name: "completeness"
+      description: "Completeness of explanations"
+      calculation: "feature_coverage"
+      threshold: 0.8
+      weight: 0.2
+      
+  # Quality assessment
+  quality_assessment:
+    enabled: true
+    assessment_frequency: "daily"
+    assessment_method: "statistical"
+    confidence_level: 0.95
+    
+  # Quality monitoring
+  quality_monitoring:
+    enabled: true
+    monitoring_frequency: "hourly"
+    alert_threshold: 0.7
+    alert_channels: ["slack", "email"]
+    alert_recipients: ["ml-ops@company.com"]
+
+# Explanation Validation
+explanation_validation:
+  # Validation rules
+  validation_rules:
+    - name: "feature_importance_sum"
+      rule: "sum_of_importances <= 1.0"
+      description: "Sum of feature importances should not exceed 1.0"
+      
+    - name: "feature_importance_range"
+      rule: "all_importances >= -1.0 and all_importances <= 1.0"
+      description: "Feature importances should be in range [-1.0, 1.0]"
+      
+    - name: "explanation_quality_threshold"
+      rule: "all_quality_metrics >= 0.7"
+      description: "All quality metrics should be above 0.7"
+      
+    - name: "processing_time_limit"
+      rule: "processing_time <= 30.0"
+      description: "Processing time should not exceed 30 seconds"
+      
+  # Validation frequency
+  validation_frequency: "real_time"
+  
+  # Validation failure handling
+  validation_failure_handling:
+    strategy: "reject_explanation"
+    log_failure: true
+    alert_on_failure: true
+    retry_attempts: 3
+
+# Performance Configuration
+performance:
+  # Processing performance
+  processing_performance:
+    target_latency: 30  # seconds
+    max_latency: 60  # seconds
+    target_throughput: 100  # explanations per minute
+    max_throughput: 500  # explanations per minute
+    
+  # Resource requirements
+  resource_requirements:
+    cpu: "2"
+    memory: "4Gi"
+    storage: "10Gi"
+    gpu: "0"
+    
+  # Resource limits
+  resource_limits:
+    cpu: "4"
+    memory: "8Gi"
+    storage: "20Gi"
+    gpu: "0"
+
+# Monitoring Configuration
+monitoring:
+  # Explanation monitoring
+  explanation_monitoring:
+    enabled: true
+    metrics:
+      - "explanation_count"
+      - "explanation_latency"
+      - "explanation_quality"
+      - "explanation_throughput"
+      - "explanation_error_rate"
+      
+  # Quality monitoring
+  quality_monitoring:
+    enabled: true
+    metrics:
+      - "stability_score"
+      - "consistency_score"
+      - "fidelity_score"
+      - "completeness_score"
+      - "overall_quality_score"
+      
+  # Performance monitoring
+  performance_monitoring:
+    enabled: true
+    metrics:
+      - "processing_latency"
+      - "processing_throughput"
+      - "memory_usage"
+      - "cpu_usage"
+      - "cache_hit_rate"
+      
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["slack", "email"]
+    recipients: ["ml-ops@company.com"]
+    thresholds:
+      explanation_latency: 60  # seconds
+      explanation_error_rate: 0.05
+      quality_score: 0.7
+      processing_throughput: 50  # explanations per minute
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/lime_explainer.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+      
+  # Explanation-specific logging
+  explanation_logging:
+    enabled: true
+    log_explanations: false
+    log_explanation_quality: true
+    log_processing_metrics: true
+    log_errors: true
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    secret_key: "${JWT_SECRET_KEY}"
+    expiration_hours: 24
+    
+  # Authorization
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles: ["ml_user", "ml_admin"]
+    
+  # Data encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+
+# Pipeline Dependencies
+dependencies:
+  # Data dependencies
+  data_dependencies:
+    - source: "kafka"
+      topic: "ml_predictions"
+      min_partitions: 3
+    - source: "kafka"
+      topic: "explanation_requests"
+      min_partitions: 2
+    - source: "s3"
+      bucket: "pbf-data-lake"
+      path: "background_data"
+      
+  # Model dependencies
+  model_dependencies:
+    - type: "model_registry"
+      name: "defect_detector"
+      stage: "production"
+    - type: "model_serving"
+      name: "defect_detection_service"
+      endpoint: "http://defect-detection-service:8080"
+      
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "kafka"
+      endpoint: "kafka:9092"
+    - service: "redis"
+      endpoint: "redis:6379"
+    - service: "postgresql"
+      endpoint: "postgres:5432"
+    - service: "s3"
+      endpoint: "s3://pbf-ml-explanations"

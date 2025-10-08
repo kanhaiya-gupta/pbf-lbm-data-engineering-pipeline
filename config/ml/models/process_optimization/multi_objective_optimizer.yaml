@@ -1,0 +1,537 @@
+# Multi-Objective Optimizer Model Configuration
+# ============================================
+
+model:
+  name: "multi_objective_optimizer"
+  version: "1.0.0"
+  type: "multi_objective_optimization"
+  algorithm: "nsga3"
+  description: "NSGA-III multi-objective optimization for PBF-LB/M process parameter optimization"
+  
+  # Model metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["multi_objective", "optimization", "nsga3", "process_optimization"]
+
+# Optimization Configuration
+optimization:
+  # Algorithm parameters
+  algorithm: "nsga3"
+  population_size: 200
+  generations: 1000
+  mutation_rate: 0.1
+  crossover_rate: 0.9
+  selection_method: "tournament"
+  tournament_size: 3
+  elitism: true
+  elitism_ratio: 0.1
+  
+  # Convergence criteria
+  convergence:
+    max_generations: 1000
+    convergence_threshold: 0.001
+    stagnation_generations: 100
+    hypervolume_threshold: 0.95
+  
+  # Diversity maintenance
+  diversity:
+    crowding_distance: true
+    reference_points: 100
+    niching: true
+    niching_radius: 0.1
+
+# Multi-Objective Functions
+objectives:
+  - name: "maximize_quality_score"
+    weight: 0.4
+    target: "maximize"
+    description: "Maximize part quality score"
+    bounds: [0, 1]
+    priority: "high"
+    constraints:
+      - "quality_score >= 0.8"
+  
+  - name: "minimize_build_time"
+    weight: 0.3
+    target: "minimize"
+    description: "Minimize total build time"
+    bounds: [0, 1000]  # hours
+    priority: "medium"
+    constraints:
+      - "build_time <= 100"
+  
+  - name: "minimize_material_usage"
+    weight: 0.2
+    target: "minimize"
+    description: "Minimize material consumption"
+    bounds: [0, 1000]  # grams
+    priority: "medium"
+    constraints:
+      - "material_usage <= 500"
+  
+  - name: "minimize_energy_consumption"
+    weight: 0.1
+    target: "minimize"
+    description: "Minimize energy consumption"
+    bounds: [0, 10000]  # kWh
+    priority: "low"
+    constraints:
+      - "energy_consumption <= 5000"
+
+# Decision Variables
+decision_variables:
+  - name: "laser_power"
+    type: "continuous"
+    bounds: [50, 1000]
+    unit: "W"
+    precision: 1
+    description: "Laser power setting"
+  
+  - name: "scan_speed"
+    type: "continuous"
+    bounds: [100, 2000]
+    unit: "mm/s"
+    precision: 1
+    description: "Scan speed setting"
+  
+  - name: "layer_thickness"
+    type: "continuous"
+    bounds: [0.02, 0.1]
+    unit: "mm"
+    precision: 0.001
+    description: "Layer thickness"
+  
+  - name: "hatch_spacing"
+    type: "continuous"
+    bounds: [0.05, 0.5]
+    unit: "mm"
+    precision: 0.001
+    description: "Hatch spacing"
+  
+  - name: "contour_spacing"
+    type: "continuous"
+    bounds: [0.05, 0.5]
+    unit: "mm"
+    precision: 0.001
+    description: "Contour spacing"
+  
+  - name: "focus_offset"
+    type: "continuous"
+    bounds: [-2, 2]
+    unit: "mm"
+    precision: 0.01
+    description: "Laser focus offset"
+  
+  - name: "chamber_temperature"
+    type: "continuous"
+    bounds: [20, 200]
+    unit: "°C"
+    precision: 1
+    description: "Build chamber temperature"
+  
+  - name: "oxygen_level"
+    type: "continuous"
+    bounds: [0, 1000]
+    unit: "ppm"
+    precision: 1
+    description: "Oxygen level in chamber"
+
+# Constraints
+constraints:
+  # Physical constraints
+  physical:
+    - name: "laser_power_scan_speed_ratio"
+      type: "inequality"
+      expression: "laser_power / scan_speed <= 2.0"
+      description: "Laser power to scan speed ratio constraint"
+    
+    - name: "layer_thickness_hatch_spacing_ratio"
+      type: "inequality"
+      expression: "layer_thickness / hatch_spacing >= 0.1"
+      description: "Layer thickness to hatch spacing ratio constraint"
+    
+    - name: "energy_density_constraint"
+      type: "inequality"
+      expression: "laser_power / (scan_speed * hatch_spacing) <= 100"
+      description: "Energy density constraint"
+  
+  # Quality constraints
+  quality:
+    - name: "minimum_quality_score"
+      type: "inequality"
+      expression: "quality_score >= 0.8"
+      description: "Minimum quality score requirement"
+    
+    - name: "maximum_porosity"
+      type: "inequality"
+      expression: "porosity <= 0.02"
+      description: "Maximum porosity constraint"
+    
+    - name: "minimum_density"
+      type: "inequality"
+      expression: "density >= 0.98"
+      description: "Minimum density requirement"
+  
+  # Process constraints
+  process:
+    - name: "maximum_build_time"
+      type: "inequality"
+      expression: "build_time <= 100"
+      description: "Maximum build time constraint"
+    
+    - name: "minimum_build_time"
+      type: "inequality"
+      expression: "build_time >= 1"
+      description: "Minimum build time constraint"
+    
+    - name: "maximum_material_usage"
+      type: "inequality"
+      expression: "material_usage <= 500"
+      description: "Maximum material usage constraint"
+
+# Training Configuration
+training:
+  # Optimization parameters
+  optimization:
+    max_evaluations: 50000
+    convergence_threshold: 0.001
+    patience: 100
+    restart_on_stagnation: true
+    restart_frequency: 200
+  
+  # Early stopping
+  early_stopping:
+    patience: 100
+    monitor: "hypervolume"
+    mode: "max"
+    restore_best_weights: true
+    min_delta: 0.001
+  
+  # Validation
+  validation:
+    validation_split: 0.2
+    validation_frequency: 50
+    cross_validation: true
+    folds: 3
+
+# Data Configuration
+data:
+  # Input features
+  features:
+    - name: "material_type"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]
+    - name: "part_geometry_complexity"
+      type: "continuous"
+      range: [0, 10]
+    - name: "part_volume"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "cm³"
+    - name: "part_surface_area"
+      type: "continuous"
+      range: [0, 10000]
+      unit: "cm²"
+    - name: "aspect_ratio"
+      type: "continuous"
+      range: [0, 100]
+    - name: "wall_thickness_min"
+      type: "continuous"
+      range: [0.1, 10]
+      unit: "mm"
+    - name: "overhang_angle_max"
+      type: "continuous"
+      range: [0, 90]
+      unit: "degrees"
+    - name: "support_requirement_score"
+      type: "continuous"
+      range: [0, 10]
+    - name: "build_orientation_x"
+      type: "continuous"
+      range: [0, 1]
+    - name: "build_orientation_y"
+      type: "continuous"
+      range: [0, 1]
+    - name: "build_orientation_z"
+      type: "continuous"
+      range: [0, 1]
+    - name: "powder_bed_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "powder_flow_rate"
+      type: "continuous"
+      range: [0, 50]
+      unit: "g/min"
+    - name: "recoater_speed"
+      type: "continuous"
+      range: [10, 200]
+      unit: "mm/s"
+    - name: "build_plate_material"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Steel", "Aluminum", "Titanium"]
+    - name: "build_plate_temperature"
+      type: "continuous"
+      range: [20, 300]
+      unit: "°C"
+    - name: "atmospheric_pressure"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "mbar"
+    - name: "humidity"
+      type: "continuous"
+      range: [0, 100]
+      unit: "%"
+    - name: "vibration_level"
+      type: "continuous"
+      range: [0, 10]
+      unit: "mm/s"
+  
+  # Data preprocessing
+  preprocessing:
+    normalization: "min_max_scaler"
+    missing_value_strategy: "interpolate"
+    outlier_detection: "iqr"
+    outlier_threshold: 3.0
+    feature_selection: true
+    feature_selection_method: "genetic_algorithm"
+    n_features: 20
+  
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    random_state: 42
+
+# Performance Requirements
+performance:
+  # Optimization thresholds
+  hypervolume_threshold: 0.9
+  convergence_threshold: 0.001
+  diversity_threshold: 0.1
+  spread_threshold: 0.1
+  
+  # Latency requirements
+  latency_threshold: 5000  # milliseconds
+  throughput_threshold: 10  # optimizations per second
+  
+  # Memory requirements
+  memory_threshold: 1024  # MB
+  model_size_threshold: 200  # MB
+
+# Model Validation
+validation:
+  # Multi-objective validation
+  validation:
+    hypervolume: true
+    generational_distance: true
+    inverted_generational_distance: true
+    spread: true
+    epsilon_indicator: true
+    r_indicators: true
+  
+  # Validation thresholds
+  thresholds:
+    min_hypervolume: 0.8
+    max_generational_distance: 0.05
+    max_inverted_generational_distance: 0.05
+    min_spread: 0.05
+    max_epsilon_indicator: 0.05
+
+# Model Serving
+serving:
+  # API configuration
+  api:
+    endpoint: "/api/v1/optimize/multi_objective"
+    method: "POST"
+    content_type: "application/json"
+  
+  # Input schema
+  input_schema:
+    type: "object"
+    properties:
+      material_type: {"type": "string", "enum": ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]}
+      part_geometry_complexity: {"type": "number", "minimum": 0, "maximum": 10}
+      part_volume: {"type": "number", "minimum": 0, "maximum": 1000}
+      part_surface_area: {"type": "number", "minimum": 0, "maximum": 10000}
+      aspect_ratio: {"type": "number", "minimum": 0, "maximum": 100}
+      wall_thickness_min: {"type": "number", "minimum": 0.1, "maximum": 10}
+      overhang_angle_max: {"type": "number", "minimum": 0, "maximum": 90}
+      support_requirement_score: {"type": "number", "minimum": 0, "maximum": 10}
+      build_orientation_x: {"type": "number", "minimum": 0, "maximum": 1}
+      build_orientation_y: {"type": "number", "minimum": 0, "maximum": 1}
+      build_orientation_z: {"type": "number", "minimum": 0, "maximum": 1}
+      powder_bed_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      powder_flow_rate: {"type": "number", "minimum": 0, "maximum": 50}
+      recoater_speed: {"type": "number", "minimum": 10, "maximum": 200}
+      build_plate_material: {"type": "string", "enum": ["Steel", "Aluminum", "Titanium"]}
+      build_plate_temperature: {"type": "number", "minimum": 20, "maximum": 300}
+      atmospheric_pressure: {"type": "number", "minimum": 0, "maximum": 2000}
+      humidity: {"type": "number", "minimum": 0, "maximum": 100}
+      vibration_level: {"type": "number", "minimum": 0, "maximum": 10}
+      optimization_objectives:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            name: {"type": "string"}
+            weight: {"type": "number", "minimum": 0, "maximum": 1}
+            priority: {"type": "string", "enum": ["high", "medium", "low"]}
+      constraints:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            name: {"type": "string"}
+            type: {"type": "string", "enum": ["inequality", "equality"]}
+            expression: {"type": "string"}
+    required: ["material_type", "part_geometry_complexity", "part_volume", "optimization_objectives"]
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      pareto_front:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            solution_id: {"type": "string"}
+            decision_variables:
+              type: "object"
+              properties:
+                laser_power: {"type": "number"}
+                scan_speed: {"type": "number"}
+                layer_thickness: {"type": "number"}
+                hatch_spacing: {"type": "number"}
+                contour_spacing: {"type": "number"}
+                focus_offset: {"type": "number"}
+                chamber_temperature: {"type": "number"}
+                oxygen_level: {"type": "number"}
+            objective_values:
+              type: "object"
+              properties:
+                quality_score: {"type": "number"}
+                build_time: {"type": "number"}
+                material_usage: {"type": "number"}
+                energy_consumption: {"type": "number"}
+            constraint_violations:
+              type: "array"
+              items: {"type": "string"}
+            rank: {"type": "integer"}
+            crowding_distance: {"type": "number"}
+      optimization_metrics:
+        type: "object"
+        properties:
+          hypervolume: {"type": "number"}
+          generational_distance: {"type": "number"}
+          inverted_generational_distance: {"type": "number"}
+          spread: {"type": "number"}
+          epsilon_indicator: {"type": "number"}
+          convergence_rate: {"type": "number"}
+          diversity_metric: {"type": "number"}
+      optimization_info:
+        type: "object"
+        properties:
+          total_evaluations: {"type": "integer"}
+          generations: {"type": "integer"}
+          convergence_achieved: {"type": "boolean"}
+          stagnation_generations: {"type": "integer"}
+          population_size: {"type": "integer"}
+      confidence_score: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+        description: "Confidence score for the optimization"
+      timestamp: 
+        type: "string"
+        format: "date-time"
+        description: "Timestamp when optimization was performed"
+      model_version: 
+        type: "string"
+        description: "Version of the model used for optimization"
+      processing_time_ms: 
+        type: "number"
+        minimum: 0
+        description: "Time taken to process the request in milliseconds"
+    required: ["pareto_front", "optimization_metrics", "optimization_info", "confidence_score", "timestamp"]
+
+# Monitoring Configuration
+monitoring:
+  # Model performance monitoring
+  performance:
+    enabled: true
+    metrics_interval: 60  # seconds
+    retention_days: 30
+  
+  # Optimization monitoring
+  optimization_monitoring:
+    enabled: true
+    metrics:
+      - "hypervolume"
+      - "generational_distance"
+      - "inverted_generational_distance"
+      - "spread"
+      - "epsilon_indicator"
+      - "convergence_rate"
+      - "diversity_metric"
+      - "constraint_violation_rate"
+      - "pareto_front_size"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      hypervolume_drop: 0.05
+      convergence_failure: 0.1
+      constraint_violation_rate: 0.2
+      latency_increase: 2000  # milliseconds
+      error_rate: 0.05
+
+# Model Deployment
+deployment:
+  # Deployment configuration
+  strategy: "rolling"
+  replicas: 2
+  resources:
+    cpu: "4"
+    memory: "8Gi"
+    gpu: "0"
+  
+  # Health checks
+  health_checks:
+    initial_delay: 30
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    min_replicas: 2
+    max_replicas: 4
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Model Versioning
+versioning:
+  # Version strategy
+  strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Version requirements
+  requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    trigger_threshold: 0.05  # 5% performance drop
+    automatic: false  # Manual rollback required

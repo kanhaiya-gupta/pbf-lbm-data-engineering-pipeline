@@ -1,0 +1,640 @@
+# NoSQL Quality Configuration
+# PBF-LB/M Data Pipeline - NoSQL Data Quality Rules and Validation
+
+# NoSQL Data Quality Rules
+nosql_quality_rules:
+  enabled: true
+  
+  # Document Quality Rules (MongoDB)
+  document_quality_rules:
+    enabled: true
+    
+    # PBF Process Data Quality Rules
+    pbf_process_quality:
+      enabled: true
+      quality_threshold: 0.9
+      
+      completeness_rules:
+        required_fields:
+          - "process_id"
+          - "timestamp"
+          - "material_type"
+          - "process_parameters"
+          - "quality_metrics"
+        
+        optional_fields:
+          - "defects"
+          - "metadata"
+          - "operator_id"
+          - "machine_id"
+      
+      accuracy_rules:
+        data_type_validation:
+          process_id: "string"
+          timestamp: "datetime"
+          material_type: "string"
+          quality_metrics: "object"
+          process_parameters: "object"
+        
+        value_range_validation:
+          quality_metrics.density:
+            min: 0.0
+            max: 1.0
+          quality_metrics.surface_roughness:
+            min: 0.0
+            max: 100.0
+          process_parameters.laser_power:
+            min: 0.0
+            max: 1000.0
+          process_parameters.scan_speed:
+            min: 0.0
+            max: 10000.0
+      
+      consistency_rules:
+        business_rules:
+          - "quality_metrics.density >= 0.95 for grade A processes"
+          - "quality_metrics.surface_roughness <= 10.0 for grade A processes"
+          - "process_parameters.laser_power > 0 for all processes"
+          - "material_type in ['Ti6Al4V', 'Inconel718', 'StainlessSteel316L', 'AlSi10Mg']"
+        
+        referential_integrity:
+          - "process_id must be unique"
+          - "timestamp must be within valid range"
+          - "material_type must match material database"
+    
+    # ISPM Monitoring Data Quality Rules
+    ispm_monitoring_quality:
+      enabled: true
+      quality_threshold: 0.85
+      
+      completeness_rules:
+        required_fields:
+          - "sensor_id"
+          - "timestamp"
+          - "sensor_info"
+          - "measurement_data"
+        
+        optional_fields:
+          - "signal_quality"
+          - "anomaly_detection"
+          - "metadata"
+      
+      accuracy_rules:
+        data_type_validation:
+          sensor_id: "string"
+          timestamp: "datetime"
+          measurement_data.value: "number"
+          measurement_data.unit: "string"
+          sensor_info.sensor_type: "string"
+        
+        value_range_validation:
+          measurement_data.value:
+            min: -1000.0
+            max: 1000.0
+          signal_quality.signal_to_noise_ratio:
+            min: 0.0
+            max: 100.0
+          signal_quality.data_quality_score:
+            min: 0.0
+            max: 1.0
+      
+      consistency_rules:
+        business_rules:
+          - "sensor_id must be valid sensor identifier"
+          - "measurement_data.unit must match sensor_type"
+          - "signal_quality.data_quality_score >= 0.8 for valid measurements"
+          - "anomaly_detection.is_anomaly must be boolean"
+    
+    # CT Scan Data Quality Rules
+    ct_scan_quality:
+      enabled: true
+      quality_threshold: 0.9
+      
+      completeness_rules:
+        required_fields:
+          - "scan_id"
+          - "process_id"
+          - "scan_parameters"
+          - "image_quality"
+          - "defect_analysis"
+        
+        optional_fields:
+          - "dimensional_analysis"
+          - "metadata"
+      
+      accuracy_rules:
+        data_type_validation:
+          scan_id: "string"
+          process_id: "string"
+          image_quality.resolution: "number"
+          defect_analysis.defect_count: "integer"
+        
+        value_range_validation:
+          image_quality.resolution:
+            min: 0.0
+            max: 1000.0
+          defect_analysis.defect_count:
+            min: 0
+            max: 1000
+          image_quality.contrast_ratio:
+            min: 0.0
+            max: 1.0
+      
+      consistency_rules:
+        business_rules:
+          - "scan_id must be unique"
+          - "process_id must reference valid process"
+          - "defect_analysis.defect_count >= 0"
+          - "image_quality.resolution > 0"
+    
+    # Powder Bed Data Quality Rules
+    powder_bed_quality:
+      enabled: true
+      quality_threshold: 0.85
+      
+      completeness_rules:
+        required_fields:
+          - "bed_id"
+          - "process_id"
+          - "powder_characteristics"
+          - "bed_quality_metrics"
+        
+        optional_fields:
+          - "defect_detection"
+          - "metadata"
+      
+      accuracy_rules:
+        data_type_validation:
+          bed_id: "string"
+          process_id: "string"
+          powder_characteristics.material_type: "string"
+          bed_quality_metrics.uniformity_score: "number"
+        
+        value_range_validation:
+          bed_quality_metrics.uniformity_score:
+            min: 0.0
+            max: 1.0
+          powder_characteristics.particle_size:
+            min: 0.0
+            max: 1000.0
+          bed_quality_metrics.layer_thickness:
+            min: 0.01
+            max: 0.5
+      
+      consistency_rules:
+        business_rules:
+          - "bed_id must be unique"
+          - "process_id must reference valid process"
+          - "powder_characteristics.material_type must match process material"
+          - "bed_quality_metrics.uniformity_score >= 0.8 for good quality"
+
+  # Key-Value Quality Rules (Redis)
+  key_value_quality_rules:
+    enabled: true
+    
+    # Cache Data Quality Rules
+    cache_quality:
+      enabled: true
+      quality_threshold: 0.8
+      
+      completeness_rules:
+        required_fields:
+          - "key_pattern"
+          - "value_format"
+          - "ttl_policy"
+        
+        optional_fields:
+          - "compression"
+          - "serialization"
+      
+      accuracy_rules:
+        key_validation:
+          key_pattern: "string"
+          key_length: "max_255"
+          key_characters: "alphanumeric_and_colon"
+        
+        value_validation:
+          value_format: "json"
+          serialization: "json"
+          compression: "optional"
+      
+      consistency_rules:
+        business_rules:
+          - "key_pattern must match defined patterns"
+          - "ttl_policy must be positive integer"
+          - "value must be valid JSON"
+          - "compression must be boolean if present"
+    
+    # Session Data Quality Rules
+    session_quality:
+      enabled: true
+      quality_threshold: 0.9
+      
+      completeness_rules:
+        required_fields:
+          - "session_id"
+          - "user_id"
+          - "created_at"
+          - "expires_at"
+        
+        optional_fields:
+          - "user_preferences"
+          - "session_data"
+      
+      accuracy_rules:
+        data_type_validation:
+          session_id: "string"
+          user_id: "string"
+          created_at: "datetime"
+          expires_at: "datetime"
+        
+        value_range_validation:
+          session_duration:
+            min: 300  # 5 minutes
+            max: 86400  # 24 hours
+      
+      consistency_rules:
+        business_rules:
+          - "session_id must be unique"
+          - "expires_at > created_at"
+          - "user_id must reference valid user"
+          - "session_duration within valid range"
+
+  # Columnar Quality Rules (Cassandra)
+  columnar_quality_rules:
+    enabled: true
+    
+    # Time-Series Data Quality Rules
+    timeseries_quality:
+      enabled: true
+      quality_threshold: 0.9
+      
+      completeness_rules:
+        required_fields:
+          - "process_id"
+          - "timestamp"
+          - "metric_type"
+          - "metric_value"
+        
+        optional_fields:
+          - "unit"
+          - "quality_score"
+          - "sensor_id"
+      
+      accuracy_rules:
+        data_type_validation:
+          process_id: "string"
+          timestamp: "timestamp"
+          metric_type: "string"
+          metric_value: "number"
+          unit: "string"
+        
+        value_range_validation:
+          metric_value:
+            min: -10000.0
+            max: 10000.0
+          quality_score:
+            min: 0.0
+            max: 1.0
+      
+      consistency_rules:
+        business_rules:
+          - "process_id must reference valid process"
+          - "timestamp must be within valid range"
+          - "metric_type must be valid metric type"
+          - "metric_value must be within expected range"
+    
+    # Process Metrics Quality Rules
+    process_metrics_quality:
+      enabled: true
+      quality_threshold: 0.9
+      
+      completeness_rules:
+        required_fields:
+          - "process_id"
+          - "measurement_type"
+          - "timestamp"
+          - "density"
+          - "surface_roughness"
+        
+        optional_fields:
+          - "dimensional_accuracy"
+          - "defect_count"
+          - "quality_grade"
+      
+      accuracy_rules:
+        data_type_validation:
+          process_id: "string"
+          measurement_type: "string"
+          timestamp: "timestamp"
+          density: "number"
+          surface_roughness: "number"
+        
+        value_range_validation:
+          density:
+            min: 0.0
+            max: 1.0
+          surface_roughness:
+            min: 0.0
+            max: 100.0
+          dimensional_accuracy:
+            min: 0.0
+            max: 1000.0
+      
+      consistency_rules:
+        business_rules:
+          - "density >= 0.95 for grade A"
+          - "surface_roughness <= 10.0 for grade A"
+          - "dimensional_accuracy <= 50.0 for grade A"
+          - "defect_count >= 0"
+
+  # Search Quality Rules (Elasticsearch)
+  search_quality_rules:
+    enabled: true
+    
+    # Search Index Quality Rules
+    search_index_quality:
+      enabled: true
+      quality_threshold: 0.85
+      
+      completeness_rules:
+        required_fields:
+          - "process_id"
+          - "timestamp"
+          - "material_type"
+          - "quality_metrics"
+        
+        optional_fields:
+          - "process_parameters"
+          - "metadata"
+          - "full_text_search"
+      
+      accuracy_rules:
+        data_type_validation:
+          process_id: "keyword"
+          timestamp: "date"
+          material_type: "keyword"
+          quality_metrics: "object"
+        
+        mapping_validation:
+          - "process_id must be keyword type"
+          - "timestamp must be date type"
+          - "material_type must be keyword type"
+          - "quality_metrics must be object type"
+      
+      consistency_rules:
+        business_rules:
+          - "process_id must be unique"
+          - "timestamp must be valid date"
+          - "material_type must be valid material"
+          - "quality_metrics must contain valid metrics"
+    
+    # Search Query Quality Rules
+    search_query_quality:
+      enabled: true
+      quality_threshold: 0.8
+      
+      completeness_rules:
+        required_fields:
+          - "query_type"
+          - "search_fields"
+          - "filters"
+        
+        optional_fields:
+          - "sorting"
+          - "aggregations"
+          - "highlighting"
+      
+      accuracy_rules:
+        query_validation:
+          - "query syntax must be valid"
+          - "search fields must exist in mapping"
+          - "filters must be valid"
+          - "sorting fields must be sortable"
+      
+      consistency_rules:
+        business_rules:
+          - "query must return results within timeout"
+          - "search fields must be indexed"
+          - "filters must be applied correctly"
+          - "results must be relevant"
+
+  # Graph Quality Rules (Neo4j)
+  graph_quality_rules:
+    enabled: true
+    
+    # Node Quality Rules
+    node_quality:
+      enabled: true
+      quality_threshold: 0.9
+      
+      completeness_rules:
+        required_fields:
+          - "node_id"
+          - "node_label"
+          - "properties"
+        
+        optional_fields:
+          - "metadata"
+          - "constraints"
+      
+      accuracy_rules:
+        data_type_validation:
+          node_id: "string"
+          node_label: "string"
+          properties: "object"
+        
+        label_validation:
+          - "node_label must be valid label"
+          - "properties must match label schema"
+          - "constraints must be satisfied"
+      
+      consistency_rules:
+        business_rules:
+          - "node_id must be unique within label"
+          - "node_label must be valid"
+          - "properties must be consistent"
+          - "constraints must be enforced"
+    
+    # Relationship Quality Rules
+    relationship_quality:
+      enabled: true
+      quality_threshold: 0.9
+      
+      completeness_rules:
+        required_fields:
+          - "relationship_id"
+          - "relationship_type"
+          - "start_node"
+          - "end_node"
+        
+        optional_fields:
+          - "properties"
+          - "metadata"
+      
+      accuracy_rules:
+        data_type_validation:
+          relationship_id: "string"
+          relationship_type: "string"
+          start_node: "string"
+          end_node: "string"
+          properties: "object"
+        
+        relationship_validation:
+          - "relationship_type must be valid"
+          - "start_node must exist"
+          - "end_node must exist"
+          - "properties must be consistent"
+      
+      consistency_rules:
+        business_rules:
+          - "relationship_id must be unique"
+          - "start_node and end_node must be different"
+          - "relationship_type must be valid"
+          - "properties must match relationship schema"
+
+# Data Quality Monitoring
+quality_monitoring:
+  enabled: true
+  
+  # Quality Metrics
+  quality_metrics:
+    # Data Quality Scores
+    quality_scores:
+      enabled: true
+      metrics_interval: 300  # 5 minutes
+      metrics_to_collect:
+        - "completeness_score"
+        - "accuracy_score"
+        - "consistency_score"
+        - "overall_quality_score"
+    
+    # Quality Violations
+    quality_violations:
+      enabled: true
+      metrics_interval: 60  # 1 minute
+      metrics_to_collect:
+        - "violation_count"
+        - "violation_types"
+        - "violation_severity"
+        - "violation_resolution_time"
+    
+    # Quality Trends
+    quality_trends:
+      enabled: true
+      metrics_interval: 3600  # 1 hour
+      metrics_to_collect:
+        - "quality_trend_analysis"
+        - "quality_degradation_detection"
+        - "quality_improvement_tracking"
+        - "quality_anomaly_detection"
+  
+  # Quality Alerting
+  quality_alerting:
+    enabled: true
+    alert_rules:
+      # Quality Score Alerts
+      quality_score_alerts:
+        enabled: true
+        alert_rules:
+          - condition: "overall_quality_score < 0.8"
+            severity: "warning"
+            action: "notify"
+          - condition: "overall_quality_score < 0.7"
+            severity: "critical"
+            action: "page"
+      
+      # Quality Violation Alerts
+      quality_violation_alerts:
+        enabled: true
+        alert_rules:
+          - condition: "violation_count > 100"
+            severity: "warning"
+            action: "notify"
+          - condition: "violation_count > 500"
+            severity: "critical"
+            action: "page"
+      
+      # Quality Trend Alerts
+      quality_trend_alerts:
+        enabled: true
+        alert_rules:
+          - condition: "quality_degradation_detected == true"
+            severity: "warning"
+            action: "notify"
+          - condition: "quality_anomaly_detected == true"
+            severity: "critical"
+            action: "page"
+  
+  # Quality Dashboards
+  quality_dashboards:
+    enabled: true
+    dashboard_url: "${GRAFANA_URL}"
+    refresh_interval: 30  # seconds
+    
+    panels:
+      - "quality_scores_overview"
+      - "quality_violations_summary"
+      - "quality_trends_analysis"
+      - "quality_anomaly_detection"
+      - "quality_improvement_tracking"
+      - "quality_rule_compliance"
+      - "quality_metrics_by_model"
+      - "quality_resolution_status"
+
+# Data Quality Remediation
+quality_remediation:
+  enabled: true
+  
+  # Remediation Strategies
+  remediation_strategies:
+    # Automatic Remediation
+    automatic_remediation:
+      enabled: true
+      remediation_rules:
+        - "missing_required_fields: use_default_values"
+        - "invalid_data_types: convert_to_correct_type"
+        - "out_of_range_values: clamp_to_valid_range"
+        - "duplicate_records: remove_duplicates"
+    
+    # Manual Remediation
+    manual_remediation:
+      enabled: true
+      remediation_rules:
+        - "business_rule_violations: manual_review_required"
+        - "complex_data_issues: expert_review_required"
+        - "systematic_quality_issues: root_cause_analysis"
+        - "data_integrity_violations: data_restoration"
+    
+    # Quarantine Strategy
+    quarantine_strategy:
+      enabled: true
+      quarantine_rules:
+        - "quality_score < 0.5: quarantine_data"
+        - "critical_field_missing: quarantine_data"
+        - "data_corruption_detected: quarantine_data"
+        - "security_violation: quarantine_data"
+  
+  # Remediation Workflows
+  remediation_workflows:
+    # Data Cleansing Workflow
+    data_cleansing_workflow:
+      enabled: true
+      workflow_steps:
+        - "detect_quality_issues"
+        - "classify_issue_severity"
+        - "apply_remediation_strategy"
+        - "validate_remediation"
+        - "update_quality_metrics"
+        - "notify_stakeholders"
+    
+    # Quality Improvement Workflow
+    quality_improvement_workflow:
+      enabled: true
+      workflow_steps:
+        - "analyze_quality_trends"
+        - "identify_root_causes"
+        - "develop_improvement_plan"
+        - "implement_improvements"
+        - "monitor_improvement_impact"
+        - "document_lessons_learned"

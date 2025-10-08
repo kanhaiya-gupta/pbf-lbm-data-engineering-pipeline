@@ -1,0 +1,535 @@
+# Flink ML Stream Processor Configuration
+# =====================================
+
+stream_processor:
+  name: "flink_ml_stream_processor"
+  version: "1.0.0"
+  description: "Apache Flink-based stream processor for real-time ML inference and feature engineering"
+  engine: "flink"
+  owner: "ml-team@company.com"
+  
+  # Service metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["flink", "stream_processing", "real_time", "ml_inference"]
+
+# Flink Configuration
+flink:
+  # Flink version
+  version: "1.18.0"
+  
+  # Job configuration
+  job:
+    name: "pbf_ml_stream_processor"
+    parallelism: 4
+    checkpoint_interval: 60000  # 1 minute
+    checkpoint_timeout: 300000  # 5 minutes
+    min_pause_between_checkpoints: 30000  # 30 seconds
+    max_concurrent_checkpoints: 1
+    externalized_checkpoints: true
+    checkpoint_retention_policy: "RETAIN_ON_CANCELLATION"
+    
+  # State backend
+  state_backend:
+    type: "rocksdb"
+    checkpoint_directory: "s3://pbf-data-lake/checkpoints/flink_ml_processor"
+    incremental_checkpoints: true
+    local_recovery: true
+    
+  # Memory configuration
+  memory:
+    job_manager_memory: "2g"
+    task_manager_memory: "8g"
+    managed_memory_fraction: 0.4
+    network_memory_fraction: 0.2
+    
+  # Network configuration
+  network:
+    buffer_timeout: "100ms"
+    buffer_size: "32kb"
+    max_buffer_size: "1mb"
+    num_network_buffers: 2048
+
+# Input Stream Configuration
+input_streams:
+  # Primary input stream
+  primary:
+    type: "kafka"
+    topic: "ispm_sensor_data"
+    bootstrap_servers: "kafka:9092"
+    group_id: "flink-ml-processor-group"
+    starting_offsets: "latest"
+    schema_registry_url: "http://schema-registry:8081"
+    value_format: "avro"
+    key_format: "string"
+    
+  # Secondary input streams
+  secondary:
+    - type: "kafka"
+      topic: "powder_bed_images"
+      bootstrap_servers: "kafka:9092"
+      group_id: "flink-ml-processor-group"
+      starting_offsets: "latest"
+      schema_registry_url: "http://schema-registry:8081"
+      value_format: "avro"
+      key_format: "string"
+      
+    - type: "kafka"
+      topic: "ct_scan_events"
+      bootstrap_servers: "kafka:9092"
+      group_id: "flink-ml-processor-group"
+      starting_offsets: "latest"
+      schema_registry_url: "http://schema-registry:8081"
+      value_format: "avro"
+      key_format: "string"
+
+# Output Stream Configuration
+output_streams:
+  # Primary output stream
+  primary:
+    type: "kafka"
+    topic: "ml_predictions"
+    bootstrap_servers: "kafka:9092"
+    schema_registry_url: "http://schema-registry:8081"
+    value_format: "avro"
+    key_format: "string"
+    delivery_guarantee: "at_least_once"
+    
+  # Secondary output streams
+  secondary:
+    - type: "kafka"
+      topic: "ml_monitoring_events"
+      bootstrap_servers: "kafka:9092"
+      schema_registry_url: "http://schema-registry:8081"
+      value_format: "avro"
+      key_format: "string"
+      delivery_guarantee: "at_least_once"
+      
+    - type: "kafka"
+      topic: "ml_feature_events"
+      bootstrap_servers: "kafka:9092"
+      schema_registry_url: "http://schema-registry:8081"
+      value_format: "avro"
+      key_format: "string"
+      delivery_guarantee: "at_least_once"
+
+# Error Stream Configuration
+error_streams:
+  # Dead letter queue
+  dead_letter_queue:
+    type: "kafka"
+    topic: "dlq_flink_ml_processor"
+    bootstrap_servers: "kafka:9092"
+    schema_registry_url: "http://schema-registry:8081"
+    value_format: "json"
+    key_format: "string"
+    delivery_guarantee: "at_least_once"
+    
+  # Error storage
+  error_storage:
+    type: "s3"
+    bucket: "pbf-ml-errors"
+    path: "flink_ml_processor/errors"
+    format: "json"
+    compression: "gzip"
+
+# Processing Logic Configuration
+processing_logic:
+  # Feature engineering
+  feature_engineering:
+    enabled: true
+    feature_configs:
+      - "config/ml/features/sensor_features/pyrometer_features.yaml"
+      - "config/ml/features/process_features/laser_parameter_features.yaml"
+      - "config/ml/features/temporal_features/time_series_features.yaml"
+    feature_store_lookup:
+      enabled: true
+      online_store_type: "redis"
+      lookup_keys: ["process_id", "layer_number"]
+      cache_ttl: 300  # 5 minutes
+      
+  # Model inference
+  model_inference:
+    enabled: true
+    models:
+      - name: "defect_detector"
+        type: "classification"
+        framework: "tensorflow"
+        serving_endpoint: "http://defect-detection-service:8080/predict"
+        batch_size: 100
+        timeout: 5000  # 5 seconds
+        
+      - name: "quality_assessor"
+        type: "regression"
+        framework: "scikit-learn"
+        serving_endpoint: "http://quality-assessment-service:8080/predict"
+        batch_size: 100
+        timeout: 5000  # 5 seconds
+        
+      - name: "process_optimizer"
+        type: "multi_objective_optimization"
+        framework: "genetic_algorithm"
+        serving_endpoint: "http://process-optimization-service:8080/optimize"
+        batch_size: 50
+        timeout: 10000  # 10 seconds
+        
+      - name: "equipment_health_monitor"
+        type: "anomaly_detection"
+        framework: "isolation_forest"
+        serving_endpoint: "http://equipment-health-service:8080/predict"
+        batch_size: 100
+        timeout: 5000  # 5 seconds
+        
+  # Data enrichment
+  data_enrichment:
+    enabled: true
+    lookup_sources:
+      - type: "postgresql"
+        table: "material_properties"
+        join_key: "material_id"
+        fields: ["tensile_strength", "yield_strength", "hardness", "density"]
+        cache_ttl: 3600  # 1 hour
+        
+      - type: "postgresql"
+        table: "process_parameters"
+        join_key: "process_id"
+        fields: ["laser_power_setpoint", "scan_speed_setpoint", "layer_thickness", "hatch_spacing"]
+        cache_ttl: 1800  # 30 minutes
+        
+      - type: "mongodb"
+        collection: "equipment_status"
+        join_key: "equipment_id"
+        fields: ["maintenance_status", "last_maintenance_date", "operating_hours"]
+        cache_ttl: 1800  # 30 minutes
+
+# Stream Processing Configuration
+stream_processing:
+  # Watermark configuration
+  watermark:
+    enabled: true
+    strategy: "bounded_out_of_orderness"
+    max_out_of_orderness: 60000  # 1 minute
+    idle_timeout: 300000  # 5 minutes
+    
+  # Window configuration
+  windows:
+    - name: "tumbling_1min"
+      type: "tumbling"
+      size: 60000  # 1 minute
+      slide: 60000  # 1 minute
+      
+    - name: "sliding_5min"
+      type: "sliding"
+      size: 300000  # 5 minutes
+      slide: 60000  # 1 minute
+      
+    - name: "session_10min"
+      type: "session"
+      gap: 600000  # 10 minutes
+      
+  # Aggregation configuration
+  aggregations:
+    - name: "sensor_data_aggregation"
+      window: "tumbling_1min"
+      aggregations:
+        - type: "mean"
+          fields: ["laser_power", "scan_speed", "melt_pool_temperature"]
+        - type: "std"
+          fields: ["laser_power", "scan_speed", "melt_pool_temperature"]
+        - type: "sum"
+          fields: ["spatter_count"]
+        - type: "count"
+          fields: ["record_count"]
+          
+  # Join configuration
+  joins:
+    - name: "sensor_process_join"
+      left_stream: "ispm_sensor_data"
+      right_stream: "process_parameters"
+      join_type: "inner"
+      join_key: "process_id"
+      window: "tumbling_1min"
+      tolerance: 30000  # 30 seconds
+
+# Model Configuration
+model:
+  # Model registry
+  registry: "mlflow"
+  uri: "http://mlflow:5000"
+  
+  # Model loading
+  loading_strategy: "lazy"
+  caching: true
+  model_refresh_interval: "1h"
+  model_validation: true
+  
+  # Model serving
+  serving:
+    type: "external"
+    load_balancing: "round_robin"
+    health_check_interval: 30000  # 30 seconds
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5
+      recovery_timeout: 60000  # 1 minute
+      half_open_max_calls: 3
+
+# Resource Requirements
+resources:
+  # Flink resources
+  flink:
+    job_manager:
+      cpu: "1"
+      memory: "2Gi"
+    task_manager:
+      cpu: "4"
+      memory: "8Gi"
+      replicas: 3
+      
+  # Resource limits
+  limits:
+    cpu: "16"
+    memory: "32Gi"
+    storage: "100Gi"
+    gpu: "0"
+    
+  # Resource requests
+  requests:
+    cpu: "8"
+    memory: "16Gi"
+    storage: "50Gi"
+    gpu: "0"
+
+# Performance Configuration
+performance:
+  # Throughput requirements
+  throughput:
+    target: 10000  # records per second
+    max: 50000
+    burst_capacity: 25000
+    
+  # Latency requirements
+  latency:
+    target: 100  # milliseconds
+    max: 500
+    p95: 200
+    p99: 400
+    
+  # Memory requirements
+  memory:
+    target: 16  # GB
+    max: 32
+    
+  # CPU requirements
+  cpu:
+    target: 8
+    max: 16
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "apache-flink==1.18.0"
+    - "tensorflow==2.16.1"
+    - "scikit-learn==1.3.0"
+    - "pandas==2.0.3"
+    - "numpy==1.24.3"
+    - "mlflow==2.9.2"
+    - "xgboost==2.0.2"
+    - "boto3==1.34.0"
+    - "psycopg2-binary==2.9.9"
+    - "pymongo==4.6.0"
+    - "redis==5.0.1"
+    
+  # Environment variables
+  env_vars:
+    FLINK_HOME: "/opt/flink"
+    PYTHONPATH: "/app/src:/app/config"
+    MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+    AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+
+# Error Handling
+error_handling:
+  # Retry policy
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: 1000  # 1 second
+    exponential_backoff: true
+    
+  # Failure handling
+  failure_handling:
+    strategy: "continue_on_failure"
+    dead_letter_queue: true
+    error_topic: "dlq_flink_ml_processor"
+    error_storage: "s3://pbf-ml-errors/flink_ml_processor"
+    
+  # Circuit breaker
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    recovery_timeout: 60000  # 1 minute
+    half_open_max_calls: 3
+    
+  # Notification
+  notification:
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    on_success: false
+    on_failure: true
+    on_retry: true
+
+# Monitoring and Logging
+monitoring:
+  # Stream monitoring
+  stream_monitoring:
+    enabled: true
+    metrics:
+      - "throughput"
+      - "latency"
+      - "error_rate"
+      - "backpressure"
+      - "checkpoint_duration"
+      - "checkpoint_size"
+      - "watermark_lag"
+      - "idle_time"
+      
+  # Model monitoring
+  model_monitoring:
+    enabled: true
+    metrics:
+      - "prediction_accuracy"
+      - "confidence_distribution"
+      - "model_latency"
+      - "model_throughput"
+      - "model_memory_usage"
+      - "model_cpu_usage"
+      - "model_error_rate"
+      
+  # Data monitoring
+  data_monitoring:
+    enabled: true
+    metrics:
+      - "data_quality_score"
+      - "feature_distribution"
+      - "missing_value_rate"
+      - "outlier_rate"
+      - "data_drift"
+      - "schema_evolution"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/flink_ml_processor.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+      
+  # Stage-specific logging
+  stage_logging:
+    enabled: true
+    log_inputs: false
+    log_outputs: false
+    log_metrics: true
+    log_errors: true
+    log_performance: true
+
+# Caching Configuration
+caching:
+  # Feature caching
+  feature_caching:
+    enabled: true
+    ttl: "5m"
+    max_size: 50000
+    eviction_policy: "lru"
+    
+  # Model caching
+  model_caching:
+    enabled: true
+    ttl: "1h"
+    max_models: 10
+    eviction_policy: "lru"
+    
+  # Result caching
+  result_caching:
+    enabled: true
+    ttl: "1m"
+    max_size: 10000
+    eviction_policy: "lru"
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    secret_key: "${JWT_SECRET_KEY}"
+    expiration_hours: 24
+    
+  # Authorization
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles: ["ml_user", "ml_admin"]
+    
+  # Data encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+    
+  # Network security
+  network:
+    tls_enabled: true
+    tls_version: "1.3"
+    certificate_validation: true
+
+# Pipeline Dependencies
+dependencies:
+  # Data dependencies
+  data_dependencies:
+    - source: "kafka"
+      topic: "ispm_sensor_data"
+      min_partitions: 3
+    - source: "kafka"
+      topic: "powder_bed_images"
+      min_partitions: 2
+    - source: "kafka"
+      topic: "ct_scan_events"
+      min_partitions: 2
+      
+  # Model dependencies
+  model_dependencies:
+    - type: "model_registry"
+      name: "defect_detector"
+      stage: "production"
+    - type: "model_registry"
+      name: "quality_assessor"
+      stage: "production"
+    - type: "model_registry"
+      name: "process_optimizer"
+      stage: "production"
+    - type: "model_registry"
+      name: "equipment_health_monitor"
+      stage: "production"
+      
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "flink"
+      endpoint: "flink-jobmanager:8081"
+    - service: "kafka"
+      endpoint: "kafka:9092"
+    - service: "mlflow"
+      endpoint: "http://mlflow:5000"
+    - service: "redis"
+      endpoint: "redis:6379"
+    - service: "postgresql"
+      endpoint: "postgres:5432"
+    - service: "mongodb"
+      endpoint: "mongodb:27017"

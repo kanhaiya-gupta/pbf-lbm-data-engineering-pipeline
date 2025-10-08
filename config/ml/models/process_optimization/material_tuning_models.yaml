@@ -1,0 +1,529 @@
+# Material Tuning Models Configuration
+# ====================================
+
+model:
+  name: "material_tuning_models"
+  version: "1.0.0"
+  type: "ensemble"
+  algorithm: "multi_model_ensemble"
+  description: "Ensemble of models for material-specific parameter tuning in PBF-LB/M processes"
+  
+  # Model metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["material_tuning", "ensemble", "multi_model", "process_optimization"]
+
+# Ensemble Configuration
+ensemble:
+  # Ensemble strategy
+  strategy: "weighted_average"
+  weights: "adaptive"
+  
+  # Base models
+  base_models:
+    - name: "inconel_718_tuner"
+      type: "regression"
+      algorithm: "random_forest"
+      material: "Inconel_718"
+      weight: 0.25
+      config:
+        n_estimators: 500
+        max_depth: 10
+        min_samples_split: 5
+        min_samples_leaf: 2
+        random_state: 42
+    
+    - name: "ti6al4v_tuner"
+      type: "regression"
+      algorithm: "gradient_boosting"
+      material: "Ti6Al4V"
+      weight: 0.25
+      config:
+        n_estimators: 300
+        max_depth: 8
+        learning_rate: 0.1
+        subsample: 0.8
+        random_state: 42
+    
+    - name: "stainless_316l_tuner"
+      type: "regression"
+      algorithm: "xgboost"
+      material: "316L_Stainless"
+      weight: 0.25
+      config:
+        n_estimators: 400
+        max_depth: 6
+        learning_rate: 0.1
+        subsample: 0.8
+        colsample_bytree: 0.8
+        random_state: 42
+    
+    - name: "alsi10mg_tuner"
+      type: "regression"
+      algorithm: "neural_network"
+      material: "AlSi10Mg"
+      weight: 0.25
+      config:
+        hidden_layers: [64, 32, 16]
+        activation: "relu"
+        optimizer: "adam"
+        learning_rate: 0.001
+        batch_size: 32
+        epochs: 200
+
+# Material-Specific Configurations
+materials:
+  Inconel_718:
+    # Material properties
+    properties:
+      density: 8.19  # g/cm³
+      melting_point: 1350  # °C
+      thermal_conductivity: 11.4  # W/m·K
+      specific_heat: 435  # J/kg·K
+      thermal_expansion: 13.0  # 10⁻⁶/K
+    
+    # Process parameters
+    process_parameters:
+      laser_power_range: [200, 800]  # W
+      scan_speed_range: [500, 1500]  # mm/s
+      layer_thickness_range: [0.03, 0.08]  # mm
+      hatch_spacing_range: [0.08, 0.15]  # mm
+      focus_offset_range: [-1, 1]  # mm
+      chamber_temperature_range: [80, 120]  # °C
+      oxygen_level_range: [0, 50]  # ppm
+    
+    # Quality targets
+    quality_targets:
+      density_target: 0.99
+      surface_roughness_target: 10  # μm
+      hardness_target: 350  # HV
+      tensile_strength_target: 1200  # MPa
+      yield_strength_target: 1000  # MPa
+  
+  Ti6Al4V:
+    # Material properties
+    properties:
+      density: 4.43  # g/cm³
+      melting_point: 1604  # °C
+      thermal_conductivity: 7.0  # W/m·K
+      specific_heat: 526  # J/kg·K
+      thermal_expansion: 8.6  # 10⁻⁶/K
+    
+    # Process parameters
+    process_parameters:
+      laser_power_range: [150, 600]  # W
+      scan_speed_range: [800, 2000]  # mm/s
+      layer_thickness_range: [0.02, 0.06]  # mm
+      hatch_spacing_range: [0.06, 0.12]  # mm
+      focus_offset_range: [-0.5, 0.5]  # mm
+      chamber_temperature_range: [40, 80]  # °C
+      oxygen_level_range: [0, 100]  # ppm
+    
+    # Quality targets
+    quality_targets:
+      density_target: 0.995
+      surface_roughness_target: 8  # μm
+      hardness_target: 400  # HV
+      tensile_strength_target: 1100  # MPa
+      yield_strength_target: 950  # MPa
+  
+  316L_Stainless:
+    # Material properties
+    properties:
+      density: 7.99  # g/cm³
+      melting_point: 1400  # °C
+      thermal_conductivity: 16.0  # W/m·K
+      specific_heat: 500  # J/kg·K
+      thermal_expansion: 17.3  # 10⁻⁶/K
+    
+    # Process parameters
+    process_parameters:
+      laser_power_range: [100, 500]  # W
+      scan_speed_range: [600, 1800]  # mm/s
+      layer_thickness_range: [0.03, 0.07]  # mm
+      hatch_spacing_range: [0.07, 0.14]  # mm
+      focus_offset_range: [-1, 1]  # mm
+      chamber_temperature_range: [60, 100]  # °C
+      oxygen_level_range: [0, 200]  # ppm
+    
+    # Quality targets
+    quality_targets:
+      density_target: 0.98
+      surface_roughness_target: 12  # μm
+      hardness_target: 250  # HV
+      tensile_strength_target: 600  # MPa
+      yield_strength_target: 300  # MPa
+  
+  AlSi10Mg:
+    # Material properties
+    properties:
+      density: 2.67  # g/cm³
+      melting_point: 577  # °C
+      thermal_conductivity: 120.0  # W/m·K
+      specific_heat: 963  # J/kg·K
+      thermal_expansion: 21.0  # 10⁻⁶/K
+    
+    # Process parameters
+    process_parameters:
+      laser_power_range: [80, 400]  # W
+      scan_speed_range: [1000, 2500]  # mm/s
+      layer_thickness_range: [0.02, 0.05]  # mm
+      hatch_spacing_range: [0.05, 0.12]  # mm
+      focus_offset_range: [-0.5, 0.5]  # mm
+      chamber_temperature_range: [20, 60]  # °C
+      oxygen_level_range: [0, 1000]  # ppm
+    
+    # Quality targets
+    quality_targets:
+      density_target: 0.99
+      surface_roughness_target: 6  # μm
+      hardness_target: 120  # HV
+      tensile_strength_target: 400  # MPa
+      yield_strength_target: 250  # MPa
+
+# Training Configuration
+training:
+  # Ensemble training
+  ensemble_training:
+    strategy: "stacking"
+    meta_learner: "linear_regression"
+    cross_validation: true
+    folds: 5
+  
+  # Individual model training
+  individual_training:
+    early_stopping:
+      patience: 20
+      monitor: "val_loss"
+      mode: "min"
+      restore_best_weights: true
+    
+    validation:
+      validation_split: 0.2
+      cross_validation: true
+      folds: 3
+    
+    regularization:
+      l1: 0.01
+      l2: 0.1
+      dropout: 0.2
+
+# Data Configuration
+data:
+  # Input features
+  features:
+    - name: "material_type"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]
+    - name: "part_geometry_complexity"
+      type: "continuous"
+      range: [0, 10]
+    - name: "part_volume"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "cm³"
+    - name: "wall_thickness"
+      type: "continuous"
+      range: [0.1, 10]
+      unit: "mm"
+    - name: "overhang_angle"
+      type: "continuous"
+      range: [0, 90]
+      unit: "degrees"
+    - name: "build_orientation_x"
+      type: "continuous"
+      range: [0, 1]
+    - name: "build_orientation_y"
+      type: "continuous"
+      range: [0, 1]
+    - name: "build_orientation_z"
+      type: "continuous"
+      range: [0, 1]
+    - name: "support_volume_ratio"
+      type: "continuous"
+      range: [0, 1]
+    - name: "surface_area_volume_ratio"
+      type: "continuous"
+      range: [0, 100]
+    - name: "chamber_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "oxygen_level"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "ppm"
+    - name: "powder_bed_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "powder_flow_rate"
+      type: "continuous"
+      range: [0, 50]
+      unit: "g/min"
+    - name: "recoater_speed"
+      type: "continuous"
+      range: [10, 200]
+      unit: "mm/s"
+    - name: "build_plate_material"
+      type: "categorical"
+      encoding: "one_hot"
+      categories: ["Steel", "Aluminum", "Titanium"]
+    - name: "build_plate_temperature"
+      type: "continuous"
+      range: [20, 300]
+      unit: "°C"
+    - name: "atmospheric_pressure"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "mbar"
+    - name: "humidity"
+      type: "continuous"
+      range: [0, 100]
+      unit: "%"
+    - name: "vibration_level"
+      type: "continuous"
+      range: [0, 10]
+      unit: "mm/s"
+  
+  # Target variables
+  targets:
+    - name: "optimal_laser_power"
+      type: "continuous"
+      range: [50, 1000]
+      unit: "W"
+    - name: "optimal_scan_speed"
+      type: "continuous"
+      range: [100, 2500]
+      unit: "mm/s"
+    - name: "optimal_layer_thickness"
+      type: "continuous"
+      range: [0.02, 0.1]
+      unit: "mm"
+    - name: "optimal_hatch_spacing"
+      type: "continuous"
+      range: [0.05, 0.5]
+      unit: "mm"
+    - name: "optimal_focus_offset"
+      type: "continuous"
+      range: [-2, 2]
+      unit: "mm"
+    - name: "optimal_chamber_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "optimal_oxygen_level"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "ppm"
+    - name: "optimal_powder_flow_rate"
+      type: "continuous"
+      range: [0, 50]
+      unit: "g/min"
+  
+  # Data preprocessing
+  preprocessing:
+    normalization: "standard_scaler"
+    missing_value_strategy: "interpolate"
+    outlier_detection: "iqr"
+    outlier_threshold: 3.0
+    feature_selection: true
+    feature_selection_method: "mutual_information"
+    n_features: 20
+  
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    random_state: 42
+
+# Performance Requirements
+performance:
+  # Accuracy thresholds
+  r2_threshold: 0.90
+  mse_threshold: 0.05
+  mae_threshold: 0.1
+  rmse_threshold: 0.2
+  
+  # Latency requirements
+  latency_threshold: 200  # milliseconds
+  throughput_threshold: 1000  # predictions per second
+  
+  # Memory requirements
+  memory_threshold: 512  # MB
+  model_size_threshold: 100  # MB
+
+# Model Validation
+validation:
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Validation metrics
+  metrics:
+    - "r2_score"
+    - "mse"
+    - "mae"
+    - "rmse"
+    - "mape"
+    - "explained_variance"
+  
+  # Validation thresholds
+  thresholds:
+    min_r2: 0.85
+    max_mse: 0.08
+    max_mae: 0.15
+    max_rmse: 0.25
+
+# Model Serving
+serving:
+  # API configuration
+  api:
+    endpoint: "/api/v1/tune/material_parameters"
+    method: "POST"
+    content_type: "application/json"
+  
+  # Input schema
+  input_schema:
+    type: "object"
+    properties:
+      material_type: {"type": "string", "enum": ["Inconel_718", "Ti6Al4V", "316L_Stainless", "AlSi10Mg"]}
+      part_geometry_complexity: {"type": "number", "minimum": 0, "maximum": 10}
+      part_volume: {"type": "number", "minimum": 0, "maximum": 1000}
+      wall_thickness: {"type": "number", "minimum": 0.1, "maximum": 10}
+      overhang_angle: {"type": "number", "minimum": 0, "maximum": 90}
+      build_orientation_x: {"type": "number", "minimum": 0, "maximum": 1}
+      build_orientation_y: {"type": "number", "minimum": 0, "maximum": 1}
+      build_orientation_z: {"type": "number", "minimum": 0, "maximum": 1}
+      support_volume_ratio: {"type": "number", "minimum": 0, "maximum": 1}
+      surface_area_volume_ratio: {"type": "number", "minimum": 0, "maximum": 100}
+      chamber_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      oxygen_level: {"type": "number", "minimum": 0, "maximum": 1000}
+      powder_bed_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      powder_flow_rate: {"type": "number", "minimum": 0, "maximum": 50}
+      recoater_speed: {"type": "number", "minimum": 10, "maximum": 200}
+      build_plate_material: {"type": "string", "enum": ["Steel", "Aluminum", "Titanium"]}
+      build_plate_temperature: {"type": "number", "minimum": 20, "maximum": 300}
+      atmospheric_pressure: {"type": "number", "minimum": 0, "maximum": 2000}
+      humidity: {"type": "number", "minimum": 0, "maximum": 100}
+      vibration_level: {"type": "number", "minimum": 0, "maximum": 10}
+    required: ["material_type", "part_geometry_complexity", "part_volume", "wall_thickness", "overhang_angle"]
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      optimal_parameters:
+        type: "object"
+        properties:
+          optimal_laser_power: {"type": "number", "minimum": 50, "maximum": 1000}
+          optimal_scan_speed: {"type": "number", "minimum": 100, "maximum": 2500}
+          optimal_layer_thickness: {"type": "number", "minimum": 0.02, "maximum": 0.1}
+          optimal_hatch_spacing: {"type": "number", "minimum": 0.05, "maximum": 0.5}
+          optimal_focus_offset: {"type": "number", "minimum": -2, "maximum": 2}
+          optimal_chamber_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+          optimal_oxygen_level: {"type": "number", "minimum": 0, "maximum": 1000}
+          optimal_powder_flow_rate: {"type": "number", "minimum": 0, "maximum": 50}
+      material_specific_info:
+        type: "object"
+        properties:
+          material_properties: {"type": "object"}
+          process_parameter_ranges: {"type": "object"}
+          quality_targets: {"type": "object"}
+      confidence_score: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+        description: "Confidence score for the parameter tuning"
+      timestamp: 
+        type: "string"
+        format: "date-time"
+        description: "Timestamp when tuning was performed"
+      model_version: 
+        type: "string"
+        description: "Version of the model used for tuning"
+      processing_time_ms: 
+        type: "number"
+        minimum: 0
+        description: "Time taken to process the request in milliseconds"
+      ensemble_weights: 
+        type: "object"
+        description: "Weights used for ensemble prediction"
+    required: ["optimal_parameters", "material_specific_info", "confidence_score", "timestamp"]
+
+# Monitoring Configuration
+monitoring:
+  # Model performance monitoring
+  performance:
+    enabled: true
+    metrics_interval: 60  # seconds
+    retention_days: 30
+  
+  # Ensemble monitoring
+  ensemble_monitoring:
+    enabled: true
+    metrics:
+      - "individual_model_performance"
+      - "ensemble_performance"
+      - "weight_distribution"
+      - "prediction_agreement"
+      - "model_diversity"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      r2_drop: 0.05
+      latency_increase: 100  # milliseconds
+      error_rate: 0.05
+      ensemble_disagreement: 0.2
+
+# Model Deployment
+deployment:
+  # Deployment configuration
+  strategy: "rolling"
+  replicas: 2
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+    gpu: "0"
+  
+  # Health checks
+  health_checks:
+    initial_delay: 30
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    min_replicas: 2
+    max_replicas: 8
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Model Versioning
+versioning:
+  # Version strategy
+  strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Version requirements
+  requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    trigger_threshold: 0.05  # 5% performance drop
+    automatic: false  # Manual rollback required

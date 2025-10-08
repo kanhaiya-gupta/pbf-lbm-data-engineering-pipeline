@@ -1,0 +1,339 @@
+# Quality Assessment Training Pipeline Configuration
+# Pipeline for training quality assessment models
+
+pipeline:
+  name: "quality_assessment_training_pipeline"
+  version: "1.0.0"
+  description: "Training pipeline for quality assessment models"
+  
+  stages:
+    - name: "data_ingestion"
+      description: "Ingest training data from various sources"
+      component: "data_ingestion"
+      inputs:
+        - source: "nosql_database"
+          collection: "quality_measurements"
+          query: "status == 'training'"
+        - source: "data_lake"
+          path: "/data/quality/raw/"
+          format: "parquet"
+        - source: "api"
+          endpoint: "/api/quality/measurements"
+          parameters:
+            date_range: "last_6_months"
+      outputs:
+        - name: "raw_data"
+          path: "/data/pipeline/quality_assessment/raw/"
+          format: "parquet"
+      parameters:
+        batch_size: 10000
+        parallel_workers: 4
+        timeout_minutes: 60
+        
+    - name: "data_validation"
+      description: "Validate and clean training data"
+      component: "data_validation"
+      inputs:
+        - name: "raw_data"
+          from_stage: "data_ingestion"
+      outputs:
+        - name: "validated_data"
+          path: "/data/pipeline/quality_assessment/validated/"
+          format: "parquet"
+      parameters:
+        validation_rules:
+          - name: "completeness_check"
+            threshold: 0.95
+          - name: "outlier_detection"
+            method: "iqr"
+            threshold: 3.0
+          - name: "data_type_validation"
+            enabled: true
+          - name: "range_validation"
+            enabled: true
+        error_handling: "skip_invalid"
+        max_error_rate: 0.05
+        
+    - name: "feature_engineering"
+      description: "Engineer features for quality assessment"
+      component: "feature_engineering"
+      inputs:
+        - name: "validated_data"
+          from_stage: "data_validation"
+      outputs:
+        - name: "features"
+          path: "/data/pipeline/quality_assessment/features/"
+          format: "parquet"
+      parameters:
+        feature_groups:
+          - name: "process_features"
+            config_file: "config/ml/features/process_features/laser_parameter_features.yaml"
+          - name: "sensor_features"
+            config_file: "config/ml/features/sensor_features/pyrometer_features.yaml"
+          - name: "image_features"
+            config_file: "config/ml/features/image_features/ct_scan_features.yaml"
+          - name: "temporal_features"
+            config_file: "config/ml/features/temporal_features/time_series_features.yaml"
+        feature_selection:
+          method: "mutual_info"
+          k_best: 50
+        scaling:
+          method: "robust_scaler"
+        encoding:
+          method: "one_hot_encoding"
+          
+    - name: "data_splitting"
+      description: "Split data into train/validation/test sets"
+      component: "data_splitting"
+      inputs:
+        - name: "features"
+          from_stage: "feature_engineering"
+      outputs:
+        - name: "train_data"
+          path: "/data/pipeline/quality_assessment/splits/train/"
+        - name: "validation_data"
+          path: "/data/pipeline/quality_assessment/splits/validation/"
+        - name: "test_data"
+          path: "/data/pipeline/quality_assessment/splits/test/"
+      parameters:
+        train_ratio: 0.7
+        validation_ratio: 0.15
+        test_ratio: 0.15
+        stratification_column: "quality_class"
+        random_state: 42
+        
+    - name: "model_training"
+      description: "Train quality assessment models"
+      component: "model_training"
+      inputs:
+        - name: "train_data"
+          from_stage: "data_splitting"
+        - name: "validation_data"
+          from_stage: "data_splitting"
+      outputs:
+        - name: "trained_models"
+          path: "/models/quality_assessment/"
+      parameters:
+        models:
+          - name: "quality_score_predictor"
+            config_file: "config/ml/models/quality_assessment/quality_score_predictor.yaml"
+            algorithm: "RandomForestRegressor"
+            hyperparameters:
+              n_estimators: [100, 200, 300]
+              max_depth: [10, 15, 20]
+              min_samples_split: [5, 10, 15]
+          - name: "dimensional_accuracy_predictor"
+            config_file: "config/ml/models/quality_assessment/dimensional_accuracy_predictor.yaml"
+            algorithm: "GradientBoostingRegressor"
+            hyperparameters:
+              n_estimators: [100, 200, 300]
+              learning_rate: [0.05, 0.1, 0.15]
+              max_depth: [6, 8, 10]
+          - name: "surface_finish_predictor"
+            config_file: "config/ml/models/quality_assessment/surface_finish_predictor.yaml"
+            algorithm: "RandomForestRegressor"
+            hyperparameters:
+              n_estimators: [200, 300, 400]
+              max_depth: [10, 12, 15]
+              min_samples_leaf: [2, 4, 6]
+          - name: "mechanical_property_predictor"
+            config_file: "config/ml/models/quality_assessment/mechanical_property_predictor.yaml"
+            algorithm: "XGBRegressor"
+            hyperparameters:
+              n_estimators: [300, 400, 500]
+              max_depth: [8, 10, 12]
+              learning_rate: [0.05, 0.1, 0.15]
+        optimization:
+          method: "grid_search"
+          cv_folds: 5
+          scoring: "neg_mean_squared_error"
+          n_jobs: -1
+        early_stopping:
+          enabled: true
+          patience: 10
+          monitor: "val_loss"
+          
+    - name: "model_evaluation"
+      description: "Evaluate trained models"
+      component: "model_evaluation"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "test_data"
+          from_stage: "data_splitting"
+      outputs:
+        - name: "evaluation_results"
+          path: "/data/pipeline/quality_assessment/evaluation/"
+        - name: "model_metrics"
+          path: "/data/pipeline/quality_assessment/metrics/"
+      parameters:
+        metrics:
+          regression:
+            - "mse"
+            - "mae"
+            - "r2"
+            - "explained_variance"
+            - "mean_absolute_percentage_error"
+          classification:
+            - "accuracy"
+            - "precision"
+            - "recall"
+            - "f1_score"
+            - "auc_roc"
+        cross_validation:
+          enabled: true
+          cv_folds: 5
+          scoring: "neg_mean_squared_error"
+        statistical_tests:
+          enabled: true
+          tests: ["t_test", "wilcoxon_test"]
+        confidence_intervals:
+          enabled: true
+          confidence_level: 0.95
+          
+    - name: "model_validation"
+      description: "Validate models against business rules"
+      component: "model_validation"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "evaluation_results"
+          from_stage: "model_evaluation"
+      outputs:
+        - name: "validation_report"
+          path: "/data/pipeline/quality_assessment/validation/"
+      parameters:
+        business_rules:
+          - name: "minimum_accuracy"
+            condition: "accuracy >= 0.85"
+            severity: "error"
+          - name: "maximum_bias"
+            condition: "bias <= 0.05"
+            severity: "warning"
+          - name: "feature_importance_check"
+            condition: "top_features_importance >= 0.1"
+            severity: "info"
+        fairness_metrics:
+          enabled: true
+          protected_attributes: ["material_type", "build_orientation"]
+          metrics: ["demographic_parity", "equalized_odds"]
+        explainability:
+          enabled: true
+          method: "shap"
+          sample_size: 1000
+          
+    - name: "model_registration"
+      description: "Register validated models"
+      component: "model_registration"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "validation_report"
+          from_stage: "model_validation"
+      outputs:
+        - name: "registered_models"
+          path: "/models/registry/quality_assessment/"
+      parameters:
+        registry:
+          type: "mlflow"
+          tracking_uri: "http://mlflow-server:5000"
+          experiment_name: "quality_assessment_training"
+        model_staging:
+          stages: ["staging", "production"]
+          auto_promotion: false
+        metadata:
+          tags:
+            - "quality_assessment"
+            - "pbf_lbm"
+            - "manufacturing"
+          description: "Quality assessment models for PBF-LBM manufacturing"
+        versioning:
+          enabled: true
+          auto_increment: true
+          
+    - name: "pipeline_monitoring"
+      description: "Monitor pipeline execution"
+      component: "pipeline_monitoring"
+      inputs:
+        - name: "all_stages"
+          from_stage: "*"
+      outputs:
+        - name: "monitoring_metrics"
+          path: "/data/pipeline/quality_assessment/monitoring/"
+      parameters:
+        metrics:
+          - "execution_time"
+          - "data_quality_score"
+          - "model_performance"
+          - "resource_utilization"
+        alerts:
+          - name: "pipeline_failure"
+            condition: "status == 'failed'"
+            severity: "critical"
+          - name: "performance_degradation"
+            condition: "model_performance < 0.8"
+            severity: "warning"
+          - name: "data_drift"
+            condition: "data_drift_score > 0.1"
+            severity: "warning"
+        notifications:
+          channels: ["email", "slack", "dashboard"]
+          recipients: ["ml_team", "quality_team"]
+
+  scheduling:
+    trigger: "schedule"
+    schedule: "0 2 * * 1"  # Every Monday at 2 AM
+    timezone: "UTC"
+    retry_policy:
+      max_retries: 3
+      retry_delay_minutes: 30
+      exponential_backoff: true
+      
+  resources:
+    compute:
+      type: "spark_cluster"
+      nodes: 4
+      cores_per_node: 8
+      memory_per_node: "32GB"
+      storage: "100GB"
+    gpu:
+      enabled: false
+    storage:
+      type: "s3"
+      bucket: "ml-pipeline-data"
+      region: "us-west-2"
+      
+  environment:
+    python_version: "3.9"
+    dependencies:
+      - "scikit-learn==1.3.0"
+      - "xgboost==1.7.6"
+      - "pandas==2.0.3"
+      - "numpy==1.24.3"
+      - "mlflow==2.5.0"
+      - "shap==0.42.1"
+      - "evidently==0.2.8"
+    environment_variables:
+      MLFLOW_TRACKING_URI: "http://mlflow-server:5000"
+      AWS_DEFAULT_REGION: "us-west-2"
+      LOG_LEVEL: "INFO"
+      
+  monitoring:
+    enabled: true
+    metrics_collection:
+      - "pipeline_execution_time"
+      - "data_processing_throughput"
+      - "model_training_time"
+      - "model_performance_metrics"
+      - "resource_utilization"
+    logging:
+      level: "INFO"
+      format: "json"
+      retention_days: 30
+    alerting:
+      enabled: true
+      channels: ["email", "slack"]
+      thresholds:
+        execution_time_hours: 8
+        failure_rate_percent: 5
+        data_quality_score: 0.9

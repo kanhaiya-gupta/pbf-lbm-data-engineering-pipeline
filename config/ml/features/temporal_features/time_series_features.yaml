@@ -1,0 +1,578 @@
+# Time Series Features Configuration
+# =================================
+
+features:
+  name: "time_series_features"
+  version: "1.0.0"
+  description: "Time series features extracted from PBF-LB/M process data for temporal analysis and prediction"
+  
+  # Feature metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["time_series", "temporal_features", "pbf", "process_monitoring"]
+
+# Data Sources
+data_sources:
+  primary:
+    type: "kafka"
+    topic: "ispm_sensor_data"
+    consumer_group: "time_series_feature_processor"
+    schema:
+      timestamp: "datetime"
+      process_id: "string"
+      layer_number: "integer"
+      laser_power: "float"
+      scan_speed: "float"
+      melt_pool_temperature: "float"
+      melt_pool_size: "float"
+      spatter_count: "integer"
+      powder_flow_rate: "float"
+      chamber_pressure: "float"
+      oxygen_level: "float"
+      
+  secondary:
+    type: "postgresql"
+    table: "process_parameters"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    schema:
+      process_id: "string"
+      layer_number: "integer"
+      laser_power_setpoint: "float"
+      scan_speed_setpoint: "float"
+      layer_thickness: "float"
+      hatch_spacing: "float"
+      focus_offset: "float"
+
+# Feature Definitions
+feature_definitions:
+  # Basic statistical features
+  - name: "mean_1min"
+    type: "rolling_statistics"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "laser_power"
+    description: "1-minute rolling mean of laser power"
+    
+  - name: "std_1min"
+    type: "rolling_statistics"
+    window: "1min"
+    aggregation: "std"
+    source_field: "laser_power"
+    description: "1-minute rolling standard deviation of laser power"
+    
+  - name: "min_1min"
+    type: "rolling_statistics"
+    window: "1min"
+    aggregation: "min"
+    source_field: "laser_power"
+    description: "1-minute rolling minimum of laser power"
+    
+  - name: "max_1min"
+    type: "rolling_statistics"
+    window: "1min"
+    aggregation: "max"
+    source_field: "laser_power"
+    description: "1-minute rolling maximum of laser power"
+    
+  - name: "median_1min"
+    type: "rolling_statistics"
+    window: "1min"
+    aggregation: "median"
+    source_field: "laser_power"
+    description: "1-minute rolling median of laser power"
+
+  # Extended window statistics
+  - name: "mean_5min"
+    type: "rolling_statistics"
+    window: "5min"
+    aggregation: "mean"
+    source_field: "laser_power"
+    description: "5-minute rolling mean of laser power"
+    
+  - name: "std_5min"
+    type: "rolling_statistics"
+    window: "5min"
+    aggregation: "std"
+    source_field: "laser_power"
+    description: "5-minute rolling standard deviation of laser power"
+    
+  - name: "mean_15min"
+    type: "rolling_statistics"
+    window: "15min"
+    aggregation: "mean"
+    source_field: "laser_power"
+    description: "15-minute rolling mean of laser power"
+    
+  - name: "std_15min"
+    type: "rolling_statistics"
+    window: "15min"
+    aggregation: "std"
+    source_field: "laser_power"
+    description: "15-minute rolling standard deviation of laser power"
+
+  # Lag features
+  - name: "lag_1"
+    type: "lag"
+    source_field: "laser_power"
+    lag: 1
+    description: "Laser power value from 1 time step ago"
+    
+  - name: "lag_5"
+    type: "lag"
+    source_field: "laser_power"
+    lag: 5
+    description: "Laser power value from 5 time steps ago"
+    
+  - name: "lag_10"
+    type: "lag"
+    source_field: "laser_power"
+    lag: 10
+    description: "Laser power value from 10 time steps ago"
+    
+  - name: "lag_30"
+    type: "lag"
+    source_field: "laser_power"
+    lag: 30
+    description: "Laser power value from 30 time steps ago"
+    
+  - name: "lag_60"
+    type: "lag"
+    source_field: "laser_power"
+    lag: 60
+    description: "Laser power value from 60 time steps ago"
+
+  # Difference features
+  - name: "diff_1"
+    type: "difference"
+    source_field: "laser_power"
+    lag: 1
+    description: "First difference of laser power"
+    
+  - name: "diff_5"
+    type: "difference"
+    source_field: "laser_power"
+    lag: 5
+    description: "5-step difference of laser power"
+    
+  - name: "diff_10"
+    type: "difference"
+    source_field: "laser_power"
+    lag: 10
+    description: "10-step difference of laser power"
+    
+  - name: "diff_30"
+    type: "difference"
+    source_field: "laser_power"
+    lag: 30
+    description: "30-step difference of laser power"
+
+  # Percentage change features
+  - name: "pct_change_1"
+    type: "percentage_change"
+    source_field: "laser_power"
+    lag: 1
+    description: "1-step percentage change of laser power"
+    
+  - name: "pct_change_5"
+    type: "percentage_change"
+    source_field: "laser_power"
+    lag: 5
+    description: "5-step percentage change of laser power"
+    
+  - name: "pct_change_10"
+    type: "percentage_change"
+    source_field: "laser_power"
+    lag: 10
+    description: "10-step percentage change of laser power"
+    
+  - name: "pct_change_30"
+    type: "percentage_change"
+    source_field: "laser_power"
+    lag: 30
+    description: "30-step percentage change of laser power"
+
+  # Exponential moving averages
+  - name: "ema_5"
+    type: "exponential_moving_average"
+    source_field: "laser_power"
+    span: 5
+    description: "5-step exponential moving average of laser power"
+    
+  - name: "ema_10"
+    type: "exponential_moving_average"
+    source_field: "laser_power"
+    span: 10
+    description: "10-step exponential moving average of laser power"
+    
+  - name: "ema_20"
+    type: "exponential_moving_average"
+    source_field: "laser_power"
+    span: 20
+    description: "20-step exponential moving average of laser power"
+    
+  - name: "ema_50"
+    type: "exponential_moving_average"
+    source_field: "laser_power"
+    span: 50
+    description: "50-step exponential moving average of laser power"
+
+  # Trend features
+  - name: "trend_5min"
+    type: "trend"
+    method: "linear_regression"
+    window: "5min"
+    source_field: "laser_power"
+    description: "Linear trend of laser power over 5-minute window"
+    
+  - name: "trend_15min"
+    type: "trend"
+    method: "linear_regression"
+    window: "15min"
+    source_field: "laser_power"
+    description: "Linear trend of laser power over 15-minute window"
+    
+  - name: "trend_30min"
+    type: "trend"
+    method: "linear_regression"
+    window: "30min"
+    source_field: "laser_power"
+    description: "Linear trend of laser power over 30-minute window"
+
+  # Volatility features
+  - name: "volatility_1min"
+    type: "volatility"
+    method: "rolling_std"
+    window: "1min"
+    source_field: "laser_power"
+    description: "1-minute rolling volatility of laser power"
+    
+  - name: "volatility_5min"
+    type: "volatility"
+    method: "rolling_std"
+    window: "5min"
+    source_field: "laser_power"
+    description: "5-minute rolling volatility of laser power"
+    
+  - name: "volatility_15min"
+    type: "volatility"
+    method: "rolling_std"
+    window: "15min"
+    source_field: "laser_power"
+    description: "15-minute rolling volatility of laser power"
+
+  # Autocorrelation features
+  - name: "autocorr_1"
+    type: "autocorrelation"
+    source_field: "laser_power"
+    lag: 1
+    window: "5min"
+    description: "1-lag autocorrelation of laser power over 5-minute window"
+    
+  - name: "autocorr_5"
+    type: "autocorrelation"
+    source_field: "laser_power"
+    lag: 5
+    window: "5min"
+    description: "5-lag autocorrelation of laser power over 5-minute window"
+    
+  - name: "autocorr_10"
+    type: "autocorrelation"
+    source_field: "laser_power"
+    lag: 10
+    window: "5min"
+    description: "10-lag autocorrelation of laser power over 5-minute window"
+
+  # Frequency domain features
+  - name: "fft_peak_frequency"
+    type: "frequency_domain"
+    method: "fft_peak_frequency"
+    source_field: "laser_power"
+    window: "5min"
+    description: "Peak frequency component of laser power FFT over 5-minute window"
+    
+  - name: "fft_spectral_centroid"
+    type: "frequency_domain"
+    method: "fft_spectral_centroid"
+    source_field: "laser_power"
+    window: "5min"
+    description: "Spectral centroid of laser power FFT over 5-minute window"
+    
+  - name: "fft_spectral_bandwidth"
+    type: "frequency_domain"
+    method: "fft_spectral_bandwidth"
+    source_field: "laser_power"
+    window: "5min"
+    description: "Spectral bandwidth of laser power FFT over 5-minute window"
+    
+  - name: "fft_spectral_rolloff"
+    type: "frequency_domain"
+    method: "fft_spectral_rolloff"
+    source_field: "laser_power"
+    window: "5min"
+    rolloff_percent: 0.85
+    description: "Spectral rolloff of laser power FFT over 5-minute window"
+
+  # Wavelet features
+  - name: "wavelet_energy"
+    type: "wavelet"
+    method: "energy"
+    source_field: "laser_power"
+    wavelet: "db4"
+    levels: 3
+    window: "5min"
+    description: "Energy of wavelet coefficients of laser power over 5-minute window"
+    
+  - name: "wavelet_entropy"
+    type: "wavelet"
+    method: "entropy"
+    source_field: "laser_power"
+    wavelet: "db4"
+    levels: 3
+    window: "5min"
+    description: "Entropy of wavelet coefficients of laser power over 5-minute window"
+    
+  - name: "wavelet_std"
+    type: "wavelet"
+    method: "std"
+    source_field: "laser_power"
+    wavelet: "db4"
+    levels: 3
+    window: "5min"
+    description: "Standard deviation of wavelet coefficients of laser power over 5-minute window"
+
+  # Cross-correlation features
+  - name: "cross_corr_laser_scan"
+    type: "cross_correlation"
+    source_field_1: "laser_power"
+    source_field_2: "scan_speed"
+    lag: 0
+    window: "5min"
+    description: "Cross-correlation between laser power and scan speed"
+    
+  - name: "cross_corr_laser_temp"
+    type: "cross_correlation"
+    source_field_1: "laser_power"
+    source_field_2: "melt_pool_temperature"
+    lag: 0
+    window: "5min"
+    description: "Cross-correlation between laser power and melt pool temperature"
+    
+  - name: "cross_corr_scan_temp"
+    type: "cross_correlation"
+    source_field_1: "scan_speed"
+    source_field_2: "melt_pool_temperature"
+    lag: 0
+    window: "5min"
+    description: "Cross-correlation between scan speed and melt pool temperature"
+
+  # Anomaly detection features
+  - name: "z_score"
+    type: "anomaly_detection"
+    method: "z_score"
+    source_field: "laser_power"
+    window: "5min"
+    threshold: 3.0
+    description: "Z-score anomaly detection for laser power over 5-minute window"
+    
+  - name: "isolation_forest_score"
+    type: "anomaly_detection"
+    method: "isolation_forest"
+    source_field: "laser_power"
+    window: "5min"
+    contamination: 0.1
+    description: "Isolation Forest anomaly score for laser power over 5-minute window"
+    
+  - name: "local_outlier_factor"
+    type: "anomaly_detection"
+    method: "local_outlier_factor"
+    source_field: "laser_power"
+    window: "5min"
+    n_neighbors: 20
+    description: "Local Outlier Factor anomaly score for laser power over 5-minute window"
+
+  # Seasonal features
+  - name: "seasonal_decomposition"
+    type: "seasonal_decomposition"
+    method: "stl"
+    source_field: "laser_power"
+    window: "1h"
+    seasonal_period: 12
+    description: "Seasonal decomposition of laser power over 1-hour window"
+    
+  - name: "seasonal_trend"
+    type: "seasonal_decomposition"
+    method: "stl_trend"
+    source_field: "laser_power"
+    window: "1h"
+    seasonal_period: 12
+    description: "Seasonal trend component of laser power over 1-hour window"
+    
+  - name: "seasonal_seasonal"
+    type: "seasonal_decomposition"
+    method: "stl_seasonal"
+    source_field: "laser_power"
+    window: "1h"
+    seasonal_period: 12
+    description: "Seasonal component of laser power over 1-hour window"
+    
+  - name: "seasonal_residual"
+    type: "seasonal_decomposition"
+    method: "stl_residual"
+    source_field: "laser_power"
+    window: "1h"
+    seasonal_period: 12
+    description: "Seasonal residual component of laser power over 1-hour window"
+
+# Feature Validation
+validation:
+  laser_power:
+    min_value: 0
+    max_value: 1000
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  scan_speed:
+    min_value: 0
+    max_value: 2000
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  melt_pool_temperature:
+    min_value: 0
+    max_value: 3000
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  melt_pool_size:
+    min_value: 0
+    max_value: 100
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  spatter_count:
+    min_value: 0
+    max_value: 1000
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+
+# Feature Storage
+storage:
+  online_store:
+    type: "redis"
+    host: "redis"
+    port: 6379
+    db: 8
+    ttl: "2h"
+    key_prefix: "time_series_features:"
+    
+  offline_store:
+    type: "parquet"
+    path: "s3://pbf-data-lake/features/time_series_features"
+    partitioning: ["year", "month", "day", "hour"]
+    compression: "snappy"
+    
+  # Feature caching
+  caching:
+    enabled: true
+    cache_size: 20000
+    ttl: "1h"
+    eviction_policy: "lru"
+
+# Feature Engineering Pipeline
+pipeline:
+  # Processing steps
+  steps:
+    - name: "data_validation"
+      type: "validator"
+      config:
+        validation_rules: "validation"
+        
+    - name: "missing_value_handling"
+      type: "imputer"
+      config:
+        strategy: "interpolate"
+        method: "linear"
+        
+    - name: "outlier_detection"
+      type: "outlier_detector"
+      config:
+        method: "iqr"
+        threshold: 3.0
+        
+    - name: "feature_computation"
+      type: "feature_computer"
+      config:
+        features: "feature_definitions"
+        parallel_processing: true
+        num_workers: 4
+        
+    - name: "feature_validation"
+      type: "feature_validator"
+      config:
+        validation_rules: "validation"
+        
+    - name: "feature_storage"
+      type: "feature_storer"
+      config:
+        storage: "storage"
+  
+  # Pipeline scheduling
+  scheduling:
+    trigger: "streaming"  # streaming, batch, cron
+    batch_size: 1000
+    processing_interval: "1s"
+    
+  # Error handling
+  error_handling:
+    retry_policy:
+      max_retries: 3
+      backoff_factor: 2
+    failure_notification:
+      channels: ["email", "slack"]
+      recipients: ["ml-team@company.com"]
+
+# Feature Monitoring
+monitoring:
+  # Feature quality monitoring
+  quality:
+    enabled: true
+    metrics:
+      - "completeness"
+      - "accuracy"
+      - "consistency"
+      - "timeliness"
+    thresholds:
+      completeness: 0.95
+      accuracy: 0.98
+      consistency: 0.90
+      timeliness: 60  # seconds
+  
+  # Feature drift monitoring
+  drift:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+    methods:
+      - "statistical"
+      - "distribution"
+      - "correlation"
+  
+  # Feature performance monitoring
+  performance:
+    enabled: true
+    metrics:
+      - "computation_time"
+      - "memory_usage"
+      - "throughput"
+    thresholds:
+      computation_time: 100  # milliseconds
+      memory_usage: 512  # MB
+      throughput: 1000  # features per second

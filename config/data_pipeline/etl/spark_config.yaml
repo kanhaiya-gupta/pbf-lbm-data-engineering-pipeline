@@ -1,0 +1,140 @@
+# PBF-LB/M Data Pipeline - Spark Configuration
+# This file contains Spark-specific configuration settings
+
+spark:
+  # Spark application settings
+  application:
+    name: "PBF_LB_M_ETL"
+    version: "3.5.0"
+    description: "Spark ETL application for PBF-LB/M data processing"
+    
+  # Spark cluster configuration
+  cluster:
+    master: "yarn"
+    deploy_mode: "cluster"
+    driver_cores: 2
+    driver_memory: "4g"
+    executor_cores: 4
+    executor_memory: "8g"
+    executor_instances: 10
+    max_result_size: "2g"
+    
+  # Spark SQL configuration
+  sql:
+    adaptive_enabled: true
+    adaptive_coalesce_partitions_enabled: true
+    adaptive_skew_join_enabled: true
+    adaptive_local_shuffle_reader_enabled: true
+    shuffle_partitions: 200
+    broadcast_timeout: 300
+    auto_broadcast_join_threshold: 10485760  # 10MB
+    
+  # Spark streaming configuration
+  streaming:
+    checkpoint_location: "/tmp/spark-checkpoints"
+    trigger_processing_time: "10 seconds"
+    output_mode: "append"
+    foreach_batch_timeout: 300
+    
+  # Spark performance tuning
+  performance:
+    # Memory management
+    memory_fraction: 0.8
+    memory_storage_fraction: 0.3
+    memory_off_heap_enabled: true
+    memory_off_heap_size: "2g"
+    
+    # Serialization
+    serializer: "org.apache.spark.serializer.KryoSerializer"
+    kryo_registration_required: false
+    
+    # Compression
+    compression_codec: "snappy"
+    shuffle_compress: true
+    broadcast_compress: true
+    
+    # Network
+    network_timeout: 120
+    rpc_ask_timeout: 120
+    rpc_lookup_timeout: 120
+    
+  # Spark security
+  security:
+    authentication: true
+    encryption_enabled: true
+    ssl_enabled: true
+    
+  # Spark monitoring
+  monitoring:
+    metrics_enabled: true
+    event_log_enabled: true
+    event_log_dir: "/tmp/spark-events"
+    history_server_enabled: true
+    
+  # Spark data sources
+  data_sources:
+    # JDBC configuration
+    jdbc:
+      driver: "org.postgresql.Driver"
+      fetch_size: 10000
+      batch_size: 1000
+      
+    # Kafka configuration
+    kafka:
+      bootstrap_servers: "localhost:9092"
+      security_protocol: "PLAINTEXT"
+      starting_offsets: "earliest"
+      fail_on_data_loss: false
+      
+    # S3 configuration
+    s3:
+      access_key: "${AWS_ACCESS_KEY_ID}"
+      secret_key: "${AWS_SECRET_ACCESS_KEY}"
+      endpoint: "${S3_ENDPOINT_URL}"
+      region: "us-east-1"
+      
+    # Delta Lake configuration
+    delta:
+      auto_optimize: true
+      auto_compact: true
+      checkpoint_interval: 10
+      
+  # Spark job configuration
+  jobs:
+    # ETL job settings
+    etl:
+      batch_size: 10000
+      parallelism: 200
+      timeout_minutes: 60
+      
+    # Streaming job settings
+    streaming:
+      batch_interval: 10
+      parallelism: 100
+      timeout_minutes: 30
+      
+    # Quality check job settings
+    quality:
+      batch_size: 5000
+      parallelism: 100
+      timeout_minutes: 20
+      
+  # Spark environment-specific overrides
+  environments:
+    development:
+      master: "local[*]"
+      driver_memory: "2g"
+      executor_memory: "4g"
+      executor_instances: 2
+      
+    staging:
+      master: "yarn"
+      driver_memory: "4g"
+      executor_memory: "8g"
+      executor_instances: 5
+      
+    production:
+      master: "yarn"
+      driver_memory: "8g"
+      executor_memory: "16g"
+      executor_instances: 20

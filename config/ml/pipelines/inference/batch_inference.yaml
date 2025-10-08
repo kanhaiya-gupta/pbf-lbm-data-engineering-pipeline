@@ -1,0 +1,390 @@
+# Batch Inference Pipeline Configuration
+# =====================================
+
+pipeline:
+  name: "batch_inference_pipeline"
+  version: "1.0.0"
+  description: "Batch inference pipeline for large-scale ML predictions"
+  
+  # Pipeline metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["batch_inference", "large_scale", "spark", "predictions"]
+
+# Pipeline Stages
+stages:
+  - name: "data_ingestion"
+    type: "batch_data_loader"
+    description: "Load large datasets for batch inference"
+    config:
+      sources:
+        - type: "s3"
+          bucket: "pbf-data-lake"
+          path: "batch_inference/input"
+          format: "parquet"
+          partitioning: ["year", "month", "day"]
+        - type: "postgresql"
+          table: "batch_inference_data"
+          connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+          query: "SELECT * FROM batch_inference_data WHERE created_at >= '{{ start_date }}' AND created_at < '{{ end_date }}'"
+        - type: "mongodb"
+          collection: "batch_data"
+          connection: "mongodb://admin:password@mongodb:27017/pbf_data_lake"
+          filter: {"created_at": {"$gte": "{{ start_date }}", "$lt": "{{ end_date }}"}}
+      validation:
+        schema_validation: true
+        data_quality_checks: true
+        record_count_validation: true
+      output: "raw_data"
+      
+  - name: "data_preprocessing"
+    type: "batch_data_preprocessor"
+    description: "Preprocess large datasets"
+    config:
+      cleaning:
+        remove_duplicates: true
+        handle_missing_values: "interpolate"
+        outlier_detection: "iqr"
+        outlier_threshold: 3.0
+      normalization:
+        method: "standard_scaler"
+        fit_on_sample: true
+        sample_size: 10000
+      feature_engineering:
+        enabled: true
+        transformations:
+          - type: "temporal_features"
+            lags: [1, 2, 3, 6, 12, 24]
+          - type: "rolling_features"
+            windows: [5, 10, 20]
+          - type: "statistical_features"
+            aggregations: ["mean", "std", "min", "max"]
+      output: "preprocessed_data"
+      
+  - name: "model_loading"
+    type: "batch_model_loader"
+    description: "Load trained models for batch inference"
+    config:
+      models:
+        - name: "defect_detector"
+          registry: "mlflow"
+          stage: "production"
+          version: "latest"
+          framework: "tensorflow"
+          format: "savedmodel"
+        - name: "quality_assessor"
+          registry: "mlflow"
+          stage: "production"
+          version: "latest"
+          framework: "scikit-learn"
+          format: "pickle"
+        - name: "process_optimizer"
+          registry: "mlflow"
+          stage: "production"
+          version: "latest"
+          framework: "xgboost"
+          format: "json"
+      loading_strategy: "parallel"
+      caching: true
+      model_refresh_interval: "2h"
+      output: "loaded_models"
+      
+  - name: "batch_inference"
+    type: "batch_inference_engine"
+    description: "Run batch inference on large datasets"
+    config:
+      inference_config:
+        batch_size: 1000
+        parallelism: 8
+        memory_per_worker: "4Gi"
+        cpu_per_worker: "2"
+        timeout: "1h"
+      models:
+        defect_detector:
+          input_columns: ["laser_power", "scan_speed", "temperature", "melt_pool_size", "spatter_count", "powder_flow_rate", "chamber_pressure", "oxygen_level", "layer_thickness", "hatch_spacing"]
+          output_columns: ["defect_prediction", "defect_confidence", "defect_type", "severity"]
+          preprocessing: "standard_scaler"
+        quality_assessor:
+          input_columns: ["material_type", "laser_power", "scan_speed", "layer_thickness", "hatch_spacing", "chamber_temperature", "oxygen_level", "powder_flow_rate", "recoater_speed", "build_plate_temperature"]
+          output_columns: ["quality_score", "quality_tier", "confidence"]
+          preprocessing: "standard_scaler"
+        process_optimizer:
+          input_columns: ["material_type", "part_volume", "part_complexity", "build_orientation_x", "build_orientation_y", "build_orientation_z", "support_volume_ratio", "overhang_angle", "wall_thickness", "surface_area_volume_ratio"]
+          output_columns: ["optimal_laser_power", "optimal_scan_speed", "optimal_layer_thickness", "optimal_hatch_spacing", "optimal_focus_offset"]
+          preprocessing: "min_max_scaler"
+      output: "inference_results"
+      
+  - name: "result_processing"
+    type: "batch_result_processor"
+    description: "Process and format inference results"
+    config:
+      formatting:
+        include_confidence: true
+        include_timestamp: true
+        include_model_version: true
+        include_metadata: true
+      filtering:
+        confidence_threshold: 0.8
+        quality_threshold: 0.7
+      aggregation:
+        group_by: ["process_id", "material_type"]
+        aggregations:
+          - type: "mean"
+            columns: ["quality_score", "defect_confidence"]
+          - type: "count"
+            columns: ["defect_prediction"]
+          - type: "mode"
+            columns: ["defect_type", "quality_tier"]
+      output: "processed_results"
+      
+  - name: "result_storage"
+    type: "batch_result_storer"
+    description: "Store inference results"
+    config:
+      destinations:
+        - type: "s3"
+          bucket: "pbf-ml-results"
+          path: "batch_inference/results"
+          format: "parquet"
+          partitioning: ["year", "month", "day", "model_type"]
+          compression: "snappy"
+        - type: "postgresql"
+          table: "batch_inference_results"
+          connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+          batch_size: 1000
+        - type: "mongodb"
+          collection: "batch_results"
+          connection: "mongodb://admin:password@mongodb:27017/pbf_data_lake"
+          batch_size: 1000
+      serialization:
+        format: "parquet"
+        schema_registry: true
+      output: "stored_results"
+
+# Pipeline Scheduling
+scheduling:
+  trigger: "cron"
+  schedule: "0 1 * * *"  # Daily at 1 AM
+  timezone: "UTC"
+  enabled: true
+  
+  # Retry configuration
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: 900  # 15 minutes
+
+# Resource Requirements
+resources:
+  cpu: "16"
+  memory: "32Gi"
+  gpu: "0"
+  storage: "200Gi"
+  
+  # Resource limits
+  limits:
+    cpu: "32"
+    memory: "64Gi"
+    gpu: "0"
+    storage: "500Gi"
+
+# Performance Configuration
+performance:
+  # Throughput requirements
+  throughput:
+    target: 100000  # records per hour
+    max: 1000000
+    burst_capacity: 500000
+  
+  # Latency requirements
+  latency:
+    target: 3600  # 1 hour
+    max: 7200  # 2 hours
+  
+  # Memory requirements
+  memory:
+    target: 16  # GB
+    max: 32
+  
+  # CPU requirements
+  cpu:
+    target: 8
+    max: 16
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "pyspark==3.5.0"
+    - "tensorflow==2.16.1"
+    - "scikit-learn==1.3.0"
+    - "pandas==2.0.3"
+    - "numpy==1.24.3"
+    - "mlflow==2.9.2"
+    - "xgboost==2.0.2"
+    - "boto3==1.34.0"
+    - "psycopg2-binary==2.9.9"
+    - "pymongo==4.6.0"
+  
+  # Environment variables
+  env_vars:
+    SPARK_HOME: "/opt/spark"
+    PYSPARK_PYTHON: "/usr/bin/python3.11"
+    MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+    AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Retry policy
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: 900
+  
+  # Failure handling
+  failure_handling:
+    strategy: "continue_on_failure"
+    dead_letter_queue: true
+    error_topic: "batch_inference_errors"
+  
+  # Circuit breaker
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    recovery_timeout: "30s"
+    half_open_max_calls: 3
+
+# Monitoring and Logging
+monitoring:
+  # Pipeline monitoring
+  pipeline_monitoring:
+    enabled: true
+    metrics:
+      - "throughput"
+      - "latency"
+      - "error_rate"
+      - "queue_size"
+      - "processing_time"
+      - "memory_usage"
+      - "cpu_usage"
+    
+  # Model monitoring
+  model_monitoring:
+    enabled: true
+    metrics:
+      - "prediction_accuracy"
+      - "confidence_distribution"
+      - "model_latency"
+      - "model_throughput"
+    
+  # Data monitoring
+  data_monitoring:
+    enabled: true
+    metrics:
+      - "data_quality_score"
+      - "feature_distribution"
+      - "missing_value_rate"
+      - "outlier_rate"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/batch_inference.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+  
+  # Stage-specific logging
+  stage_logging:
+    enabled: true
+    log_inputs: false
+    log_outputs: false
+    log_metrics: true
+    log_errors: true
+
+# Caching Configuration
+caching:
+  # Feature caching
+  feature_caching:
+    enabled: true
+    ttl: "1h"
+    max_size: 100000
+    eviction_policy: "lru"
+  
+  # Model caching
+  model_caching:
+    enabled: true
+    ttl: "2h"
+    max_models: 10
+    eviction_policy: "lru"
+  
+  # Result caching
+  result_caching:
+    enabled: true
+    ttl: "30m"
+    max_size: 10000
+    eviction_policy: "lru"
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    secret_key: "${JWT_SECRET_KEY}"
+    expiration_hours: 24
+  
+  # Authorization
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles: ["ml_user", "ml_admin"]
+  
+  # Data encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+
+# Pipeline Dependencies
+dependencies:
+  # Data dependencies
+  data_dependencies:
+    - source: "s3"
+      bucket: "pbf-data-lake"
+      path: "batch_inference/input"
+      min_size: "1GB"
+    - source: "postgresql"
+      table: "batch_inference_data"
+      min_rows: 10000
+    - source: "mongodb"
+      collection: "batch_data"
+      min_documents: 1000
+  
+  # Model dependencies
+  model_dependencies:
+    - type: "model_registry"
+      name: "defect_detector"
+      stage: "production"
+    - type: "model_registry"
+      name: "quality_assessor"
+      stage: "production"
+    - type: "model_registry"
+      name: "process_optimizer"
+      stage: "production"
+  
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "spark"
+      endpoint: "spark://spark-master:7077"
+    - service: "mlflow"
+      endpoint: "http://mlflow:5000"
+    - service: "s3"
+      endpoint: "s3://pbf-data-lake"

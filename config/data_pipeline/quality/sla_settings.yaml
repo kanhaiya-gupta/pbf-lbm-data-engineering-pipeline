@@ -1,0 +1,321 @@
+# PBF-LB/M Data Pipeline - SLA Settings Configuration
+# This file contains Service Level Agreement (SLA) configurations
+
+sla_settings:
+  # General SLA settings
+  general:
+    default_sla_hours: 24
+    default_alert_threshold: 0.8
+    default_escalation_hours: 4
+    
+  # Data ingestion SLAs
+  data_ingestion:
+    pbf_process_data:
+      name: "PBF Process Data Ingestion SLA"
+      description: "SLA for PBF process data ingestion"
+      enabled: true
+      target_availability: 0.99
+      target_latency_minutes: 15
+      target_throughput_records_per_minute: 1000
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+    ispm_monitoring_data:
+      name: "ISPM Monitoring Data Ingestion SLA"
+      description: "SLA for ISPM monitoring data ingestion"
+      enabled: true
+      target_availability: 0.99
+      target_latency_minutes: 5
+      target_throughput_records_per_minute: 10000
+      alert_threshold: 0.95
+      escalation_hours: 1
+      
+    ct_scan_data:
+      name: "CT Scan Data Ingestion SLA"
+      description: "SLA for CT scan data ingestion"
+      enabled: true
+      target_availability: 0.95
+      target_latency_minutes: 60
+      target_throughput_records_per_minute: 100
+      alert_threshold: 0.90
+      escalation_hours: 4
+      
+    powder_bed_data:
+      name: "Powder Bed Data Ingestion SLA"
+      description: "SLA for powder bed monitoring data ingestion"
+      enabled: true
+      target_availability: 0.99
+      target_latency_minutes: 10
+      target_throughput_records_per_minute: 5000
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+  # Data processing SLAs
+  data_processing:
+    etl_jobs:
+      name: "ETL Jobs Processing SLA"
+      description: "SLA for ETL job processing"
+      enabled: true
+      target_availability: 0.99
+      target_completion_time_minutes: 120
+      target_success_rate: 0.95
+      alert_threshold: 0.90
+      escalation_hours: 4
+      
+    streaming_jobs:
+      name: "Streaming Jobs Processing SLA"
+      description: "SLA for streaming job processing"
+      enabled: true
+      target_availability: 0.99
+      target_latency_minutes: 5
+      target_throughput_records_per_minute: 50000
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+    quality_checks:
+      name: "Data Quality Checks SLA"
+      description: "SLA for data quality checks"
+      enabled: true
+      target_availability: 0.99
+      target_completion_time_minutes: 30
+      target_success_rate: 0.98
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+  # Data storage SLAs
+  data_storage:
+    data_lake:
+      name: "Data Lake Storage SLA"
+      description: "SLA for data lake storage operations"
+      enabled: true
+      target_availability: 0.99
+      target_write_latency_minutes: 10
+      target_read_latency_minutes: 5
+      target_throughput_mb_per_second: 100
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+    data_warehouse:
+      name: "Data Warehouse Storage SLA"
+      description: "SLA for data warehouse storage operations"
+      enabled: true
+      target_availability: 0.99
+      target_write_latency_minutes: 15
+      target_read_latency_minutes: 10
+      target_throughput_mb_per_second: 50
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+    operational_db:
+      name: "Operational Database Storage SLA"
+      description: "SLA for operational database storage operations"
+      enabled: true
+      target_availability: 0.99
+      target_write_latency_minutes: 5
+      target_read_latency_minutes: 2
+      target_throughput_mb_per_second: 200
+      alert_threshold: 0.95
+      escalation_hours: 1
+      
+  # Data quality SLAs
+  data_quality:
+    completeness:
+      name: "Data Completeness SLA"
+      description: "SLA for data completeness"
+      enabled: true
+      target_completeness: 0.95
+      alert_threshold: 0.90
+      escalation_hours: 2
+      
+    accuracy:
+      name: "Data Accuracy SLA"
+      description: "SLA for data accuracy"
+      enabled: true
+      target_accuracy: 0.90
+      alert_threshold: 0.85
+      escalation_hours: 4
+      
+    consistency:
+      name: "Data Consistency SLA"
+      description: "SLA for data consistency"
+      enabled: true
+      target_consistency: 0.85
+      alert_threshold: 0.80
+      escalation_hours: 4
+      
+    timeliness:
+      name: "Data Timeliness SLA"
+      description: "SLA for data timeliness"
+      enabled: true
+      target_timeliness: 0.80
+      alert_threshold: 0.75
+      escalation_hours: 2
+      
+  # System performance SLAs
+  system_performance:
+    cpu_utilization:
+      name: "CPU Utilization SLA"
+      description: "SLA for CPU utilization"
+      enabled: true
+      target_utilization: 0.80
+      alert_threshold: 0.90
+      escalation_hours: 1
+      
+    memory_utilization:
+      name: "Memory Utilization SLA"
+      description: "SLA for memory utilization"
+      enabled: true
+      target_utilization: 0.80
+      alert_threshold: 0.90
+      escalation_hours: 1
+      
+    disk_utilization:
+      name: "Disk Utilization SLA"
+      description: "SLA for disk utilization"
+      enabled: true
+      target_utilization: 0.80
+      alert_threshold: 0.90
+      escalation_hours: 2
+      
+    network_utilization:
+      name: "Network Utilization SLA"
+      description: "SLA for network utilization"
+      enabled: true
+      target_utilization: 0.80
+      alert_threshold: 0.90
+      escalation_hours: 1
+      
+  # Service availability SLAs
+  service_availability:
+    kafka:
+      name: "Kafka Service Availability SLA"
+      description: "SLA for Kafka service availability"
+      enabled: true
+      target_availability: 0.99
+      alert_threshold: 0.95
+      escalation_hours: 1
+      
+    spark:
+      name: "Spark Service Availability SLA"
+      description: "SLA for Spark service availability"
+      enabled: true
+      target_availability: 0.99
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+    airflow:
+      name: "Airflow Service Availability SLA"
+      description: "SLA for Airflow service availability"
+      enabled: true
+      target_availability: 0.99
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+    postgresql:
+      name: "PostgreSQL Service Availability SLA"
+      description: "SLA for PostgreSQL service availability"
+      enabled: true
+      target_availability: 0.99
+      alert_threshold: 0.95
+      escalation_hours: 1
+      
+    snowflake:
+      name: "Snowflake Service Availability SLA"
+      description: "SLA for Snowflake service availability"
+      enabled: true
+      target_availability: 0.99
+      alert_threshold: 0.95
+      escalation_hours: 2
+      
+  # SLA monitoring configuration
+  monitoring:
+    enabled: true
+    real_time_monitoring: true
+    batch_monitoring: true
+    alerting_enabled: true
+    reporting_enabled: true
+    dashboard_enabled: true
+    
+  # SLA alerting configuration
+  alerting:
+    channels:
+      - name: "email"
+        enabled: true
+        recipients: ["data-team@example.com", "ops-team@example.com"]
+        
+      - name: "slack"
+        enabled: true
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#data-pipeline-alerts"
+        
+      - name: "pagerduty"
+        enabled: true
+        integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+        escalation_policy: "data-pipeline-escalation"
+        
+    severity_levels:
+      - name: "critical"
+        threshold: 0.95
+        channels: ["email", "slack", "pagerduty"]
+        escalation_minutes: 15
+        
+      - name: "high"
+        threshold: 0.90
+        channels: ["email", "slack"]
+        escalation_minutes: 60
+        
+      - name: "medium"
+        threshold: 0.85
+        channels: ["email"]
+        escalation_minutes: 240
+        
+      - name: "low"
+        threshold: 0.80
+        channels: ["email"]
+        escalation_minutes: 480
+        
+  # SLA reporting configuration
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["management@example.com", "data-team@example.com"]
+    include_metrics: true
+    include_trends: true
+    include_recommendations: true
+    
+  # SLA escalation configuration
+  escalation:
+    enabled: true
+    levels:
+      - name: "level1"
+        description: "Data team notification"
+        delay_minutes: 15
+        channels: ["email", "slack"]
+        
+      - name: "level2"
+        description: "Operations team notification"
+        delay_minutes: 60
+        channels: ["email", "slack", "pagerduty"]
+        
+      - name: "level3"
+        description: "Management notification"
+        delay_minutes: 240
+        channels: ["email", "pagerduty"]
+        
+  # SLA environment-specific overrides
+  environments:
+    development:
+      default_sla_hours: 48
+      alert_threshold: 0.70
+      escalation_hours: 8
+      
+    staging:
+      default_sla_hours: 36
+      alert_threshold: 0.80
+      escalation_hours: 6
+      
+    production:
+      default_sla_hours: 24
+      alert_threshold: 0.90
+      escalation_hours: 2

@@ -1,0 +1,514 @@
+# Production Environment Configuration
+# Configuration for production environment ML services
+
+environment:
+  name: "production"
+  description: "Production environment for ML services"
+  
+  infrastructure:
+    cluster:
+      type: "kubernetes"
+      namespace: "ml-production"
+      node_pool: "ml-production-nodes"
+      resources:
+        cpu_limit: "16"
+        memory_limit: "32Gi"
+        storage_limit: "500Gi"
+        
+    networking:
+      ingress:
+        enabled: true
+        host: "ml.company.com"
+        tls:
+          enabled: true
+          cert_manager: "letsencrypt"
+      service_mesh:
+        enabled: true
+        type: "istio"
+        version: "1.19"
+        
+    storage:
+      persistent_volumes:
+        - name: "ml-models"
+          size: "200Gi"
+          storage_class: "fast-ssd"
+          access_mode: "ReadWriteMany"
+        - name: "ml-data"
+          size: "1Ti"
+          storage_class: "standard"
+          access_mode: "ReadWriteMany"
+        - name: "ml-logs"
+          size: "100Gi"
+          storage_class: "standard"
+          access_mode: "ReadWriteMany"
+          
+  services:
+    mlflow:
+      enabled: true
+      replicas: 3
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+      database:
+        type: "postgresql"
+        host: "postgres-production"
+        port: 5432
+        database: "mlflow_production"
+        username: "mlflow"
+        password_secret: "mlflow-postgres-password"
+      storage:
+        type: "s3"
+        bucket: "mlflow-production"
+        region: "us-west-2"
+      tracking_uri: "http://mlflow-production:5000"
+      
+    feast:
+      enabled: true
+      replicas: 3
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+      registry:
+        type: "s3"
+        bucket: "feast-production"
+        path: "registry/"
+      online_store:
+        type: "redis"
+        host: "redis-production"
+        port: 6379
+        db: 0
+      offline_store:
+        type: "bigquery"
+        project: "ml-production-project"
+        dataset: "feast_production"
+        
+    monitoring:
+      prometheus:
+        enabled: true
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        retention: "30d"
+        scrape_interval: "15s"
+        
+      grafana:
+        enabled: true
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        dashboards:
+          - name: "ml-models"
+            url: "http://grafana-production:3000/d/ml-models"
+          - name: "ml-pipelines"
+            url: "http://grafana-production:3000/d/ml-pipelines"
+          - name: "ml-serving"
+            url: "http://grafana-production:3000/d/ml-serving"
+            
+      elasticsearch:
+        enabled: true
+        replicas: 3
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "4Gi"
+          limits:
+            cpu: "4000m"
+            memory: "16Gi"
+        storage:
+          size: "200Gi"
+          storage_class: "fast-ssd"
+          
+      kibana:
+        enabled: true
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+            
+    databases:
+      postgresql:
+        enabled: true
+        replicas: 2
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "4000m"
+            memory: "8Gi"
+        storage:
+          size: "100Gi"
+          storage_class: "fast-ssd"
+        database: "ml_production"
+        username: "ml_user"
+        password_secret: "postgres-ml-password"
+        
+      redis:
+        enabled: true
+        replicas: 3
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        storage:
+          size: "50Gi"
+          storage_class: "fast-ssd"
+        persistence:
+          enabled: true
+          snapshot_interval: "30m"
+          
+    message_queues:
+      kafka:
+        enabled: true
+        replicas: 5
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "4000m"
+            memory: "8Gi"
+        storage:
+          size: "200Gi"
+          storage_class: "fast-ssd"
+        topics:
+          - name: "ml-predictions"
+            partitions: 10
+            replication_factor: 3
+          - name: "ml-events"
+            partitions: 10
+            replication_factor: 3
+          - name: "ml-monitoring"
+            partitions: 10
+            replication_factor: 3
+            
+  ml_services:
+    model_serving:
+      enabled: true
+      replicas: 5
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+      models:
+        - name: "quality_assessment"
+          version: "latest"
+          endpoint: "/api/v1/quality/predict"
+        - name: "maintenance"
+          version: "latest"
+          endpoint: "/api/v1/maintenance/predict"
+        - name: "process_optimization"
+          version: "latest"
+          endpoint: "/api/v1/process/optimize"
+          
+    feature_store:
+      enabled: true
+      replicas: 3
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+      features:
+        - name: "process_features"
+          ttl: "1h"
+        - name: "sensor_features"
+          ttl: "1h"
+        - name: "material_features"
+          ttl: "24h"
+        - name: "environmental_features"
+          ttl: "1h"
+          
+    model_training:
+      enabled: true
+      replicas: 2
+      resources:
+        requests:
+          cpu: "2000m"
+          memory: "8Gi"
+        limits:
+          cpu: "8000m"
+          memory: "32Gi"
+      gpu:
+        enabled: true
+        type: "nvidia-tesla-v100"
+        count: 2
+      training_data:
+        source: "s3://ml-training-data-production/"
+        format: "parquet"
+        validation_split: 0.2
+        test_split: 0.1
+        
+    model_evaluation:
+      enabled: true
+      replicas: 2
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "4Gi"
+        limits:
+          cpu: "4000m"
+          memory: "16Gi"
+      evaluation_data:
+        source: "s3://ml-evaluation-data-production/"
+        format: "parquet"
+        metrics:
+          - "accuracy"
+          - "precision"
+          - "recall"
+          - "f1_score"
+          - "mae"
+          - "rmse"
+          - "r2_score"
+          
+  data_sources:
+    training_data:
+      type: "s3"
+      bucket: "ml-training-data-production"
+      region: "us-west-2"
+      prefix: "training/"
+      format: "parquet"
+      compression: "snappy"
+      
+    validation_data:
+      type: "s3"
+      bucket: "ml-validation-data-production"
+      region: "us-west-2"
+      prefix: "validation/"
+      format: "parquet"
+      compression: "snappy"
+      
+    test_data:
+      type: "s3"
+      bucket: "ml-test-data-production"
+      region: "us-west-2"
+      prefix: "test/"
+      format: "parquet"
+      compression: "snappy"
+      
+    production_data:
+      type: "s3"
+      bucket: "ml-production-data-production"
+      region: "us-west-2"
+      prefix: "production/"
+      format: "parquet"
+      compression: "snappy"
+      
+  security:
+    authentication:
+      enabled: true
+      type: "oauth2"
+      provider: "auth0"
+      client_id: "ml-production-client"
+      client_secret_secret: "auth0-client-secret"
+      audience: "ml-production-api"
+      
+    authorization:
+      enabled: true
+      type: "rbac"
+      roles:
+        - name: "ml_engineer"
+          permissions: ["read", "write", "train", "deploy"]
+        - name: "data_scientist"
+          permissions: ["read", "write", "train"]
+        - name: "operator"
+          permissions: ["read", "predict"]
+        - name: "admin"
+          permissions: ["read", "write", "train", "deploy", "admin"]
+          
+    network_policies:
+      enabled: true
+      default_deny: true
+      allowed_ingress:
+        - from: "ml-production-namespace"
+        - from: "monitoring-namespace"
+        - from: "ingress-namespace"
+      allowed_egress:
+        - to: "ml-production-namespace"
+        - to: "monitoring-namespace"
+        - to: "external-s3"
+        - to: "external-auth0"
+        
+    secrets_management:
+      enabled: true
+      type: "vault"
+      vault_url: "https://vault-production.company.com"
+      role: "ml-production-role"
+      policies:
+        - "ml-production-read"
+        - "ml-production-write"
+        
+  monitoring:
+    logging:
+      level: "INFO"
+      format: "json"
+      fields:
+        - "timestamp"
+        - "level"
+        - "message"
+        - "service"
+        - "request_id"
+        - "user_id"
+      retention_days: 90
+      
+    metrics:
+      enabled: true
+      collection_interval: "15s"
+      retention_days: 90
+      custom_metrics:
+        - name: "model_accuracy"
+          type: "gauge"
+          labels: ["model_name", "version"]
+        - name: "prediction_latency"
+          type: "histogram"
+          labels: ["model_name", "endpoint"]
+        - name: "training_duration"
+          type: "histogram"
+          labels: ["model_name", "dataset_size"]
+        - name: "feature_quality"
+          type: "gauge"
+          labels: ["feature_name", "feature_type"]
+          
+    alerting:
+      enabled: true
+      channels: ["slack", "email", "pagerduty"]
+      rules:
+        - name: "high_error_rate"
+          condition: "error_rate > 0.01"
+          severity: "critical"
+          duration: "2m"
+        - name: "high_latency"
+          condition: "prediction_latency_p95 > 500"
+          severity: "warning"
+          duration: "5m"
+        - name: "low_accuracy"
+          condition: "model_accuracy < 0.9"
+          severity: "critical"
+          duration: "5m"
+        - name: "high_memory_usage"
+          condition: "memory_usage > 0.85"
+          severity: "warning"
+          duration: "5m"
+        - name: "high_cpu_usage"
+          condition: "cpu_usage > 0.85"
+          severity: "warning"
+          duration: "5m"
+          
+  backup:
+    enabled: true
+    schedule: "0 1 * * *"
+    retention_days: 90
+    destinations:
+      - type: "s3"
+        bucket: "ml-backup-production"
+        region: "us-west-2"
+        prefix: "backups/"
+    include:
+      - "databases"
+      - "models"
+      - "configurations"
+      - "logs"
+    exclude:
+      - "temp_files"
+      - "cache"
+      
+  disaster_recovery:
+    enabled: true
+    rto: "2_hours"
+    rpo: "30_minutes"
+    backup_frequency: "daily"
+    test_frequency: "weekly"
+    recovery_procedures:
+      - name: "database_recovery"
+        estimated_time: "1_hour"
+        dependencies: ["postgresql", "redis"]
+      - name: "model_recovery"
+        estimated_time: "30_minutes"
+        dependencies: ["mlflow", "s3"]
+      - name: "service_recovery"
+        estimated_time: "30_minutes"
+        dependencies: ["kubernetes", "ingress"]
+        
+  testing:
+    enabled: true
+    test_types:
+      - "unit_tests"
+      - "integration_tests"
+      - "load_tests"
+      - "security_tests"
+    test_data:
+      source: "s3://ml-test-data-production/"
+      format: "parquet"
+      size: "10GB"
+    test_models:
+      - name: "quality_assessment"
+        test_cases: 10000
+        expected_accuracy: 0.9
+      - name: "maintenance"
+        test_cases: 10000
+        expected_accuracy: 0.95
+      - name: "process_optimization"
+        test_cases: 10000
+        expected_accuracy: 0.85
+        
+  deployment:
+    strategy: "rolling_update"
+    max_unavailable: 1
+    max_surge: 1
+    health_check:
+      enabled: true
+      initial_delay: 60
+      period: 10
+      timeout: 5
+      failure_threshold: 3
+      success_threshold: 1
+    rollback:
+      enabled: true
+      automatic: true
+      threshold: 0.05
+      
+  scaling:
+    horizontal_pod_autoscaler:
+      enabled: true
+      min_replicas: 3
+      max_replicas: 20
+      target_cpu_utilization: 70
+      target_memory_utilization: 80
+      scale_up_stabilization: "1m"
+      scale_down_stabilization: "5m"
+    vertical_pod_autoscaler:
+      enabled: true
+      update_mode: "Auto"
+      resource_policy:
+        cpu: "100m-4000m"
+        memory: "128Mi-8Gi"

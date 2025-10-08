@@ -1,0 +1,284 @@
+# Global Security Configuration
+# Configuration for ML system security
+
+security:
+  name: "pbf_lbm_security"
+  version: "1.0.0"
+  description: "Global security configuration for PBF-LBM ML system"
+  
+  system_info:
+    environment: "production"
+    cluster: "kubernetes"
+    namespace: "ml-production"
+    region: "us-west-2"
+    timezone: "UTC"
+    
+  authentication:
+    enabled: true
+    type: "oauth2"
+    provider: "auth0"
+    client_id: "ml-production-client"
+    client_secret_secret: "auth0-client-secret"
+    audience: "ml-production-api"
+    issuer: "https://company.auth0.com/"
+    jwks_uri: "https://company.auth0.com/.well-known/jwks.json"
+    algorithms: ["RS256"]
+    token_expiration: "1h"
+    refresh_token_expiration: "24h"
+    
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles:
+      - name: "ml_engineer"
+        description: "ML Engineer role"
+        permissions:
+          - "read"
+          - "write"
+          - "train"
+          - "deploy"
+        resources:
+          - "models"
+          - "experiments"
+          - "deployments"
+          - "features"
+        conditions:
+          - "environment == 'production'"
+          - "namespace == 'ml-production'"
+          
+      - name: "data_scientist"
+        description: "Data Scientist role"
+        permissions:
+          - "read"
+          - "write"
+          - "train"
+        resources:
+          - "models"
+          - "experiments"
+          - "features"
+        conditions:
+          - "environment == 'production'"
+          - "namespace == 'ml-production'"
+          
+      - name: "operator"
+        description: "Operator role"
+        permissions:
+          - "read"
+          - "predict"
+        resources:
+          - "models"
+          - "deployments"
+        conditions:
+          - "environment == 'production'"
+          - "namespace == 'ml-production'"
+          
+      - name: "admin"
+        description: "Admin role"
+        permissions:
+          - "read"
+          - "write"
+          - "train"
+          - "deploy"
+          - "admin"
+        resources:
+          - "models"
+          - "experiments"
+          - "deployments"
+          - "features"
+          - "monitoring"
+          - "security"
+        conditions:
+          - "environment == 'production'"
+          - "namespace == 'ml-production'"
+          
+  network_policies:
+    enabled: true
+    default_deny: true
+    allowed_ingress:
+      - from: "ml-production-namespace"
+        ports: [8080, 9090, 3000, 5601, 9200]
+      - from: "monitoring-namespace"
+        ports: [8080, 9090, 3000, 5601, 9200]
+      - from: "ingress-namespace"
+        ports: [80, 443]
+      - from: "external-auth0"
+        ports: [443]
+    allowed_egress:
+      - to: "ml-production-namespace"
+        ports: [8080, 9090, 3000, 5601, 9200]
+      - to: "monitoring-namespace"
+        ports: [8080, 9090, 3000, 5601, 9200]
+      - to: "external-s3"
+        ports: [443]
+      - to: "external-auth0"
+        ports: [443]
+      - to: "external-dns"
+        ports: [53]
+        
+  secrets_management:
+    enabled: true
+    type: "vault"
+    vault_url: "https://vault-production.company.com"
+    role: "ml-production-role"
+    policies:
+      - "ml-production-read"
+      - "ml-production-write"
+    secrets:
+      - name: "database-passwords"
+        path: "secret/ml/database"
+        keys: ["postgres-password", "redis-password"]
+      - name: "api-keys"
+        path: "secret/ml/api"
+        keys: ["auth0-client-secret", "s3-access-key"]
+      - name: "model-secrets"
+        path: "secret/ml/models"
+        keys: ["model-api-key", "model-database-password"]
+      - name: "monitoring-secrets"
+        path: "secret/ml/monitoring"
+        keys: ["prometheus-password", "grafana-password"]
+        
+  encryption:
+    enabled: true
+    at_rest:
+      enabled: true
+      algorithm: "AES-256-GCM"
+      key_rotation: "90_days"
+      key_source: "vault"
+    in_transit:
+      enabled: true
+      tls_version: "1.3"
+      cipher_suites: ["TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256"]
+      certificate_rotation: "30_days"
+      certificate_source: "cert-manager"
+      
+  access_control:
+    enabled: true
+    rbac:
+      enabled: true
+      namespace: "ml-production"
+      service_account: "ml-security"
+    network_policies:
+      enabled: true
+      namespace: "ml-production"
+      service_account: "ml-security"
+    pod_security_policies:
+      enabled: true
+      namespace: "ml-production"
+      service_account: "ml-security"
+      
+  audit_logging:
+    enabled: true
+    level: "INFO"
+    format: "json"
+    fields:
+      - "timestamp"
+      - "level"
+      - "message"
+      - "user_id"
+      - "action"
+      - "resource"
+      - "result"
+      - "ip_address"
+      - "user_agent"
+    retention_days: 90
+    storage:
+      type: "elasticsearch"
+      endpoint: "http://elasticsearch:9200"
+      index: "ml-audit-logs"
+      
+  compliance:
+    enabled: true
+    standards:
+      - "SOC2"
+      - "ISO27001"
+      - "GDPR"
+    data_classification:
+      - name: "public"
+        level: 1
+        encryption: false
+        retention: "1_year"
+      - name: "internal"
+        level: 2
+        encryption: true
+        retention: "3_years"
+      - name: "confidential"
+        level: 3
+        encryption: true
+        retention: "7_years"
+      - name: "restricted"
+        level: 4
+        encryption: true
+        retention: "10_years"
+    data_governance:
+      enabled: true
+      data_lineage: true
+      data_catalog: true
+      data_quality: true
+      data_privacy: true
+      
+  monitoring:
+    enabled: true
+    metrics:
+      - name: "authentication_attempts"
+        type: "counter"
+        labels: ["user_id", "result"]
+      - name: "authorization_attempts"
+        type: "counter"
+        labels: ["user_id", "resource", "result"]
+      - name: "security_violations"
+        type: "counter"
+        labels: ["violation_type", "severity"]
+      - name: "access_denied"
+        type: "counter"
+        labels: ["user_id", "resource", "reason"]
+    alerts:
+      - name: "failed_authentication"
+        condition: "authentication_attempts{result='failed'} > 10"
+        severity: "warning"
+        duration: "5m"
+      - name: "unauthorized_access"
+        condition: "authorization_attempts{result='denied'} > 5"
+        severity: "critical"
+        duration: "2m"
+      - name: "security_violation"
+        condition: "security_violations > 0"
+        severity: "critical"
+        duration: "1m"
+      - name: "access_denied"
+        condition: "access_denied > 20"
+        severity: "warning"
+        duration: "10m"
+        
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["security_team", "ml_team", "management"]
+    include_metrics:
+      - "authentication_summary"
+      - "authorization_summary"
+      - "security_violations"
+      - "access_patterns"
+      - "compliance_status"
+    dashboard:
+      enabled: true
+      url: "http://security-dashboard:3000"
+      refresh_interval: "5_minutes"
+      
+  integration:
+    kubernetes:
+      enabled: true
+      namespace: "ml-production"
+      service_account: "ml-security"
+    vault:
+      enabled: true
+      vault_url: "https://vault-production.company.com"
+      role: "ml-production-role"
+    monitoring:
+      enabled: true
+      prometheus_endpoint: "http://prometheus:9090"
+      grafana_endpoint: "http://grafana:3000"
+    audit:
+      enabled: true
+      elasticsearch_endpoint: "http://elasticsearch:9200"
+      index: "ml-audit-logs"

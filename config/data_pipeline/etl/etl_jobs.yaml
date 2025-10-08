@@ -1,0 +1,362 @@
+# PBF-LB/M Data Pipeline - ETL Job Definitions
+# This file contains ETL job configurations and definitions
+
+etl_jobs:
+  # PBF Process Data ETL
+  pbf_process_etl:
+    name: "PBF Process Data ETL"
+    description: "ETL job for PBF process data"
+    enabled: true
+    schedule: "0 0 * * *"  # Daily at midnight
+    priority: "high"
+    
+    # Job configuration
+    config:
+      source_type: "postgresql"
+      target_type: "snowflake"
+      batch_size: 10000
+      parallelism: 200
+      timeout_minutes: 60
+      
+    # Data source configuration
+    source:
+      database: "pbf_lbm_operational_db"
+      table: "pbf_process_data"
+      schema: "public"
+      where_clause: "updated_at >= '{last_run_timestamp}'"
+      
+    # Data target configuration
+    target:
+      database: "PBF_LBM_DW"
+      schema: "PUBLIC"
+      table: "fct_pbf_process"
+      write_mode: "append"
+      
+    # Transformation rules
+    transformations:
+      - name: "clean_process_data"
+        type: "sql"
+        query: |
+          SELECT 
+            process_id,
+            start_time,
+            end_time,
+            machine_id,
+            material_type,
+            process_status,
+            total_layers,
+            build_height_mm,
+            laser_power_w,
+            scan_speed_mm_s,
+            layer_thickness_um,
+            atmosphere_type,
+            oxygen_content_ppm,
+            quality_score,
+            created_at,
+            updated_at
+          FROM source_data
+          WHERE process_id IS NOT NULL
+          
+      - name: "calculate_derived_metrics"
+        type: "sql"
+        query: |
+          SELECT *,
+            CASE 
+              WHEN end_time IS NOT NULL AND start_time IS NOT NULL 
+              THEN EXTRACT(EPOCH FROM (end_time - start_time))/3600
+              ELSE NULL 
+            END as duration_hours,
+            CASE 
+              WHEN total_layers > 0 AND build_height_mm > 0 
+              THEN build_height_mm / total_layers
+              ELSE NULL 
+            END as avg_layer_height_mm
+          FROM cleaned_data
+          
+    # Quality checks
+    quality_checks:
+      - name: "check_process_id_not_null"
+        type: "not_null"
+        column: "process_id"
+        severity: "error"
+        
+      - name: "check_quality_score_range"
+        type: "range"
+        column: "quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "warning"
+        
+      - name: "check_laser_power_positive"
+        type: "greater_than"
+        column: "laser_power_w"
+        value: 0
+        severity: "error"
+
+  # ISPM Monitoring Data ETL
+  ispm_monitoring_etl:
+    name: "ISPM Monitoring Data ETL"
+    description: "ETL job for ISPM monitoring data"
+    enabled: true
+    schedule: "0 */15 * * *"  # Every 15 minutes
+    priority: "high"
+    
+    # Job configuration
+    config:
+      source_type: "kafka"
+      target_type: "snowflake"
+      batch_size: 50000
+      parallelism: 100
+      timeout_minutes: 30
+      
+    # Data source configuration
+    source:
+      topic: "ispm_monitoring_events"
+      consumer_group: "ispm_etl_consumer"
+      starting_offsets: "latest"
+      
+    # Data target configuration
+    target:
+      database: "PBF_LBM_DW"
+      schema: "PUBLIC"
+      table: "fct_ispm_monitoring"
+      write_mode: "append"
+      
+    # Transformation rules
+    transformations:
+      - name: "parse_kafka_message"
+        type: "json_parse"
+        source_column: "value"
+        target_columns:
+          - "monitoring_id"
+          - "process_id"
+          - "sensor_id"
+          - "timestamp"
+          - "sensor_type"
+          - "sensor_value"
+          - "unit"
+          
+      - name: "validate_sensor_data"
+        type: "sql"
+        query: |
+          SELECT *
+          FROM parsed_data
+          WHERE sensor_value IS NOT NULL
+            AND sensor_value >= 0
+            AND timestamp IS NOT NULL
+            
+    # Quality checks
+    quality_checks:
+      - name: "check_sensor_value_range"
+        type: "range"
+        column: "sensor_value"
+        min_value: 0
+        max_value: 10000
+        severity: "warning"
+        
+      - name: "check_timestamp_valid"
+        type: "is_datetime"
+        column: "timestamp"
+        severity: "error"
+
+  # CT Scan Data ETL
+  ct_scan_etl:
+    name: "CT Scan Data ETL"
+    description: "ETL job for CT scan data"
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    priority: "medium"
+    
+    # Job configuration
+    config:
+      source_type: "s3"
+      target_type: "snowflake"
+      batch_size: 1000
+      parallelism: 50
+      timeout_minutes: 120
+      
+    # Data source configuration
+    source:
+      bucket: "pbf-lbm-ct-scans"
+      prefix: "raw/"
+      file_format: "parquet"
+      
+    # Data target configuration
+    target:
+      database: "PBF_LBM_DW"
+      schema: "PUBLIC"
+      table: "fct_ct_scan"
+      write_mode: "append"
+      
+    # Transformation rules
+    transformations:
+      - name: "extract_ct_metadata"
+        type: "sql"
+        query: |
+          SELECT 
+            scan_id,
+            process_id,
+            timestamp,
+            voxel_dimensions,
+            resolution,
+            file_path,
+            file_size,
+            quality_score,
+            defect_count,
+            processing_status
+          FROM source_data
+          
+      - name: "calculate_scan_metrics"
+        type: "sql"
+        query: |
+          SELECT *,
+            voxel_dimensions[0] * voxel_dimensions[1] * voxel_dimensions[2] as total_voxels,
+            file_size / 1024 / 1024 as file_size_mb,
+            CASE 
+              WHEN quality_score >= 0.9 THEN 'excellent'
+              WHEN quality_score >= 0.7 THEN 'good'
+              WHEN quality_score >= 0.5 THEN 'fair'
+              ELSE 'poor'
+            END as quality_tier
+          FROM extracted_data
+          
+    # Quality checks
+    quality_checks:
+      - name: "check_scan_id_not_null"
+        type: "not_null"
+        column: "scan_id"
+        severity: "error"
+        
+      - name: "check_quality_score_range"
+        type: "range"
+        column: "quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "error"
+
+  # Powder Bed Data ETL
+  powder_bed_etl:
+    name: "Powder Bed Data ETL"
+    description: "ETL job for powder bed monitoring data"
+    enabled: true
+    schedule: "0 */30 * * *"  # Every 30 minutes
+    priority: "medium"
+    
+    # Job configuration
+    config:
+      source_type: "kafka"
+      target_type: "snowflake"
+      batch_size: 20000
+      parallelism: 100
+      timeout_minutes: 45
+      
+    # Data source configuration
+    source:
+      topic: "powder_bed_monitoring_events"
+      consumer_group: "powder_bed_etl_consumer"
+      starting_offsets: "latest"
+      
+    # Data target configuration
+    target:
+      database: "PBF_LBM_DW"
+      schema: "PUBLIC"
+      table: "fct_powder_bed"
+      write_mode: "append"
+      
+    # Transformation rules
+    transformations:
+      - name: "parse_powder_bed_data"
+        type: "json_parse"
+        source_column: "value"
+        target_columns:
+          - "powder_bed_id"
+          - "process_id"
+          - "camera_id"
+          - "timestamp"
+          - "layer_number"
+          - "image_path"
+          - "image_size"
+          - "surface_roughness"
+          - "surface_quality_score"
+          
+      - name: "validate_powder_bed_data"
+        type: "sql"
+        query: |
+          SELECT *
+          FROM parsed_data
+          WHERE layer_number >= 0
+            AND timestamp IS NOT NULL
+            AND image_size > 0
+            
+    # Quality checks
+    quality_checks:
+      - name: "check_layer_number_positive"
+        type: "greater_than_or_equal"
+        column: "layer_number"
+        value: 0
+        severity: "error"
+        
+      - name: "check_surface_quality_range"
+        type: "range"
+        column: "surface_quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "warning"
+
+  # Data Quality ETL
+  data_quality_etl:
+    name: "Data Quality ETL"
+    description: "ETL job for data quality monitoring"
+    enabled: true
+    schedule: "0 1 * * *"  # Daily at 1 AM
+    priority: "low"
+    
+    # Job configuration
+    config:
+      source_type: "snowflake"
+      target_type: "snowflake"
+      batch_size: 5000
+      parallelism: 50
+      timeout_minutes: 30
+      
+    # Data source configuration
+    source:
+      database: "PBF_LBM_DW"
+      schema: "PUBLIC"
+      tables:
+        - "fct_pbf_process"
+        - "fct_ispm_monitoring"
+        - "fct_ct_scan"
+        - "fct_powder_bed"
+        
+    # Data target configuration
+    target:
+      database: "PBF_LBM_DW"
+      schema: "QUALITY"
+      table: "fct_data_quality_metrics"
+      write_mode: "append"
+      
+    # Transformation rules
+    transformations:
+      - name: "calculate_quality_metrics"
+        type: "sql"
+        query: |
+          SELECT 
+            table_name,
+            check_date,
+            total_rows,
+            null_count,
+            duplicate_count,
+            quality_score,
+            completeness_score,
+            accuracy_score
+          FROM quality_analysis
+          
+    # Quality checks
+    quality_checks:
+      - name: "check_quality_score_range"
+        type: "range"
+        column: "quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "error"

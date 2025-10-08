@@ -1,0 +1,444 @@
+# Kafka ML Processor Configuration
+# ================================
+
+service:
+  name: "kafka_ml_processor"
+  version: "1.0.0"
+  description: "Streaming ML processor for real-time Kafka data processing"
+  
+  # Service metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["streaming", "kafka", "ml_processing", "real_time"]
+
+# Kafka Configuration
+kafka:
+  # Bootstrap servers
+  bootstrap_servers: "kafka:29092"
+  
+  # Consumer configuration
+  consumer:
+    group_id: "ml_processor_group"
+    auto_offset_reset: "latest"
+    enable_auto_commit: true
+    auto_commit_interval_ms: 1000
+    max_poll_records: 100
+    max_poll_interval_ms: 300000
+    session_timeout_ms: 30000
+    heartbeat_interval_ms: 3000
+    fetch_min_bytes: 1
+    fetch_max_wait_ms: 500
+    max_partition_fetch_bytes: 1048576
+    
+  # Producer configuration
+  producer:
+    acks: "all"
+    retries: 3
+    batch_size: 16384
+    linger_ms: 5
+    buffer_memory: 33554432
+    compression_type: "snappy"
+    max_request_size: 1048576
+    request_timeout_ms: 30000
+    
+  # Topics configuration
+  topics:
+    input_topics:
+      - name: "ispm_sensor_data"
+        partitions: 12
+        replication_factor: 3
+        retention_ms: 604800000  # 7 days
+      - name: "process_parameters"
+        partitions: 6
+        replication_factor: 3
+        retention_ms: 2592000000  # 30 days
+      - name: "powder_bed_images"
+        partitions: 8
+        replication_factor: 3
+        retention_ms: 1209600000  # 14 days
+        
+    output_topics:
+      - name: "ml_predictions"
+        partitions: 12
+        replication_factor: 3
+        retention_ms: 2592000000  # 30 days
+      - name: "defect_alerts"
+        partitions: 6
+        replication_factor: 3
+        retention_ms: 2592000000  # 30 days
+      - name: "process_optimization"
+        partitions: 6
+        replication_factor: 3
+        retention_ms: 2592000000  # 30 days
+      - name: "quality_assessment"
+        partitions: 6
+        replication_factor: 3
+        retention_ms: 2592000000  # 30 days
+
+# Stream Processing Configuration
+stream_processing:
+  # Processing engine
+  engine: "kafka_streams"
+  version: "3.5.0"
+  
+  # Processing topology
+  topology:
+    - name: "data_ingestion"
+      type: "source"
+      description: "Ingest data from input topics"
+      config:
+        parallelism: 4
+        buffer_size: 1000
+        timeout: 30000
+        
+    - name: "data_validation"
+      type: "processor"
+      description: "Validate incoming data"
+      config:
+        validation_rules:
+          schema_validation: true
+          range_validation: true
+          null_check: true
+          outlier_detection: true
+        error_handling:
+          strategy: "skip_invalid"
+          dead_letter_topic: "ml_errors"
+        
+    - name: "feature_engineering"
+      type: "processor"
+      description: "Engineer features from stream data"
+      config:
+        features_config: "config/ml/features/sensor_features/pyrometer_features.yaml"
+        windowing:
+          type: "sliding"
+          size: "1min"
+          slide: "10s"
+        caching:
+          enabled: true
+          ttl: "5m"
+          max_size: 10000
+        
+    - name: "model_inference"
+      type: "processor"
+      description: "Run ML model inference"
+      config:
+        models:
+          - name: "defect_detector"
+            input_topic: "ispm_sensor_data"
+            output_topic: "ml_predictions"
+            model_config: "config/ml/models/defect_detection/real_time_defect_predictor.yaml"
+          - name: "process_optimizer"
+            input_topic: "process_parameters"
+            output_topic: "process_optimization"
+            model_config: "config/ml/models/process_optimization/laser_parameter_predictor.yaml"
+          - name: "quality_assessor"
+            input_topic: "powder_bed_images"
+            output_topic: "quality_assessment"
+            model_config: "config/ml/models/quality_assessment/quality_score_predictor.yaml"
+        inference_config:
+          batch_size: 1
+          timeout: 100
+          retry_attempts: 3
+        
+    - name: "result_processing"
+      type: "processor"
+      description: "Process and format inference results"
+      config:
+        formatting:
+          include_confidence: true
+          include_timestamp: true
+          include_model_version: true
+          include_metadata: true
+        filtering:
+          confidence_threshold: 0.8
+          anomaly_threshold: 0.9
+        aggregation:
+          window_size: "1min"
+          method: "majority_vote"
+        
+    - name: "result_publishing"
+      type: "sink"
+      description: "Publish results to output topics"
+      config:
+        serialization:
+          format: "json"
+          schema_registry: true
+        partitioning:
+          strategy: "hash"
+          key_field: "process_id"
+
+# Model Configuration
+model:
+  # Model loading
+  loading:
+    strategy: "eager_loading"
+    cache_models: true
+    max_cached_models: 10
+    model_refresh_interval: "1h"
+  
+  # Model preprocessing
+  preprocessing:
+    normalization: true
+    scaling_method: "standard_scaler"
+    feature_engineering: true
+    parallel_processing: true
+  
+  # Model postprocessing
+  postprocessing:
+    confidence_threshold: 0.8
+    ensemble_voting: false
+    calibration: true
+    output_formatting: true
+
+# Performance Configuration
+performance:
+  # Throughput requirements
+  throughput:
+    target: 10000  # messages per second
+    max: 100000
+    burst_capacity: 50000
+  
+  # Latency requirements
+  latency:
+    target: 100  # milliseconds
+    p95: 200
+    p99: 500
+    timeout: 1000
+  
+  # Memory requirements
+  memory:
+    target: 4  # GB
+    max: 16
+    gc_threshold: 0.8
+  
+  # CPU requirements
+  cpu:
+    target: 2
+    max: 8
+    affinity: "auto"
+
+# Monitoring Configuration
+monitoring:
+  # Health checks
+  health_check:
+    path: "/health"
+    interval: "30s"
+    timeout: "5s"
+    failure_threshold: 3
+    success_threshold: 1
+  
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: "60s"
+    retention_days: 30
+    
+    # Custom metrics
+    custom_metrics:
+      - "messages_processed_per_second"
+      - "messages_failed_per_second"
+      - "average_processing_latency"
+      - "prediction_accuracy"
+      - "confidence_distribution"
+      - "model_loading_time"
+      - "memory_usage"
+      - "cpu_usage"
+      - "kafka_lag"
+      - "consumer_offset"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack", "pagerduty"]
+    recipients: ["ml-team@company.com"]
+    
+    # Alert thresholds
+    thresholds:
+      - metric: "average_processing_latency"
+        threshold: 200
+        operator: ">"
+        severity: "warning"
+        duration: "5m"
+      - metric: "average_processing_latency"
+        threshold: 500
+        operator: ">"
+        severity: "critical"
+        duration: "2m"
+      - metric: "messages_failed_per_second"
+        threshold: 10
+        operator: ">"
+        severity: "warning"
+        duration: "5m"
+      - metric: "kafka_lag"
+        threshold: 1000
+        operator: ">"
+        severity: "critical"
+        duration: "2m"
+      - metric: "memory_usage"
+        threshold: 0.9
+        operator: ">"
+        severity: "critical"
+        duration: "5m"
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "sasl_plain"
+    username: "${KAFKA_USERNAME}"
+    password: "${KAFKA_PASSWORD}"
+  
+  # Authorization
+  authorization:
+    enabled: true
+    type: "acl"
+    permissions:
+      - resource: "topic"
+        name: "ispm_sensor_data"
+        operation: "read"
+      - resource: "topic"
+        name: "process_parameters"
+        operation: "read"
+      - resource: "topic"
+        name: "powder_bed_images"
+        operation: "read"
+      - resource: "topic"
+        name: "ml_predictions"
+        operation: "write"
+      - resource: "topic"
+        name: "defect_alerts"
+        operation: "write"
+      - resource: "topic"
+        name: "process_optimization"
+        operation: "write"
+      - resource: "topic"
+        name: "quality_assessment"
+        operation: "write"
+  
+  # Data encryption
+  encryption:
+    enabled: true
+    protocol: "SSL"
+    algorithm: "TLSv1.2"
+    encrypt_data_in_transit: true
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/kafka_ml_processor.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+  
+  # Stream logging
+  stream_logging:
+    enabled: true
+    log_messages: false
+    log_errors: true
+    log_metrics: true
+    log_performance: true
+
+# Deployment Configuration
+deployment:
+  # Deployment strategy
+  strategy: "rolling"
+  replicas: 3
+  max_unavailable: 1
+  max_surge: 1
+  progress_deadline: 600  # 10 minutes
+  
+  # Resource requirements
+  resources:
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+    limits:
+      cpu: "4"
+      memory: "16Gi"
+  
+  # Health checks
+  health_checks:
+    liveness:
+      enabled: true
+      path: "/health"
+      initial_delay: 30
+      period: 10
+      timeout: 5
+      success_threshold: 1
+      failure_threshold: 3
+    readiness:
+      enabled: true
+      path: "/health"
+      initial_delay: 15
+      period: 5
+      timeout: 3
+      success_threshold: 1
+      failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    enabled: true
+    min_replicas: 3
+    max_replicas: 10
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "kafka-python==2.0.2"
+    - "tensorflow==2.16.1"
+    - "fastapi==0.104.1"
+    - "uvicorn==0.24.0"
+    - "pydantic==2.5.0"
+    - "numpy==1.24.3"
+    - "pandas==2.0.3"
+    - "scikit-learn==1.3.0"
+    - "mlflow==2.9.2"
+    - "confluent-kafka==2.3.0"
+  
+  # Environment variables
+  env_vars:
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+    KAFKA_SECURITY_PROTOCOL: "PLAINTEXT"
+    MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    LOG_LEVEL: "INFO"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Error responses
+  error_responses:
+    format: "json"
+    include_stack_trace: false
+    include_request_id: true
+    log_errors: true
+  
+  # Stream error handling
+  stream_error_handling:
+    retry_failed_messages: true
+    max_retries: 3
+    retry_delay: "1s"
+    dead_letter_topic: "ml_errors"
+    error_notification: true
+  
+  # Circuit breaker
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 10
+    recovery_timeout: "30s"
+    half_open_max_calls: 5
+  
+  # Graceful shutdown
+  graceful_shutdown:
+    enabled: true
+    timeout: "30s"
+    drain_connections: true
+    finish_processing: true

@@ -1,0 +1,229 @@
+# PBF-LB/M Data Pipeline - Flink Configuration
+# This file contains Flink-specific configuration settings
+
+flink:
+  # Flink cluster configuration
+  cluster:
+    job_manager:
+      memory: "2g"
+      heap_memory: "1g"
+      off_heap_memory: "1g"
+      
+    task_manager:
+      memory: "4g"
+      heap_memory: "2g"
+      off_heap_memory: "2g"
+      number_of_task_slots: 2
+      
+    parallelism:
+      default: 4
+      max: 16
+      
+  # Flink application configuration
+  application:
+    name: "PBF_LB_M_Streaming"
+    version: "1.18.0"
+    description: "Flink streaming application for PBF-LB/M data processing"
+    
+  # Flink streaming configuration
+  streaming:
+    checkpointing:
+      enabled: true
+      interval: 60000  # 1 minute
+      mode: "EXACTLY_ONCE"
+      timeout: 600000  # 10 minutes
+      min_pause: 5000  # 5 seconds
+      max_concurrent_checkpoints: 1
+      
+    state_backend:
+      type: "rocksdb"
+      checkpoint_directory: "s3://pbf-lbm-checkpoints/flink"
+      savepoint_directory: "s3://pbf-lbm-savepoints/flink"
+      
+    watermarks:
+      enabled: true
+      strategy: "periodic"
+      interval: 200  # 200ms
+      
+  # Flink connectors configuration
+  connectors:
+    kafka:
+      bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+      group_id: "flink_consumer_group"
+      auto_offset_reset: "latest"
+      enable_auto_commit: false
+      isolation_level: "read_committed"
+      
+    s3:
+      endpoint: "${S3_ENDPOINT_URL}"
+      access_key: "${AWS_ACCESS_KEY_ID}"
+      secret_key: "${AWS_SECRET_ACCESS_KEY}"
+      region: "us-east-1"
+      
+    postgresql:
+      host: "${POSTGRES_HOST}"
+      port: 5432
+      database: "pbf_lbm_operational_db"
+      username: "${POSTGRES_USERNAME}"
+      password: "${POSTGRES_PASSWORD}"
+      
+  # Flink jobs configuration
+  jobs:
+    # ISPM Monitoring Stream Processing
+    ispm_monitoring_stream:
+      name: "ISPM Monitoring Stream Processing"
+      description: "Real-time processing of ISPM monitoring data"
+      enabled: true
+      parallelism: 4
+      checkpoint_interval: 30000  # 30 seconds
+      
+      # Job configuration
+      config:
+        source_topic: "ispm_monitoring_events"
+        sink_table: "fct_ispm_monitoring"
+        window_size: 60  # seconds
+        slide_size: 10  # seconds
+        
+      # Processing logic
+      processing:
+        - name: "parse_kafka_message"
+          type: "json_parse"
+          
+        - name: "validate_sensor_data"
+          type: "data_validation"
+          
+        - name: "detect_anomalies"
+          type: "anomaly_detection"
+          
+        - name: "aggregate_metrics"
+          type: "window_aggregation"
+          
+        - name: "write_to_sink"
+          type: "jdbc_sink"
+          
+    # Powder Bed Monitoring Stream Processing
+    powder_bed_stream:
+      name: "Powder Bed Monitoring Stream Processing"
+      description: "Real-time processing of powder bed monitoring data"
+      enabled: true
+      parallelism: 2
+      checkpoint_interval: 60000  # 1 minute
+      
+      # Job configuration
+      config:
+        source_topic: "powder_bed_monitoring_events"
+        sink_table: "fct_powder_bed"
+        window_size: 300  # seconds
+        slide_size: 60  # seconds
+        
+      # Processing logic
+      processing:
+        - name: "parse_kafka_message"
+          type: "json_parse"
+          
+        - name: "validate_image_data"
+          type: "data_validation"
+          
+        - name: "analyze_surface_quality"
+          type: "image_analysis"
+          
+        - name: "aggregate_quality_metrics"
+          type: "window_aggregation"
+          
+        - name: "write_to_sink"
+          type: "jdbc_sink"
+          
+    # Data Quality Stream Processing
+    data_quality_stream:
+      name: "Data Quality Stream Processing"
+      description: "Real-time data quality monitoring"
+      enabled: true
+      parallelism: 2
+      checkpoint_interval: 120000  # 2 minutes
+      
+      # Job configuration
+      config:
+        source_topics: 
+          - "ispm_monitoring_events"
+          - "powder_bed_monitoring_events"
+          - "ct_scan_events"
+          - "pbf_process_events"
+        sink_table: "fct_data_quality_metrics"
+        window_size: 600  # seconds
+        slide_size: 120  # seconds
+        
+      # Processing logic
+      processing:
+        - name: "parse_kafka_message"
+          type: "json_parse"
+          
+        - name: "validate_data_quality"
+          type: "quality_validation"
+          
+        - name: "calculate_quality_metrics"
+          type: "quality_calculation"
+          
+        - name: "detect_quality_issues"
+          type: "quality_detection"
+          
+        - name: "write_to_sink"
+          type: "jdbc_sink"
+          
+  # Flink monitoring configuration
+  monitoring:
+    enabled: true
+    metrics_enabled: true
+    web_ui_enabled: true
+    history_server_enabled: true
+    
+  # Flink security configuration
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: false  # Will be enabled in production
+    audit_logging: true
+    
+  # Flink performance tuning
+  performance:
+    # Memory management
+    memory_management:
+      managed_memory_fraction: 0.4
+      managed_memory_size: "1g"
+      
+    # Network configuration
+    network:
+      buffer_count: 2048
+      buffer_size: 32768
+      max_parallelism: 128
+      
+    # Checkpointing configuration
+    checkpointing:
+      max_concurrent_checkpoints: 1
+      min_pause_between_checkpoints: 5000
+      checkpoint_timeout: 600000
+      
+  # Environment-specific overrides
+  environments:
+    development:
+      parallelism:
+        default: 2
+        max: 4
+      checkpoint_interval: 30000
+      state_backend:
+        type: "memory"
+        
+    staging:
+      parallelism:
+        default: 4
+        max: 8
+      checkpoint_interval: 60000
+      state_backend:
+        type: "rocksdb"
+        
+    production:
+      parallelism:
+        default: 8
+        max: 16
+      checkpoint_interval: 120000
+      state_backend:
+        type: "rocksdb"

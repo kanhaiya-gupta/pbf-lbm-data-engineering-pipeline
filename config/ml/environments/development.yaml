@@ -1,0 +1,210 @@
+# Development Environment Configuration for ML System
+# ===================================================
+
+environment:
+  name: "development"
+  description: "Development environment for ML system testing and development"
+
+# Override global settings for development
+ml_system:
+  environment: "development"
+  debug: true
+  log_level: "DEBUG"
+
+# Model Registry - Development
+model_registry:
+  tracking_uri: "http://localhost:5000"
+  registry_uri: "http://localhost:5000"
+  experiment_name: "pbf-lbm-dev-experiments"
+  
+  # Lower thresholds for development
+  validation:
+    accuracy_threshold: 0.80
+    precision_threshold: 0.75
+    recall_threshold: 0.75
+    f1_threshold: 0.75
+    latency_threshold: 500  # More lenient for dev
+
+# Feature Store - Development
+feature_store:
+  registry_path: "file:///tmp/feature_store/registry"
+  online_store:
+    type: "redis"
+    host: "localhost"
+    port: 6379
+    db: 1  # Different DB for dev
+  offline_store:
+    type: "file"
+    path: "/tmp/feature_store/offline"
+
+# Data Sources - Development
+data_sources:
+  kafka:
+    bootstrap_servers: "localhost:9092"
+    consumer_group: "ml-dev-consumer"
+  
+  postgresql:
+    host: "localhost"
+    port: 5432
+    database: "pbf_dev"
+    username: "pbf_dev"
+    password: "dev_password"
+  
+  mongodb:
+    uri: "mongodb://localhost:27017/pbf_dev"
+    database: "pbf_dev"
+  
+  elasticsearch:
+    host: "localhost"
+    port: 9200
+    index_prefix: "pbf_dev_ml"
+
+# Training - Development (Lower resources)
+training:
+  default_epochs: 10  # Fewer epochs for faster iteration
+  default_batch_size: 16  # Smaller batch size
+  default_learning_rate: 0.001
+  
+  # Faster early stopping for dev
+  early_stopping:
+    patience: 5
+    monitor: "val_loss"
+  
+  # Fewer CV folds for speed
+  cross_validation:
+    enabled: true
+    folds: 3
+
+# Serving - Development
+serving:
+  default_host: "localhost"
+  default_port: 8000
+  default_workers: 1  # Single worker for dev
+  
+  # No load balancing in dev
+  load_balancing:
+    strategy: "none"
+  
+  # Shorter cache TTL
+  caching:
+    enabled: true
+    default_ttl: 60  # 1 minute
+
+# Monitoring - Development (Less aggressive)
+monitoring:
+  performance:
+    enabled: true
+    metrics_interval: 300  # 5 minutes
+    retention_days: 7
+  
+  drift_detection:
+    enabled: false  # Disabled in dev
+  
+  alerting:
+    enabled: false  # No alerts in dev
+
+# Security - Development (Relaxed)
+security:
+  authentication:
+    type: "none"  # No auth in dev
+  authorization:
+    type: "none"
+  encryption:
+    enabled: false
+
+# Resources - Development (Minimal)
+resources:
+  default:
+    cpu: "1"
+    memory: "2Gi"
+    gpu: "0"
+    storage: "5Gi"
+  
+  training:
+    cpu: "2"
+    memory: "4Gi"
+    gpu: "0"  # No GPU in dev
+    storage: "20Gi"
+  
+  inference:
+    cpu: "1"
+    memory: "2Gi"
+    gpu: "0"
+    storage: "10Gi"
+
+# Logging - Development (Verbose)
+logging:
+  level: "DEBUG"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/tmp/ml_dev.log"
+  
+  model_logging:
+    enabled: true
+    log_predictions: true
+    log_features: true  # Enable for debugging
+    log_performance: true
+
+# Experiments - Development
+experiments:
+  mlflow:
+    experiment_name: "pbf-lbm-dev-experiments"
+    tags:
+      environment: "development"
+      debug: "true"
+  
+  hyperparameter_optimization:
+    enabled: false  # Disabled in dev for speed
+    n_trials: 10
+    timeout: 300  # 5 minutes
+
+# Deployment - Development (Simple)
+deployment:
+  default:
+    strategy: "rolling"
+    max_unavailable: 0
+    max_surge: 1
+    progress_deadline: 300  # 5 minutes
+  
+  health_checks:
+    initial_delay: 10
+    period: 5
+    timeout: 3
+    success_threshold: 1
+    failure_threshold: 2
+
+# Backup - Development (Minimal)
+backup:
+  enabled: false  # No backup in dev
+  schedule: "0 2 * * *"
+  retention_days: 7
+  locations:
+    - "/tmp/backups/ml-models"
+    - "/tmp/backups/ml-configs"
+
+# Development-specific overrides
+development:
+  # Enable hot reloading
+  hot_reload: true
+  
+  # Enable debug endpoints
+  debug_endpoints: true
+  
+  # Mock external services
+  mock_services:
+    enabled: true
+    services:
+      - "external_api"
+      - "payment_gateway"
+  
+  # Test data generation
+  test_data:
+    enabled: true
+    size: "small"  # small, medium, large
+    seed: 42
+  
+  # Performance profiling
+  profiling:
+    enabled: true
+    output_dir: "/tmp/profiles"

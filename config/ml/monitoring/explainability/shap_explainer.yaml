@@ -1,0 +1,513 @@
+# SHAP Explainer Configuration
+# ============================
+
+monitor:
+  name: "shap_explainer"
+  version: "1.0.0"
+  description: "SHAP-based model explainability and interpretability"
+  
+  # Monitor metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["explainability", "shap", "interpretability", "ml_monitoring"]
+
+# SHAP Configuration
+shap:
+  # SHAP explainer types
+  explainers:
+    - name: "tree_explainer"
+      enabled: true
+      models: ["random_forest", "gradient_boosting", "xgboost"]
+      description: "Tree-based SHAP explainer for tree models"
+      config:
+        feature_perturbation: "tree_path_dependent"
+        model_output: "raw"
+    
+    - name: "linear_explainer"
+      enabled: true
+      models: ["linear_regression", "logistic_regression", "ridge", "lasso"]
+      description: "Linear SHAP explainer for linear models"
+      config:
+        feature_perturbation: "correlation_dependent"
+        model_output: "raw"
+    
+    - name: "kernel_explainer"
+      enabled: true
+      models: ["neural_network", "svm", "custom"]
+      description: "Kernel SHAP explainer for any model"
+      config:
+        feature_perturbation: "interventional"
+        model_output: "raw"
+        background_samples: 1000
+        max_evals: 10000
+    
+    - name: "deep_explainer"
+      enabled: true
+      models: ["neural_network", "deep_learning"]
+      description: "Deep SHAP explainer for neural networks"
+      config:
+        feature_perturbation: "interventional"
+        model_output: "raw"
+        background_samples: 1000
+  
+  # SHAP values calculation
+  calculation:
+    # Background data
+    background_data:
+      type: "postgresql"
+      table: "background_data"
+      connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+      sampling:
+        enabled: true
+        method: "random"
+        size: 1000
+        seed: 42
+    
+    # Feature importance
+    feature_importance:
+      enabled: true
+      methods:
+        - "mean_abs_shap"
+        - "mean_shap"
+        - "max_abs_shap"
+        - "std_shap"
+      top_features: 20
+    
+    # Interaction effects
+    interactions:
+      enabled: true
+      max_interactions: 10
+      threshold: 0.1
+      methods:
+        - "shap_interaction_values"
+        - "shap_dependence_plots"
+    
+    # Summary statistics
+    summary_stats:
+      enabled: true
+      statistics:
+        - "mean"
+        - "std"
+        - "min"
+        - "max"
+        - "percentile_25"
+        - "percentile_50"
+        - "percentile_75"
+
+# Model Configuration
+models:
+  # Models to explain
+  monitored_models:
+    - name: "defect_detector"
+      type: "classification"
+      version: "latest"
+      stage: "production"
+      explainer: "tree_explainer"
+      config:
+        background_samples: 1000
+        max_evals: 10000
+        feature_names: ["laser_power", "scan_speed", "temperature", "melt_pool_size", "spatter_count", "powder_flow_rate", "chamber_pressure", "oxygen_level", "layer_thickness", "hatch_spacing"]
+    
+    - name: "process_optimizer"
+      type: "regression"
+      version: "latest"
+      stage: "production"
+      explainer: "linear_explainer"
+      config:
+        background_samples: 1000
+        max_evals: 10000
+        feature_names: ["laser_power", "scan_speed", "temperature", "melt_pool_size", "spatter_count", "powder_flow_rate", "chamber_pressure", "oxygen_level", "layer_thickness", "hatch_spacing"]
+    
+    - name: "quality_assessor"
+      type: "classification"
+      version: "latest"
+      stage: "production"
+      explainer: "kernel_explainer"
+      config:
+        background_samples: 1000
+        max_evals: 10000
+        feature_names: ["laser_power", "scan_speed", "temperature", "melt_pool_size", "spatter_count", "powder_flow_rate", "chamber_pressure", "oxygen_level", "layer_thickness", "hatch_spacing"]
+
+# Data Sources Configuration
+data_sources:
+  # Model predictions
+  predictions:
+    type: "kafka"
+    topic: "ml_predictions"
+    consumer_group: "shap_explainer"
+    window_size: "1h"
+    sampling:
+      enabled: true
+      method: "systematic"
+      interval: "1min"
+      size: 100
+  
+  # Input features
+  features:
+    type: "kafka"
+    topic: "ispm_sensor_data"
+    consumer_group: "shap_explainer"
+    window_size: "1h"
+    sampling:
+      enabled: true
+      method: "systematic"
+      interval: "1min"
+      size: 100
+  
+  # Background data
+  background:
+    type: "postgresql"
+    table: "background_data"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    filters:
+      date_range: "last_30_days"
+      quality_threshold: 0.95
+    sampling:
+      enabled: true
+      method: "random"
+      size: 1000
+      seed: 42
+
+# Explanation Configuration
+explanation:
+  # Explanation frequency
+  frequency: "1h"
+  timezone: "UTC"
+  
+  # Explanation window
+  window_size: "1h"
+  overlap: "0.5h"
+  
+  # Explanation types
+  types:
+    - name: "global_explanation"
+      enabled: true
+      description: "Global model behavior explanation"
+      methods:
+        - "feature_importance"
+        - "summary_plot"
+        - "bar_plot"
+        - "waterfall_plot"
+    
+    - name: "local_explanation"
+      enabled: true
+      description: "Individual prediction explanation"
+      methods:
+        - "force_plot"
+        - "waterfall_plot"
+        - "decision_plot"
+        - "partial_dependence_plot"
+    
+    - name: "interaction_explanation"
+      enabled: true
+      description: "Feature interaction explanation"
+      methods:
+        - "interaction_plot"
+        - "dependence_plot"
+        - "clustering_plot"
+    
+    - name: "temporal_explanation"
+      enabled: true
+      description: "Temporal behavior explanation"
+      methods:
+        - "time_series_plot"
+        - "trend_analysis"
+        - "seasonality_analysis"
+
+# Visualization Configuration
+visualization:
+  # Plot types
+  plots:
+    - name: "summary_plot"
+      enabled: true
+      config:
+        max_display: 20
+        show: true
+        color_bar: true
+        plot_size: "auto"
+    
+    - name: "bar_plot"
+      enabled: true
+      config:
+        max_display: 20
+        show: true
+        color: "blue"
+        plot_size: "auto"
+    
+    - name: "waterfall_plot"
+      enabled: true
+      config:
+        max_display: 20
+        show: true
+        color: "blue"
+        plot_size: "auto"
+    
+    - name: "force_plot"
+      enabled: true
+      config:
+        show: true
+        color: "blue"
+        plot_size: "auto"
+    
+    - name: "decision_plot"
+      enabled: true
+      config:
+        show: true
+        color: "blue"
+        plot_size: "auto"
+    
+    - name: "partial_dependence_plot"
+      enabled: true
+      config:
+        show: true
+        color: "blue"
+        plot_size: "auto"
+    
+    - name: "interaction_plot"
+      enabled: true
+      config:
+        show: true
+        color: "blue"
+        plot_size: "auto"
+    
+    - name: "dependence_plot"
+      enabled: true
+      config:
+        show: true
+        color: "blue"
+        plot_size: "auto"
+  
+  # Plot storage
+  storage:
+    type: "s3"
+    bucket: "pbf-ml-artifacts"
+    path: "shap_explanations/plots"
+    formats: ["png", "svg", "html"]
+    compression: "gzip"
+    retention_days: 30
+
+# Alerting Configuration
+alerting:
+  # Alert channels
+  channels:
+    - type: "email"
+      recipients: ["ml-team@company.com"]
+      template: "shap_alert_email"
+    - type: "slack"
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#ml-alerts"
+      template: "shap_alert_slack"
+  
+  # Alert thresholds
+  thresholds:
+    - level: "warning"
+      feature_importance_change: 0.2
+      duration: "30m"
+      cooldown: "1h"
+    - level: "critical"
+      feature_importance_change: 0.5
+      duration: "10m"
+      cooldown: "30m"
+  
+  # Alert suppression
+  suppression:
+    enabled: true
+    maintenance_windows: true
+    business_hours_only: false
+    max_alerts_per_hour: 5
+
+# Storage Configuration
+storage:
+  # Results storage
+  results:
+    type: "postgresql"
+    table: "shap_explanations"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    retention_days: 90
+    partitioning: ["year", "month", "day"]
+  
+  # Artifacts storage
+  artifacts:
+    type: "s3"
+    bucket: "pbf-ml-artifacts"
+    path: "shap_explanations/artifacts"
+    compression: "gzip"
+    retention_days: 30
+  
+  # Cache storage
+  cache:
+    type: "redis"
+    host: "redis"
+    port: 6379
+    db: 5
+    ttl: "1h"
+    max_size: 10000
+
+# Performance Configuration
+performance:
+  # Processing performance
+  processing:
+    parallel_processing: true
+    max_workers: 4
+    batch_size: 100
+    timeout: "30m"
+  
+  # Memory management
+  memory:
+    target: 4  # GB
+    max: 8
+    gc_threshold: 0.8
+  
+  # CPU requirements
+  cpu:
+    target: 2
+    max: 4
+
+# Monitoring Configuration
+monitoring:
+  # Health checks
+  health_check:
+    path: "/health"
+    interval: "60s"
+    timeout: "10s"
+    failure_threshold: 3
+    success_threshold: 1
+  
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: "5m"
+    retention_days: 30
+    
+    # Custom metrics
+    custom_metrics:
+      - "shap_calculation_latency"
+      - "explanation_generation_time"
+      - "feature_importance_variance"
+      - "interaction_strength"
+      - "memory_usage"
+      - "cpu_usage"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    
+    # Alert thresholds
+    thresholds:
+      - metric: "shap_calculation_latency"
+        threshold: 1800  # 30 minutes
+        operator: ">"
+        severity: "warning"
+        duration: "5m"
+      - metric: "memory_usage"
+        threshold: 0.9
+        operator: ">"
+        severity: "critical"
+        duration: "5m"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/shap_explainer.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+  
+  # Explanation logging
+  explanation_logging:
+    enabled: true
+    log_feature_importance: true
+    log_interactions: true
+    log_performance: true
+    log_visualizations: true
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "numpy==1.24.3"
+    - "pandas==2.0.3"
+    - "scipy==1.11.4"
+    - "scikit-learn==1.3.0"
+    - "shap==0.42.1"
+    - "matplotlib==3.7.2"
+    - "seaborn==0.12.2"
+    - "plotly==5.15.0"
+    - "kafka-python==2.0.2"
+    - "psycopg2-binary==2.9.9"
+    - "redis==5.0.1"
+    - "boto3==1.34.0"
+  
+  # Environment variables
+  env_vars:
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+    POSTGRES_URL: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    REDIS_URL: "redis://redis:6379/5"
+    S3_BUCKET: "pbf-ml-artifacts"
+    LOG_LEVEL: "INFO"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Error responses
+  error_responses:
+    format: "json"
+    include_stack_trace: false
+    include_request_id: true
+    log_errors: true
+  
+  # Retry policy
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: "5m"
+  
+  # Failure handling
+  failure_handling:
+    strategy: "continue_on_failure"
+    dead_letter_queue: true
+    error_notification: true
+
+# Deployment Configuration
+deployment:
+  # Deployment strategy
+  strategy: "rolling"
+  replicas: 2
+  max_unavailable: 1
+  max_surge: 1
+  progress_deadline: 600  # 10 minutes
+  
+  # Resource requirements
+  resources:
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+  
+  # Health checks
+  health_checks:
+    liveness:
+      enabled: true
+      path: "/health"
+      initial_delay: 30
+      period: 10
+      timeout: 5
+      success_threshold: 1
+      failure_threshold: 3
+    readiness:
+      enabled: true
+      path: "/health"
+      initial_delay: 15
+      period: 5
+      timeout: 3
+      success_threshold: 1
+      failure_threshold: 3

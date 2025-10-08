@@ -1,0 +1,147 @@
+# Defect Severity Assessor Configuration
+# Model for assessing the severity of detected defects in PBF-LBM parts
+
+model:
+  name: "defect_severity_assessor"
+  version: "1.0.0"
+  type: "classification"
+  framework: "scikit-learn"
+  
+  architecture:
+    algorithm: "RandomForestClassifier"
+    parameters:
+      n_estimators: 200
+      max_depth: 15
+      min_samples_split: 5
+      min_samples_leaf: 2
+      random_state: 42
+      class_weight: "balanced"
+    
+  input_features:
+    - name: "defect_area_ratio"
+      type: "numerical"
+      description: "Ratio of defect area to total part area"
+      range: [0.0, 1.0]
+    - name: "defect_depth_ratio"
+      type: "numerical"
+      description: "Ratio of defect depth to part thickness"
+      range: [0.0, 1.0]
+    - name: "defect_location_x"
+      type: "numerical"
+      description: "Normalized X coordinate of defect center"
+      range: [0.0, 1.0]
+    - name: "defect_location_y"
+      type: "numerical"
+      description: "Normalized Y coordinate of defect center"
+      range: [0.0, 1.0]
+    - name: "defect_location_z"
+      type: "numerical"
+      description: "Normalized Z coordinate of defect center"
+      range: [0.0, 1.0]
+    - name: "defect_type_encoding"
+      type: "categorical"
+      description: "Encoded defect type (pore, crack, inclusion, etc.)"
+      categories: ["pore", "crack", "inclusion", "surface_roughness", "dimensional_error"]
+    - name: "part_criticality_score"
+      type: "numerical"
+      description: "Criticality score of the part region"
+      range: [0.0, 1.0]
+    - name: "stress_concentration_factor"
+      type: "numerical"
+      description: "Estimated stress concentration factor"
+      range: [1.0, 10.0]
+    - name: "defect_orientation_angle"
+      type: "numerical"
+      description: "Angle of defect orientation relative to loading direction"
+      range: [0.0, 180.0]
+    - name: "surrounding_material_density"
+      type: "numerical"
+      description: "Material density in defect vicinity"
+      range: [0.0, 1.0]
+
+  output_classes:
+    - name: "low_severity"
+      description: "Defect has minimal impact on part performance"
+      threshold: 0.0
+    - name: "medium_severity"
+      description: "Defect may affect part performance under certain conditions"
+      threshold: 0.3
+    - name: "high_severity"
+      description: "Defect significantly impacts part performance"
+      threshold: 0.7
+    - name: "critical_severity"
+      description: "Defect makes part unsuitable for intended use"
+      threshold: 0.9
+
+  training:
+    dataset_path: "/data/training/defect_severity_dataset.csv"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "stratified_kfold"
+      n_splits: 5
+    metrics:
+      primary: "f1_weighted"
+      secondary: ["precision_weighted", "recall_weighted", "accuracy"]
+    early_stopping:
+      enabled: true
+      patience: 10
+      monitor: "val_f1_weighted"
+    
+  preprocessing:
+    scaling:
+      method: "standard_scaler"
+      features: ["defect_area_ratio", "defect_depth_ratio", "defect_location_x", 
+                "defect_location_y", "defect_location_z", "part_criticality_score",
+                "stress_concentration_factor", "defect_orientation_angle", 
+                "surrounding_material_density"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["defect_type_encoding"]
+    feature_selection:
+      method: "mutual_info_classif"
+      k_best: 15
+      
+  validation:
+    business_rules:
+      - rule: "critical_defects_near_surface"
+        condition: "defect_location_z > 0.8 AND defect_severity == 'critical'"
+        action: "flag_for_review"
+      - rule: "large_defects_high_severity"
+        condition: "defect_area_ratio > 0.1 AND defect_severity in ['high', 'critical']"
+        action: "auto_reject"
+      - rule: "stress_concentration_check"
+        condition: "stress_concentration_factor > 5.0 AND defect_severity == 'low'"
+        action: "escalate_review"
+
+  deployment:
+    inference_mode: "real_time"
+    batch_size: 1
+    max_latency_ms: 100
+    model_format: "pickle"
+    artifact_path: "/models/defect_severity_assessor/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "ks_test"
+      threshold: 0.05
+      features: ["defect_area_ratio", "defect_depth_ratio", "defect_type_encoding"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["accuracy", "f1_weighted", "precision_weighted", "recall_weighted"]
+      alert_thresholds:
+        accuracy: 0.85
+        f1_weighted: 0.80
+    explainability:
+      enabled: true
+      method: "shap"
+      sample_size: 1000
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.05
+    schedule: "weekly"
+    data_requirements:
+      min_samples: 1000
+      class_balance_threshold: 0.1

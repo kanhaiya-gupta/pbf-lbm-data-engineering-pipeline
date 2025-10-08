@@ -1,0 +1,204 @@
+# PBF-LB/M Data Pipeline - Delta Lake Configuration
+# This file contains Delta Lake-specific configuration settings
+
+delta_lake:
+  # Delta Lake connection configuration
+  connection:
+    table_path: "/mnt/delta/pbf_lbm_data"
+    checkpoint_location: "/mnt/delta/checkpoints"
+    log_store: "s3://pbf-lbm-delta-logs"
+    
+  # Delta Lake table configuration
+  tables:
+    # PBF Process Data Table
+    pbf_process_data:
+      name: "pbf_process_data"
+      path: "/mnt/delta/pbf_lbm_data/pbf_process"
+      comment: "Delta Lake table for PBF process data"
+      partitioning:
+        enabled: true
+        columns: ["year", "month", "day"]
+      schema_evolution:
+        enabled: true
+        mode: "additive"
+      retention:
+        log_retention_days: 30
+        deleted_file_retention_days: 7
+        
+    # ISPM Monitoring Data Table
+    ispm_monitoring_data:
+      name: "ispm_monitoring_data"
+      path: "/mnt/delta/pbf_lbm_data/ispm_monitoring"
+      comment: "Delta Lake table for ISPM monitoring data"
+      partitioning:
+        enabled: true
+        columns: ["year", "month", "day", "hour"]
+      schema_evolution:
+        enabled: true
+        mode: "additive"
+      retention:
+        log_retention_days: 30
+        deleted_file_retention_days: 7
+        
+    # CT Scan Data Table
+    ct_scan_data:
+      name: "ct_scan_data"
+      path: "/mnt/delta/pbf_lbm_data/ct_scan"
+      comment: "Delta Lake table for CT scan data"
+      partitioning:
+        enabled: true
+        columns: ["year", "month", "day"]
+      schema_evolution:
+        enabled: true
+        mode: "additive"
+      retention:
+        log_retention_days: 90
+        deleted_file_retention_days: 30
+        
+    # Powder Bed Data Table
+    powder_bed_data:
+      name: "powder_bed_data"
+      path: "/mnt/delta/pbf_lbm_data/powder_bed"
+      comment: "Delta Lake table for powder bed monitoring data"
+      partitioning:
+        enabled: true
+        columns: ["year", "month", "day", "hour"]
+      schema_evolution:
+        enabled: true
+        mode: "additive"
+      retention:
+        log_retention_days: 30
+        deleted_file_retention_days: 7
+        
+  # Delta Lake optimization configuration
+  optimization:
+    auto_optimize:
+      enabled: true
+      interval: "1 hour"
+      target_file_size: "128MB"
+      
+    auto_compact:
+      enabled: true
+      interval: "1 hour"
+      target_file_size: "128MB"
+      
+    z_order:
+      enabled: true
+      columns:
+        pbf_process_data: ["machine_id", "start_time"]
+        ispm_monitoring_data: ["process_id", "sensor_type", "timestamp"]
+        ct_scan_data: ["process_id", "timestamp"]
+        powder_bed_data: ["process_id", "layer_number", "timestamp"]
+        
+  # Delta Lake security configuration
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: true
+    audit_logging: true
+    
+  # Delta Lake monitoring configuration
+  monitoring:
+    enabled: true
+    metrics_enabled: true
+    health_check_interval: 300  # 5 minutes
+    performance_monitoring: true
+    
+  # Delta Lake performance tuning
+  performance:
+    # File management
+    file_management:
+      target_file_size: "128MB"
+      max_file_size: "1GB"
+      min_file_size: "64MB"
+      
+    # Compression
+    compression:
+      enabled: true
+      algorithm: "snappy"
+      level: 1
+      
+    # Caching
+    caching:
+      enabled: true
+      cache_level: "MEMORY_AND_DISK"
+      cache_size: "1GB"
+      
+    # Parallelism
+    parallelism:
+      default_parallelism: 200
+      max_parallelism: 1000
+      
+  # Delta Lake data formats
+  data_formats:
+    parquet:
+      compression: "snappy"
+      row_group_size: 134217728  # 128MB
+      page_size: 1048576  # 1MB
+      dictionary_encoding: true
+      
+    json:
+      compression: "gzip"
+      line_delimiter: "\n"
+      
+    csv:
+      compression: "gzip"
+      delimiter: ","
+      quote_char: "\""
+      escape_char: "\\"
+      
+  # Delta Lake partitioning
+  partitioning:
+    strategy: "hive"
+    columns:
+      - name: "year"
+        type: "string"
+        format: "yyyy"
+      - name: "month"
+        type: "string"
+        format: "MM"
+      - name: "day"
+        type: "string"
+        format: "dd"
+      - name: "hour"
+        type: "string"
+        format: "HH"
+        
+  # Delta Lake environment-specific overrides
+  environments:
+    development:
+      table_path: "/tmp/delta/pbf_lbm_data"
+      checkpoint_location: "/tmp/delta/checkpoints"
+      log_store: "file:///tmp/delta/logs"
+      optimization:
+        auto_optimize:
+          enabled: false
+        auto_compact:
+          enabled: false
+          
+    staging:
+      table_path: "/mnt/delta/pbf_lbm_staging_data"
+      checkpoint_location: "/mnt/delta/staging_checkpoints"
+      log_store: "s3://pbf-lbm-staging-delta-logs"
+      optimization:
+        auto_optimize:
+          enabled: true
+          interval: "2 hours"
+        auto_compact:
+          enabled: true
+          interval: "2 hours"
+          
+    production:
+      table_path: "/mnt/delta/pbf_lbm_prod_data"
+      checkpoint_location: "/mnt/delta/prod_checkpoints"
+      log_store: "s3://pbf-lbm-prod-delta-logs"
+      optimization:
+        auto_optimize:
+          enabled: true
+          interval: "1 hour"
+        auto_compact:
+          enabled: true
+          interval: "1 hour"
+      retention:
+        log_retention_days: 90
+        deleted_file_retention_days: 30

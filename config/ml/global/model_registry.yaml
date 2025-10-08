@@ -1,0 +1,321 @@
+# Global Model Registry Configuration
+# Configuration for model registry management
+
+model_registry:
+  name: "pbf_lbm_model_registry"
+  version: "1.0.0"
+  description: "Global model registry configuration for PBF-LBM models"
+  
+  registry:
+    type: "mlflow"
+    tracking_uri: "http://mlflow:5000"
+    registry_uri: "s3://mlflow-registry/"
+    experiment_name: "pbf-lbm-models"
+    
+  models:
+    - name: "quality_assessment"
+      description: "Quality assessment model"
+      type: "regression"
+      framework: "scikit-learn"
+      version: "latest"
+      status: "production"
+      endpoint: "/api/v1/quality"
+      replicas: 3
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+      monitoring:
+        enabled: true
+        metrics:
+          - "accuracy"
+          - "precision"
+          - "recall"
+          - "f1_score"
+          - "mae"
+          - "rmse"
+          - "r2_score"
+        alerts:
+          - name: "low_accuracy"
+            condition: "accuracy < 0.8"
+            severity: "critical"
+          - name: "high_latency"
+            condition: "latency_p95 > 1000"
+            severity: "warning"
+            
+    - name: "maintenance"
+      description: "Predictive maintenance model"
+      type: "classification"
+      framework: "xgboost"
+      version: "latest"
+      status: "production"
+      endpoint: "/api/v1/maintenance"
+      replicas: 2
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+      monitoring:
+        enabled: true
+        metrics:
+          - "accuracy"
+          - "precision"
+          - "recall"
+          - "f1_score"
+          - "auc"
+          - "log_loss"
+        alerts:
+          - name: "low_accuracy"
+            condition: "accuracy < 0.85"
+            severity: "critical"
+          - name: "high_latency"
+            condition: "latency_p95 > 2000"
+            severity: "warning"
+            
+    - name: "process_optimization"
+      description: "Process optimization model"
+      type: "regression"
+      framework: "neural_network"
+      version: "latest"
+      status: "production"
+      endpoint: "/api/v1/process"
+      replicas: 2
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+      monitoring:
+        enabled: true
+        metrics:
+          - "accuracy"
+          - "precision"
+          - "recall"
+          - "f1_score"
+          - "mae"
+          - "rmse"
+          - "r2_score"
+        alerts:
+          - name: "low_accuracy"
+            condition: "accuracy < 0.8"
+            severity: "critical"
+          - name: "high_latency"
+            condition: "latency_p95 > 2000"
+            severity: "warning"
+            
+    - name: "defect_detection"
+      description: "Defect detection model"
+      type: "classification"
+      framework: "cnn"
+      version: "latest"
+      status: "production"
+      endpoint: "/api/v1/defect"
+      replicas: 2
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+      monitoring:
+        enabled: true
+        metrics:
+          - "accuracy"
+          - "precision"
+          - "recall"
+          - "f1_score"
+          - "auc"
+          - "log_loss"
+        alerts:
+          - name: "low_accuracy"
+            condition: "accuracy < 0.9"
+            severity: "critical"
+          - name: "high_latency"
+            condition: "latency_p95 > 5000"
+            severity: "warning"
+            
+    - name: "material_analysis"
+      description: "Material analysis model"
+      type: "regression"
+      framework: "random_forest"
+      version: "latest"
+      status: "production"
+      endpoint: "/api/v1/material"
+      replicas: 2
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+      monitoring:
+        enabled: true
+        metrics:
+          - "accuracy"
+          - "precision"
+          - "recall"
+          - "f1_score"
+          - "mae"
+          - "rmse"
+          - "r2_score"
+        alerts:
+          - name: "low_accuracy"
+            condition: "accuracy < 0.8"
+            severity: "critical"
+          - name: "high_latency"
+            condition: "latency_p95 > 2000"
+            severity: "warning"
+            
+  model_lifecycle:
+    stages:
+      - name: "development"
+        description: "Model development and experimentation"
+        duration: "7_days"
+        auto_promote: false
+      - name: "validation"
+        description: "Model validation and testing"
+        duration: "14_days"
+        auto_promote: false
+      - name: "staging"
+        description: "Staging environment testing"
+        duration: "30_days"
+        auto_promote: false
+      - name: "production"
+        description: "Production deployment"
+        duration: "90_days"
+        auto_promote: true
+      - name: "deprecated"
+        description: "Deprecated model version"
+        duration: "30_days"
+        auto_promote: false
+      - name: "archived"
+        description: "Archived model version"
+        duration: "365_days"
+        auto_promote: false
+        
+  model_management:
+    auto_deployment:
+      enabled: true
+      trigger_conditions:
+        - name: "model_accuracy"
+          threshold: 0.85
+          operator: "greater_than"
+        - name: "validation_score"
+          threshold: 0.8
+          operator: "greater_than"
+        - name: "test_score"
+          threshold: 0.75
+          operator: "greater_than"
+      deployment_strategy: "rolling_update"
+      max_unavailable: 1
+      max_surge: 1
+      
+    model_cleanup:
+      enabled: true
+      schedule: "0 3 * * 0"
+      retention_policy:
+        development: "30_days"
+        validation: "60_days"
+        staging: "90_days"
+        production: "365_days"
+        deprecated: "30_days"
+        archived: "730_days"
+      cleanup_actions:
+        - name: "delete_model"
+          condition: "model_age > retention_period"
+          action: "delete"
+        - name: "archive_model"
+          condition: "model_age > retention_period"
+          action: "archive"
+        - name: "compress_artifacts"
+          condition: "model_age > 30_days"
+          action: "compress"
+          
+  model_monitoring:
+    enabled: true
+    frequency: "hourly"
+    metrics:
+      - name: "model_accuracy"
+        type: "gauge"
+        labels: ["model_name", "version"]
+      - name: "model_latency"
+        type: "histogram"
+        labels: ["model_name", "endpoint"]
+      - name: "model_throughput"
+        type: "gauge"
+        labels: ["model_name", "endpoint"]
+      - name: "model_health"
+        type: "gauge"
+        labels: ["model_name", "status"]
+    alerts:
+      - name: "model_failure"
+        condition: "model_health == 'unhealthy'"
+        severity: "critical"
+        duration: "1m"
+      - name: "low_accuracy"
+        condition: "model_accuracy < 0.8"
+        severity: "warning"
+        duration: "5m"
+      - name: "high_latency"
+        condition: "model_latency_p95 > 2000"
+        severity: "warning"
+        duration: "5m"
+      - name: "low_throughput"
+        condition: "model_throughput < 100"
+        severity: "warning"
+        duration: "10m"
+        
+  model_reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["ml_team", "data_team", "management"]
+    include_metrics:
+      - "model_summary"
+      - "performance_metrics"
+      - "deployment_status"
+      - "health_status"
+      - "trend_analysis"
+    dashboard:
+      enabled: true
+      url: "http://mlflow:5000"
+      refresh_interval: "5_minutes"
+      
+  model_storage:
+    results:
+      type: "s3"
+      bucket: "mlflow-models"
+      region: "us-west-2"
+      prefix: "models/"
+      retention_days: 90
+    artifacts:
+      type: "s3"
+      bucket: "mlflow-artifacts"
+      region: "us-west-2"
+      prefix: "artifacts/"
+      retention_days: 90
+    logs:
+      type: "elasticsearch"
+      endpoint: "http://elasticsearch:9200"
+      index: "mlflow-models"
+      retention_days: 30
+      
+  model_validation:
+    enabled: true
+    checks:
+      - name: "model_completeness"
+        condition: "required_artifacts_present == true"
+        action: "flag_incomplete"
+      - name: "metric_validation"
+        condition: "metrics_in_range == true"
+        action: "flag_invalid"
+      - name: "artifact_validation"
+        condition: "artifacts_valid == true"
+        action: "flag_invalid"
+      - name: "deployment_validation"
+        condition: "deployment_successful == true"
+        action: "flag_failed"
+        
+  model_integration:
+    mlflow:
+      enabled: true
+      tracking_uri: "http://mlflow:5000"
+      registry_uri: "s3://mlflow-registry/"
+    kubernetes:
+      enabled: true
+      namespace: "ml-production"
+      service_account: "mlflow-models"
+    monitoring:
+      enabled: true
+      prometheus_endpoint: "http://prometheus:9090"
+      grafana_endpoint: "http://grafana:3000"

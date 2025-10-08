@@ -1,0 +1,252 @@
+# PBF-LB/M Data Pipeline - PBF Process Data Source Configuration
+# This file contains PBF process data source specific configurations
+
+pbf_process:
+  # Data source information
+  source_info:
+    name: "PBF Process Data"
+    description: "PBF process data from operational database"
+    type: "postgresql"
+    priority: "high"
+    enabled: true
+    
+  # Connection configuration
+  connection:
+    host: "${POSTGRES_HOST}"
+    port: 5432
+    database: "pbf_lbm_operational_db"
+    schema: "public"
+    table: "pbf_process_data"
+    username: "${POSTGRES_USERNAME}"
+    password: "${POSTGRES_PASSWORD}"
+    ssl_mode: "prefer"
+    
+  # Data extraction settings
+  extraction:
+    batch_size: 10000
+    timeout_minutes: 60
+    retry_attempts: 3
+    retry_delay_seconds: 5
+    
+    # Incremental extraction
+    incremental:
+      enabled: true
+      timestamp_column: "updated_at"
+      initial_timestamp: "2024-01-01 00:00:00"
+      
+    # Full extraction
+    full:
+      enabled: false
+      schedule: "0 0 1 * *"  # Monthly on 1st at midnight
+      
+  # Data schema
+  schema:
+    columns:
+      - name: "process_id"
+        type: "VARCHAR"
+        nullable: false
+        primary_key: true
+        
+      - name: "start_time"
+        type: "TIMESTAMP"
+        nullable: false
+        
+      - name: "end_time"
+        type: "TIMESTAMP"
+        nullable: true
+        
+      - name: "machine_id"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "material_type"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "powder_batch_id"
+        type: "VARCHAR"
+        nullable: true
+        
+      - name: "process_status"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "total_layers"
+        type: "INTEGER"
+        nullable: true
+        
+      - name: "build_height_mm"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "laser_power_w"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "scan_speed_mm_s"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "layer_thickness_um"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "atmosphere_type"
+        type: "VARCHAR"
+        nullable: true
+        
+      - name: "oxygen_content_ppm"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "quality_score"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "notes"
+        type: "TEXT"
+        nullable: true
+        
+      - name: "created_at"
+        type: "TIMESTAMP"
+        nullable: false
+        
+      - name: "updated_at"
+        type: "TIMESTAMP"
+        nullable: false
+        
+  # Data quality rules
+  quality_rules:
+    - name: "process_id_not_null"
+      type: "not_null"
+      column: "process_id"
+      severity: "error"
+      
+    - name: "start_time_not_null"
+      type: "not_null"
+      column: "start_time"
+      severity: "error"
+      
+    - name: "machine_id_not_null"
+      type: "not_null"
+      column: "machine_id"
+      severity: "error"
+      
+    - name: "material_type_not_null"
+      type: "not_null"
+      column: "material_type"
+      severity: "error"
+      
+    - name: "process_status_valid"
+      type: "in_list"
+      column: "process_status"
+      values: ["pending", "running", "paused", "completed", "failed", "cancelled"]
+      severity: "error"
+      
+    - name: "quality_score_range"
+      type: "range"
+      column: "quality_score"
+      min_value: 0.0
+      max_value: 1.0
+      severity: "warning"
+      
+    - name: "laser_power_positive"
+      type: "greater_than"
+      column: "laser_power_w"
+      value: 0
+      severity: "warning"
+      
+    - name: "scan_speed_positive"
+      type: "greater_than"
+      column: "scan_speed_mm_s"
+      value: 0
+      severity: "warning"
+      
+    - name: "layer_thickness_positive"
+      type: "greater_than"
+      column: "layer_thickness_um"
+      value: 0
+      severity: "warning"
+      
+    - name: "total_layers_positive"
+      type: "greater_than_or_equal"
+      column: "total_layers"
+      value: 0
+      severity: "warning"
+      
+  # Data transformation rules
+  transformations:
+    - name: "clean_process_data"
+      type: "sql"
+      query: |
+        SELECT 
+          process_id,
+          start_time,
+          end_time,
+          machine_id,
+          material_type,
+          powder_batch_id,
+          process_status,
+          total_layers,
+          build_height_mm,
+          laser_power_w,
+          scan_speed_mm_s,
+          layer_thickness_um,
+          atmosphere_type,
+          oxygen_content_ppm,
+          quality_score,
+          notes,
+          created_at,
+          updated_at
+        FROM pbf_process_data
+        WHERE process_id IS NOT NULL
+          AND start_time IS NOT NULL
+          AND machine_id IS NOT NULL
+          AND material_type IS NOT NULL
+          
+    - name: "calculate_derived_metrics"
+      type: "sql"
+      query: |
+        SELECT *,
+          CASE 
+            WHEN end_time IS NOT NULL AND start_time IS NOT NULL 
+            THEN EXTRACT(EPOCH FROM (end_time - start_time))/3600
+            ELSE NULL 
+          END as duration_hours,
+          CASE 
+            WHEN total_layers > 0 AND build_height_mm > 0 
+            THEN build_height_mm / total_layers
+            ELSE NULL 
+          END as avg_layer_height_mm,
+          CASE 
+            WHEN quality_score >= 0.9 THEN 'excellent'
+            WHEN quality_score >= 0.7 THEN 'good'
+            WHEN quality_score >= 0.5 THEN 'fair'
+            WHEN quality_score >= 0.3 THEN 'poor'
+            ELSE 'unacceptable'
+          END as quality_tier
+        FROM cleaned_data
+        
+  # Data target configuration
+  target:
+    database: "PBF_LBM_DW"
+    schema: "PUBLIC"
+    table: "fct_pbf_process"
+    write_mode: "append"
+    
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    health_check_interval: 300  # 5 minutes
+    metrics_collection: true
+    alert_thresholds:
+      row_count_variance: 0.1  # 10% variance
+      extraction_timeout: 120  # 2 minutes
+      quality_score_threshold: 0.8
+      
+  # Security configuration
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: true
+    audit_logging: true

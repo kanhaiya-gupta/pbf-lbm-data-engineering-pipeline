@@ -1,0 +1,466 @@
+# MLflow Tracking Server Configuration
+# ===================================
+
+mlflow_tracking_server:
+  name: "pbf_mlflow_tracking_server"
+  version: "1.0.0"
+  description: "MLflow tracking server configuration for PBF-LB/M ML experiments"
+  owner: "ml-team@company.com"
+  
+  # Server metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["mlflow", "tracking_server", "experiment_management", "pbf"]
+
+# Server Configuration
+server:
+  # Basic configuration
+  host: "0.0.0.0"
+  port: 5000
+  workers: 4
+  timeout: 300
+  
+  # Backend store
+  backend_store:
+    type: "postgresql"
+    connection: "postgresql://mlflow_user:mlflow_password@postgres:5432/mlflow_db"
+    pool_size: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+    
+  # Artifact store
+  artifact_store:
+    type: "s3"
+    bucket: "pbf-mlflow-artifacts"
+    region: "us-east-1"
+    access_key: "${AWS_ACCESS_KEY_ID}"
+    secret_key: "${AWS_SECRET_ACCESS_KEY}"
+    endpoint_url: null
+    signature_version: "s3v4"
+    
+  # Default artifact root
+  default_artifact_root: "s3://pbf-mlflow-artifacts"
+  
+  # Server settings
+  settings:
+    enable_cors: true
+    cors_origins: ["*"]
+    enable_proxy_headers: true
+    static_prefix: "/static"
+    serve_artifacts: true
+    artifact_only: false
+    gunicorn_opts: "--timeout 300 --keep-alive 2 --max-requests 1000 --max-requests-jitter 100"
+
+# Database Configuration
+database:
+  # PostgreSQL configuration
+  postgresql:
+    host: "postgres"
+    port: 5432
+    database: "mlflow_db"
+    username: "mlflow_user"
+    password: "mlflow_password"
+    ssl_mode: "prefer"
+    ssl_cert: null
+    ssl_key: null
+    ssl_root_cert: null
+    
+  # Connection pooling
+  connection_pooling:
+    pool_size: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+    pool_pre_ping: true
+    
+  # Database migrations
+  migrations:
+    enabled: true
+    auto_migrate: true
+    migration_timeout: 300
+
+# Storage Configuration
+storage:
+  # S3 configuration
+  s3:
+    bucket: "pbf-mlflow-artifacts"
+    region: "us-east-1"
+    access_key: "${AWS_ACCESS_KEY_ID}"
+    secret_key: "${AWS_SECRET_ACCESS_KEY}"
+    endpoint_url: null
+    signature_version: "s3v4"
+    s3_encrypt: true
+    s3_kms_key: null
+    
+  # Local storage (for development)
+  local:
+    path: "/app/mlflow_artifacts"
+    permissions: "755"
+    
+  # Storage policies
+  storage_policies:
+    retention_days: 90
+    cleanup_enabled: true
+    cleanup_schedule: "0 2 * * *"  # Daily at 2 AM
+    max_artifact_size: "10GB"
+    max_artifacts_per_run: 1000
+
+# Authentication Configuration
+authentication:
+  # Authentication type
+  type: "none"  # none, basic, oauth, jwt
+  
+  # Basic authentication
+  basic_auth:
+    enabled: false
+    username: "admin"
+    password: "admin_password"
+    
+  # OAuth authentication
+  oauth:
+    enabled: false
+    provider: "google"
+    client_id: "${OAUTH_CLIENT_ID}"
+    client_secret: "${OAUTH_CLIENT_SECRET}"
+    redirect_uri: "http://localhost:5000/oauth/callback"
+    
+  # JWT authentication
+  jwt:
+    enabled: false
+    secret_key: "${JWT_SECRET_KEY}"
+    algorithm: "HS256"
+    expiration_hours: 24
+
+# Authorization Configuration
+authorization:
+  # Authorization type
+  type: "none"  # none, rbac, abac
+  
+  # Role-based access control
+  rbac:
+    enabled: false
+    roles:
+      - name: "admin"
+        permissions: ["read", "write", "delete", "admin"]
+      - name: "user"
+        permissions: ["read", "write"]
+      - name: "viewer"
+        permissions: ["read"]
+        
+  # Attribute-based access control
+  abac:
+    enabled: false
+    policies:
+      - name: "admin_policy"
+        conditions:
+          - attribute: "role"
+            operator: "equals"
+            value: "admin"
+        permissions: ["read", "write", "delete", "admin"]
+
+# Experiment Management
+experiment_management:
+  # Default experiments
+  default_experiments:
+    - name: "defect_detection_experiments"
+      description: "Experiments for defect detection models"
+      tags: ["defect_detection", "classification", "pbf"]
+      
+    - name: "quality_assessment_experiments"
+      description: "Experiments for quality assessment models"
+      tags: ["quality_assessment", "regression", "pbf"]
+      
+    - name: "process_optimization_experiments"
+      description: "Experiments for process optimization models"
+      tags: ["process_optimization", "multi_objective", "pbf"]
+      
+    - name: "equipment_health_experiments"
+      description: "Experiments for equipment health monitoring models"
+      tags: ["equipment_health", "anomaly_detection", "pbf"]
+      
+  # Experiment settings
+  experiment_settings:
+    max_runs_per_experiment: 10000
+    max_artifacts_per_run: 1000
+    max_metrics_per_run: 1000
+    max_params_per_run: 1000
+    max_tags_per_run: 100
+
+# Model Registry Configuration
+model_registry:
+  # Registry settings
+  registry_settings:
+    enabled: true
+    auto_register: false
+    default_stage: "staging"
+    production_stage: "production"
+    archived_stage: "archived"
+    
+  # Model stages
+  model_stages:
+    - name: "staging"
+      description: "Staging stage for model validation"
+      auto_transition: false
+      
+    - name: "production"
+      description: "Production stage for deployed models"
+      auto_transition: false
+      
+    - name: "archived"
+      description: "Archived stage for deprecated models"
+      auto_transition: false
+      
+  # Model validation
+  model_validation:
+    enabled: true
+    validation_rules:
+      - name: "accuracy_threshold"
+        rule: "accuracy >= 0.90"
+        description: "Model accuracy must be at least 90%"
+        
+      - name: "latency_threshold"
+        rule: "latency <= 100"
+        description: "Model latency must be at most 100ms"
+        
+      - name: "model_size_threshold"
+        rule: "model_size <= 100"
+        description: "Model size must be at most 100MB"
+
+# Monitoring Configuration
+monitoring:
+  # Server monitoring
+  server_monitoring:
+    enabled: true
+    metrics:
+      - "request_count"
+      - "request_duration"
+      - "error_rate"
+      - "active_connections"
+      - "cpu_usage"
+      - "memory_usage"
+      - "disk_usage"
+      
+  # Database monitoring
+  database_monitoring:
+    enabled: true
+    metrics:
+      - "connection_count"
+      - "query_duration"
+      - "query_count"
+      - "connection_pool_usage"
+      - "database_size"
+      
+  # Storage monitoring
+  storage_monitoring:
+    enabled: true
+    metrics:
+      - "artifact_count"
+      - "artifact_size"
+      - "storage_usage"
+      - "upload_duration"
+      - "download_duration"
+      
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["slack", "email"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      error_rate: 0.05
+      response_time: 5.0
+      cpu_usage: 80
+      memory_usage: 85
+      disk_usage: 90
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/mlflow_tracking_server.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+      
+  # Access logging
+  access_logging:
+    enabled: true
+    format: "%(h)s %(l)s %(u)s %(t)s \"%(r)s\" %(s)s %(b)s \"%(f)s\" \"%(a)s\""
+    filename: "/app/logs/mlflow_access.log"
+    max_bytes: 10485760  # 10MB
+    backup_count: 5
+
+# Security Configuration
+security:
+  # TLS/SSL
+  tls:
+    enabled: false
+    cert_file: "/app/certs/mlflow.crt"
+    key_file: "/app/certs/mlflow.key"
+    ca_cert_file: "/app/certs/ca.crt"
+    
+  # CORS
+  cors:
+    enabled: true
+    origins: ["*"]
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    headers: ["Content-Type", "Authorization"]
+    
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst_size: 200
+    
+  # IP whitelist
+  ip_whitelist:
+    enabled: false
+    allowed_ips: ["127.0.0.1", "::1"]
+
+# Backup Configuration
+backup:
+  # Database backup
+  database_backup:
+    enabled: true
+    schedule: "0 1 * * *"  # Daily at 1 AM
+    retention_days: 30
+    backup_path: "s3://pbf-mlflow-backups/database"
+    compression: "gzip"
+    
+  # Artifact backup
+  artifact_backup:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention_days: 90
+    backup_path: "s3://pbf-mlflow-backups/artifacts"
+    compression: "gzip"
+    
+  # Configuration backup
+  config_backup:
+    enabled: true
+    schedule: "0 3 * * *"  # Daily at 3 AM
+    retention_days: 365
+    backup_path: "s3://pbf-mlflow-backups/config"
+    compression: "gzip"
+
+# Performance Configuration
+performance:
+  # Caching
+  caching:
+    enabled: true
+    cache_type: "redis"
+    cache_host: "redis"
+    cache_port: 6379
+    cache_db: 0
+    cache_ttl: 3600  # 1 hour
+    max_cache_size: 10000
+    
+  # Connection pooling
+  connection_pooling:
+    enabled: true
+    pool_size: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+    
+  # Request optimization
+  request_optimization:
+    enabled: true
+    compression: true
+    compression_level: 6
+    chunked_encoding: true
+    keep_alive: true
+    keep_alive_timeout: 30
+
+# Environment Configuration
+environment:
+  # Python environment
+  python:
+    version: "3.11"
+    virtual_env: "/app/venv"
+    requirements_file: "/app/requirements.txt"
+    
+  # Environment variables
+  env_vars:
+    MLFLOW_TRACKING_URI: "http://localhost:5000"
+    MLFLOW_BACKEND_STORE_URI: "postgresql://mlflow_user:mlflow_password@postgres:5432/mlflow_db"
+    MLFLOW_DEFAULT_ARTIFACT_ROOT: "s3://pbf-mlflow-artifacts"
+    AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+    AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+    AWS_DEFAULT_REGION: "us-east-1"
+    
+  # Dependencies
+  dependencies:
+    - "mlflow==2.9.2"
+    - "psycopg2-binary==2.9.9"
+    - "boto3==1.34.0"
+    - "gunicorn==21.2.0"
+    - "redis==5.0.1"
+
+# Deployment Configuration
+deployment:
+  # Container configuration
+  container:
+    image: "mlflow:2.9.2"
+    tag: "latest"
+    registry: "your-docker-registry.com"
+    
+  # Kubernetes configuration
+  kubernetes:
+    namespace: "mlflow"
+    replicas: 2
+    resources:
+      requests:
+        cpu: "1"
+        memory: "2Gi"
+      limits:
+        cpu: "2"
+        memory: "4Gi"
+        
+  # Health checks
+  health_checks:
+    liveness:
+      path: "/health"
+      initial_delay: 30
+      period: 10
+      timeout: 5
+      success_threshold: 1
+      failure_threshold: 3
+    readiness:
+      path: "/health"
+      initial_delay: 5
+      period: 5
+      timeout: 3
+      success_threshold: 1
+      failure_threshold: 3
+
+# Pipeline Dependencies
+dependencies:
+  # Database dependencies
+  database_dependencies:
+    - service: "postgresql"
+      endpoint: "postgres:5432"
+      database: "mlflow_db"
+      
+  # Storage dependencies
+  storage_dependencies:
+    - service: "s3"
+      endpoint: "s3://pbf-mlflow-artifacts"
+      bucket: "pbf-mlflow-artifacts"
+      
+  # Cache dependencies
+  cache_dependencies:
+    - service: "redis"
+      endpoint: "redis:6379"
+      database: 0
+      
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "kafka"
+      endpoint: "kafka:9092"
+    - service: "spark"
+      endpoint: "spark://spark-master:7077"

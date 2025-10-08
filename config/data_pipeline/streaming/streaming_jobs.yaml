@@ -1,0 +1,475 @@
+# PBF-LB/M Data Pipeline - Streaming Job Definitions
+# This file contains streaming job configurations and definitions
+
+streaming_jobs:
+  # ISPM Monitoring Stream Processing Job
+  ispm_monitoring_stream:
+    name: "ISPM Monitoring Stream Processing"
+    description: "Real-time processing of ISPM monitoring data streams"
+    enabled: true
+    priority: "high"
+    
+    # Job configuration
+    config:
+      engine: "flink"
+      parallelism: 4
+      checkpoint_interval: 30000  # 30 seconds
+      timeout_minutes: 30
+      
+    # Data source configuration
+    source:
+      type: "kafka"
+      topic: "ispm_monitoring_events"
+      consumer_group: "ispm_monitoring_stream_consumer"
+      starting_offsets: "latest"
+      
+    # Data target configuration
+    target:
+      type: "snowflake"
+      database: "PBF_LBM_DW"
+      schema: "PUBLIC"
+      table: "fct_ispm_monitoring"
+      write_mode: "append"
+      
+    # Processing logic
+    processing:
+      - name: "parse_kafka_message"
+        type: "json_parse"
+        config:
+          source_column: "value"
+          target_columns:
+            - "monitoring_id"
+            - "process_id"
+            - "sensor_id"
+            - "timestamp"
+            - "sensor_type"
+            - "sensor_value"
+            - "unit"
+            - "layer_number"
+            - "scan_vector_id"
+            - "metadata"
+            
+      - name: "validate_sensor_data"
+        type: "data_validation"
+        config:
+          rules:
+            - column: "sensor_value"
+              type: "not_null"
+              severity: "error"
+            - column: "timestamp"
+              type: "not_null"
+              severity: "error"
+            - column: "sensor_type"
+              type: "in_list"
+              values: ["temperature", "pressure", "laser_power", "scan_speed", "vibration", "acoustic", "optical"]
+              severity: "error"
+              
+      - name: "detect_anomalies"
+        type: "anomaly_detection"
+        config:
+          algorithms:
+            - name: "statistical_outlier"
+              enabled: true
+              threshold: 3.0
+            - name: "threshold_based"
+              enabled: true
+              thresholds:
+                temperature:
+                  min: 20
+                  max: 3000
+                pressure:
+                  min: 0
+                  max: 1000
+                laser_power:
+                  min: 0
+                  max: 1000
+                  
+      - name: "aggregate_metrics"
+        type: "window_aggregation"
+        config:
+          window_size: 60  # seconds
+          slide_size: 10  # seconds
+          aggregations:
+            - column: "sensor_value"
+              functions: ["avg", "min", "max", "stddev"]
+            - column: "timestamp"
+              functions: ["count"]
+              
+      - name: "write_to_sink"
+        type: "jdbc_sink"
+        config:
+          batch_size: 1000
+          flush_interval: 5000  # 5 seconds
+          
+    # Quality checks
+    quality_checks:
+      - name: "check_sensor_value_range"
+        type: "range"
+        column: "sensor_value"
+        min_value: 0
+        max_value: 10000
+        severity: "warning"
+        
+      - name: "check_timestamp_valid"
+        type: "is_datetime"
+        column: "timestamp"
+        severity: "error"
+        
+    # Monitoring configuration
+    monitoring:
+      enabled: true
+      metrics_collection: true
+      alert_thresholds:
+        message_lag_seconds: 300  # 5 minutes
+        processing_timeout: 60  # 1 minute
+        quality_score_threshold: 0.9
+
+  # Powder Bed Monitoring Stream Processing Job
+  powder_bed_stream:
+    name: "Powder Bed Monitoring Stream Processing"
+    description: "Real-time processing of powder bed monitoring data streams"
+    enabled: true
+    priority: "medium"
+    
+    # Job configuration
+    config:
+      engine: "flink"
+      parallelism: 2
+      checkpoint_interval: 60000  # 1 minute
+      timeout_minutes: 45
+      
+    # Data source configuration
+    source:
+      type: "kafka"
+      topic: "powder_bed_monitoring_events"
+      consumer_group: "powder_bed_stream_consumer"
+      starting_offsets: "latest"
+      
+    # Data target configuration
+    target:
+      type: "snowflake"
+      database: "PBF_LBM_DW"
+      schema: "PUBLIC"
+      table: "fct_powder_bed"
+      write_mode: "append"
+      
+    # Processing logic
+    processing:
+      - name: "parse_kafka_message"
+        type: "json_parse"
+        config:
+          source_column: "value"
+          target_columns:
+            - "powder_bed_id"
+            - "process_id"
+            - "camera_id"
+            - "timestamp"
+            - "layer_number"
+            - "image_path"
+            - "image_size"
+            - "surface_roughness"
+            - "surface_quality_score"
+            - "particle_analysis"
+            - "recoat_quality_score"
+            - "anomalies_detected"
+            - "metadata"
+            
+      - name: "validate_image_data"
+        type: "data_validation"
+        config:
+          rules:
+            - column: "layer_number"
+              type: "greater_than_or_equal"
+              value: 0
+              severity: "error"
+            - column: "timestamp"
+              type: "not_null"
+              severity: "error"
+            - column: "image_size"
+              type: "greater_than"
+              value: 0
+              severity: "error"
+              
+      - name: "analyze_surface_quality"
+        type: "image_analysis"
+        config:
+          algorithms:
+            - name: "surface_roughness_analysis"
+              enabled: true
+              threshold: 0.1
+            - name: "particle_detection"
+              enabled: true
+              threshold: 0.05
+            - name: "recoat_quality_assessment"
+              enabled: true
+              threshold: 0.1
+              
+      - name: "aggregate_quality_metrics"
+        type: "window_aggregation"
+        config:
+          window_size: 300  # seconds
+          slide_size: 60  # seconds
+          aggregations:
+            - column: "surface_quality_score"
+              functions: ["avg", "min", "max"]
+            - column: "recoat_quality_score"
+              functions: ["avg", "min", "max"]
+            - column: "surface_roughness"
+              functions: ["avg", "min", "max"]
+              
+      - name: "write_to_sink"
+        type: "jdbc_sink"
+        config:
+          batch_size: 500
+          flush_interval: 10000  # 10 seconds
+          
+    # Quality checks
+    quality_checks:
+      - name: "check_surface_quality_range"
+        type: "range"
+        column: "surface_quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "warning"
+        
+      - name: "check_recoat_quality_range"
+        type: "range"
+        column: "recoat_quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "warning"
+        
+    # Monitoring configuration
+    monitoring:
+      enabled: true
+      metrics_collection: true
+      alert_thresholds:
+        message_lag_seconds: 600  # 10 minutes
+        processing_timeout: 90  # 1.5 minutes
+        quality_score_threshold: 0.8
+
+  # Data Quality Stream Processing Job
+  data_quality_stream:
+    name: "Data Quality Stream Processing"
+    description: "Real-time data quality monitoring and alerting"
+    enabled: true
+    priority: "low"
+    
+    # Job configuration
+    config:
+      engine: "flink"
+      parallelism: 2
+      checkpoint_interval: 120000  # 2 minutes
+      timeout_minutes: 60
+      
+    # Data source configuration
+    source:
+      type: "kafka"
+      topics: 
+        - "ispm_monitoring_events"
+        - "powder_bed_monitoring_events"
+        - "ct_scan_events"
+        - "pbf_process_events"
+      consumer_group: "data_quality_stream_consumer"
+      starting_offsets: "latest"
+      
+    # Data target configuration
+    target:
+      type: "snowflake"
+      database: "PBF_LBM_DW"
+      schema: "QUALITY"
+      table: "fct_data_quality_metrics"
+      write_mode: "append"
+      
+    # Processing logic
+    processing:
+      - name: "parse_kafka_message"
+        type: "json_parse"
+        config:
+          source_column: "value"
+          target_columns:
+            - "message_id"
+            - "source_topic"
+            - "timestamp"
+            - "data"
+            - "metadata"
+            
+      - name: "validate_data_quality"
+        type: "quality_validation"
+        config:
+          rules:
+            - name: "completeness_check"
+              type: "completeness"
+              threshold: 0.95
+            - name: "accuracy_check"
+              type: "accuracy"
+              threshold: 0.90
+            - name: "consistency_check"
+              type: "consistency"
+              threshold: 0.85
+              
+      - name: "calculate_quality_metrics"
+        type: "quality_calculation"
+        config:
+          metrics:
+            - name: "completeness_score"
+              type: "completeness"
+              weight: 0.3
+            - name: "accuracy_score"
+              type: "accuracy"
+              weight: 0.3
+            - name: "consistency_score"
+              type: "consistency"
+              weight: 0.2
+            - name: "timeliness_score"
+              type: "timeliness"
+              weight: 0.2
+              
+      - name: "detect_quality_issues"
+        type: "quality_detection"
+        config:
+          thresholds:
+            overall_quality: 0.8
+            completeness: 0.95
+            accuracy: 0.90
+            consistency: 0.85
+            timeliness: 0.80
+          
+      - name: "write_to_sink"
+        type: "jdbc_sink"
+        config:
+          batch_size: 100
+          flush_interval: 30000  # 30 seconds
+          
+    # Quality checks
+    quality_checks:
+      - name: "check_quality_score_range"
+        type: "range"
+        column: "overall_quality_score"
+        min_value: 0.0
+        max_value: 1.0
+        severity: "error"
+        
+      - name: "check_quality_threshold"
+        type: "greater_than_or_equal"
+        column: "overall_quality_score"
+        value: 0.8
+        severity: "warning"
+        
+    # Monitoring configuration
+    monitoring:
+      enabled: true
+      metrics_collection: true
+      alert_thresholds:
+        message_lag_seconds: 900  # 15 minutes
+        processing_timeout: 120  # 2 minutes
+        quality_score_threshold: 0.8
+
+  # Alert Stream Processing Job
+  alert_stream:
+    name: "Alert Stream Processing"
+    description: "Real-time alert processing and notification"
+    enabled: true
+    priority: "high"
+    
+    # Job configuration
+    config:
+      engine: "flink"
+      parallelism: 1
+      checkpoint_interval: 60000  # 1 minute
+      timeout_minutes: 15
+      
+    # Data source configuration
+    source:
+      type: "kafka"
+      topic: "alert_events"
+      consumer_group: "alert_stream_consumer"
+      starting_offsets: "latest"
+      
+    # Data target configuration
+    target:
+      type: "multiple"
+      targets:
+        - type: "snowflake"
+          database: "PBF_LBM_DW"
+          schema: "ALERTS"
+          table: "fct_alerts"
+          write_mode: "append"
+        - type: "kafka"
+          topic: "alert_notifications"
+          
+    # Processing logic
+    processing:
+      - name: "parse_alert_message"
+        type: "json_parse"
+        config:
+          source_column: "value"
+          target_columns:
+            - "alert_id"
+            - "alert_type"
+            - "severity"
+            - "timestamp"
+            - "source"
+            - "message"
+            - "metadata"
+            
+      - name: "validate_alert_data"
+        type: "data_validation"
+        config:
+          rules:
+            - column: "alert_type"
+              type: "not_null"
+              severity: "error"
+            - column: "severity"
+              type: "in_list"
+              values: ["low", "medium", "high", "critical"]
+              severity: "error"
+            - column: "timestamp"
+              type: "not_null"
+              severity: "error"
+              
+      - name: "process_alert"
+        type: "alert_processing"
+        config:
+          rules:
+            - condition: "severity == 'critical'"
+              action: "immediate_notification"
+              channels: ["email", "slack", "pagerduty"]
+            - condition: "severity == 'high'"
+              action: "urgent_notification"
+              channels: ["email", "slack"]
+            - condition: "severity == 'medium'"
+              action: "standard_notification"
+              channels: ["email"]
+            - condition: "severity == 'low'"
+              action: "log_only"
+              channels: []
+              
+      - name: "write_to_sink"
+        type: "jdbc_sink"
+        config:
+          batch_size: 50
+          flush_interval: 5000  # 5 seconds
+          
+    # Quality checks
+    quality_checks:
+      - name: "check_alert_type_valid"
+        type: "in_list"
+        column: "alert_type"
+        values: ["data_quality", "system_error", "performance", "security"]
+        severity: "error"
+        
+      - name: "check_severity_valid"
+        type: "in_list"
+        column: "severity"
+        values: ["low", "medium", "high", "critical"]
+        severity: "error"
+        
+    # Monitoring configuration
+    monitoring:
+      enabled: true
+      metrics_collection: true
+      alert_thresholds:
+        message_lag_seconds: 60  # 1 minute
+        processing_timeout: 30  # 30 seconds
+        alert_processing_time: 5  # 5 seconds

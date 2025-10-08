@@ -1,0 +1,116 @@
+# PBF-LB/M Data Pipeline - General Settings
+# This file contains general pipeline configuration settings
+
+pipeline:
+  name: "pbf_lbm_data_pipeline"
+  version: "1.0.0"
+  description: "PBF-LB/M Data Pipeline for Additive Manufacturing Research"
+  
+  # General settings
+  settings:
+    log_level: "INFO"
+    data_retention_days: 90
+    max_concurrent_jobs: 10
+    default_timeout_minutes: 60
+    
+  # Pipeline components
+  components:
+    ingestion:
+      enabled: true
+      batch_size: 10000
+      parallel_workers: 4
+      
+    processing:
+      enabled: true
+      spark_enabled: true
+      dbt_enabled: true
+      
+    storage:
+      enabled: true
+      data_lake_enabled: true
+      data_warehouse_enabled: true
+      operational_db_enabled: true
+      
+    quality:
+      enabled: true
+      real_time_validation: true
+      batch_validation: true
+      
+    orchestration:
+      enabled: true
+      airflow_enabled: true
+      scheduling_enabled: true
+      monitoring_enabled: true
+
+  # Data sources
+  data_sources:
+    pbf_process:
+      enabled: true
+      priority: "high"
+      batch_size: 5000
+      
+    ispm_monitoring:
+      enabled: true
+      priority: "high"
+      real_time: true
+      
+    ct_scan:
+      enabled: true
+      priority: "medium"
+      batch_size: 100
+      
+    powder_bed:
+      enabled: true
+      priority: "medium"
+      real_time: true
+
+  # Performance settings
+  performance:
+    memory_allocation:
+      driver_memory: "2g"
+      executor_memory: "4g"
+      executor_cores: 2
+      
+    parallelism:
+      default_parallelism: 200
+      max_parallelism: 1000
+      
+    caching:
+      enabled: true
+      cache_level: "MEMORY_AND_DISK"
+
+  # Security settings
+  security:
+    encryption:
+      enabled: true
+      algorithm: "AES-256"
+      
+    authentication:
+      enabled: true
+      method: "oauth2"
+      
+    authorization:
+      enabled: true
+      rbac_enabled: true
+
+  # Monitoring settings
+  monitoring:
+    metrics:
+      enabled: true
+      collection_interval: 60
+      
+    logging:
+      enabled: true
+      level: "INFO"
+      retention_days: 30
+      
+    alerting:
+      enabled: true
+      channels: ["email", "slack"]
+      
+  # Backup and recovery
+  backup:
+    enabled: true
+    frequency: "daily"
+    retention_days: 30
+    compression: true

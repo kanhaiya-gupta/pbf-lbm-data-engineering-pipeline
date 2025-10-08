@@ -1,0 +1,66 @@
+# Evidently Model Performance Configuration
+# Configuration for model performance monitoring
+
+model_performance:
+  name: "evidently_model_performance"
+  version: "1.0.0"
+  description: "Model performance monitoring configuration for PBF-LBM models"
+  
+  models:
+    - name: "quality_assessment"
+      type: "regression"
+      metrics:
+        - name: "mae"
+          threshold: 0.1
+        - name: "rmse"
+          threshold: 0.15
+        - name: "r2_score"
+          threshold: 0.8
+        - name: "mape"
+          threshold: 0.2
+          
+    - name: "maintenance"
+      type: "classification"
+      metrics:
+        - name: "accuracy"
+          threshold: 0.85
+        - name: "precision"
+          threshold: 0.8
+        - name: "recall"
+          threshold: 0.8
+        - name: "f1_score"
+          threshold: 0.8
+        - name: "auc"
+          threshold: 0.85
+          
+    - name: "defect_detection"
+      type: "classification"
+      metrics:
+        - name: "accuracy"
+          threshold: 0.9
+        - name: "precision"
+          threshold: 0.85
+        - name: "recall"
+          threshold: 0.85
+        - name: "f1_score"
+          threshold: 0.85
+        - name: "auc"
+          threshold: 0.9
+          
+  monitoring:
+    frequency: "hourly"
+    window_size: "24_hours"
+    min_samples: 100
+    
+  alerting:
+    enabled: true
+    channels: ["slack", "email", "pagerduty"]
+    thresholds:
+      warning: 0.05
+      critical: 0.1
+      
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    dashboard_url: "http://evidently-dashboard:3000"

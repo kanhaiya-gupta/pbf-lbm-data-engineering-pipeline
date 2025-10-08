@@ -1,0 +1,222 @@
+# Root Cause Analyzer Configuration
+# Model for analyzing root causes of defects in PBF-LBM manufacturing
+
+model:
+  name: "root_cause_analyzer"
+  version: "1.0.0"
+  type: "classification"
+  framework: "xgboost"
+  
+  architecture:
+    algorithm: "XGBClassifier"
+    parameters:
+      n_estimators: 300
+      max_depth: 8
+      learning_rate: 0.1
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+      objective: "multi:softprob"
+      num_class: 8
+    
+  input_features:
+    # Process Parameters
+    - name: "laser_power"
+      type: "numerical"
+      description: "Laser power setting (W)"
+      range: [50.0, 1000.0]
+    - name: "scan_speed"
+      type: "numerical"
+      description: "Laser scan speed (mm/s)"
+      range: [100.0, 2000.0]
+    - name: "hatch_spacing"
+      type: "numerical"
+      description: "Hatch spacing between scan lines (mm)"
+      range: [0.05, 0.3]
+    - name: "layer_thickness"
+      type: "numerical"
+      description: "Layer thickness (mm)"
+      range: [0.02, 0.1]
+    - name: "energy_density"
+      type: "numerical"
+      description: "Volumetric energy density (J/mm³)"
+      range: [10.0, 500.0]
+    
+    # Environmental Conditions
+    - name: "chamber_temperature"
+      type: "numerical"
+      description: "Build chamber temperature (°C)"
+      range: [20.0, 200.0]
+    - name: "oxygen_content"
+      type: "numerical"
+      description: "Oxygen content in chamber (ppm)"
+      range: [0.0, 1000.0]
+    - name: "humidity"
+      type: "numerical"
+      description: "Relative humidity (%)"
+      range: [0.0, 100.0]
+    
+    # Material Properties
+    - name: "powder_flowability"
+      type: "numerical"
+      description: "Powder flowability index"
+      range: [0.0, 1.0]
+    - name: "powder_particle_size_d10"
+      type: "numerical"
+      description: "10th percentile particle size (μm)"
+      range: [10.0, 100.0]
+    - name: "powder_particle_size_d50"
+      type: "numerical"
+      description: "50th percentile particle size (μm)"
+      range: [20.0, 150.0]
+    - name: "powder_particle_size_d90"
+      type: "numerical"
+      description: "90th percentile particle size (μm)"
+      range: [30.0, 200.0]
+    - name: "powder_density"
+      type: "numerical"
+      description: "Powder apparent density (g/cm³)"
+      range: [1.0, 10.0]
+    
+    # Build Geometry
+    - name: "part_volume"
+      type: "numerical"
+      description: "Total part volume (mm³)"
+      range: [1.0, 1000000.0]
+    - name: "support_volume_ratio"
+      type: "numerical"
+      description: "Ratio of support volume to part volume"
+      range: [0.0, 2.0]
+    - name: "overhang_angle_avg"
+      type: "numerical"
+      description: "Average overhang angle (degrees)"
+      range: [0.0, 90.0]
+    - name: "build_height"
+      type: "numerical"
+      description: "Total build height (mm)"
+      range: [1.0, 500.0]
+    
+    # Defect Characteristics
+    - name: "defect_type"
+      type: "categorical"
+      description: "Type of defect observed"
+      categories: ["pore", "crack", "inclusion", "surface_roughness", "dimensional_error", "lack_of_fusion"]
+    - name: "defect_frequency"
+      type: "numerical"
+      description: "Number of defects per unit volume"
+      range: [0.0, 1000.0]
+    - name: "defect_size_avg"
+      type: "numerical"
+      description: "Average defect size (mm)"
+      range: [0.001, 10.0]
+
+  output_classes:
+    - name: "laser_parameters"
+      description: "Defect caused by inappropriate laser parameters"
+    - name: "powder_quality"
+      description: "Defect caused by poor powder quality or contamination"
+    - name: "environmental_conditions"
+      description: "Defect caused by unfavorable environmental conditions"
+    - name: "build_geometry"
+      description: "Defect caused by challenging build geometry"
+    - name: "process_control"
+      description: "Defect caused by process control issues"
+    - name: "equipment_malfunction"
+      description: "Defect caused by equipment malfunction"
+    - name: "material_properties"
+      description: "Defect caused by material property variations"
+    - name: "operator_error"
+      description: "Defect caused by operator error or setup issues"
+
+  training:
+    dataset_path: "/data/training/root_cause_analysis_dataset.csv"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "stratified_kfold"
+      n_splits: 5
+    metrics:
+      primary: "f1_macro"
+      secondary: ["precision_macro", "recall_macro", "accuracy", "top_3_accuracy"]
+    early_stopping:
+      enabled: true
+      patience: 15
+      monitor: "val_f1_macro"
+    
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness", 
+                "energy_density", "chamber_temperature", "oxygen_content", "humidity",
+                "powder_flowability", "powder_particle_size_d10", "powder_particle_size_d50",
+                "powder_particle_size_d90", "powder_density", "part_volume", 
+                "support_volume_ratio", "overhang_angle_avg", "build_height",
+                "defect_frequency", "defect_size_avg"]
+    encoding:
+      method: "label_encoding"
+      features: ["defect_type"]
+    feature_engineering:
+      - name: "energy_density_calc"
+        formula: "laser_power / (scan_speed * hatch_spacing * layer_thickness)"
+      - name: "powder_size_distribution"
+        formula: "(powder_particle_size_d90 - powder_particle_size_d10) / powder_particle_size_d50"
+      - name: "build_complexity"
+        formula: "support_volume_ratio * overhang_angle_avg / 90.0"
+    feature_selection:
+      method: "feature_importance"
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - rule: "high_energy_density_cracking"
+        condition: "energy_density > 200 AND predicted_class == 'laser_parameters'"
+        action: "validate_prediction"
+      - rule: "powder_contamination_check"
+        condition: "oxygen_content > 500 AND predicted_class == 'powder_quality'"
+        action: "escalate_investigation"
+      - rule: "geometry_complexity_validation"
+        condition: "overhang_angle_avg > 60 AND predicted_class == 'build_geometry'"
+        action: "confirm_prediction"
+
+  deployment:
+    inference_mode: "batch"
+    batch_size: 32
+    max_latency_ms: 5000
+    model_format: "joblib"
+    artifact_path: "/models/root_cause_analyzer/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["laser_power", "scan_speed", "energy_density", "chamber_temperature"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["accuracy", "f1_macro", "precision_macro", "recall_macro"]
+      alert_thresholds:
+        accuracy: 0.75
+        f1_macro: 0.70
+    explainability:
+      enabled: true
+      method: "shap"
+      sample_size: 500
+      top_features: 10
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.05
+    schedule: "monthly"
+    data_requirements:
+      min_samples: 2000
+      class_balance_threshold: 0.05
+      
+  integration:
+    feedback_loop:
+      enabled: true
+      source: "operator_corrections"
+      update_frequency: "weekly"
+    expert_validation:
+      enabled: true
+      confidence_threshold: 0.8
+      escalation_required: true

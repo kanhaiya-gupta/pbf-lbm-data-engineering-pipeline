@@ -1,0 +1,246 @@
+# Microstructure Analyzer Configuration
+# Model for analyzing microstructure of PBF-LBM materials
+
+model:
+  name: "microstructure_analyzer"
+  version: "1.0.0"
+  type: "classification"
+  framework: "tensorflow"
+  
+  architecture:
+    algorithm: "ConvolutionalNeuralNetwork"
+    parameters:
+      input_shape: [224, 224, 3]
+      num_classes: 8
+      optimizer: "adam"
+      learning_rate: 0.001
+      batch_size: 32
+      epochs: 100
+      early_stopping_patience: 15
+    
+  input_features:
+    # Image Features (from microscopy)
+    - name: "microstructure_image"
+      type: "image"
+      description: "Microstructure microscopy image"
+      format: "RGB"
+      resolution: [224, 224]
+      channels: 3
+    
+    # Process Parameters
+    - name: "laser_power"
+      type: "numerical"
+      description: "Laser power setting (W)"
+      range: [50.0, 1000.0]
+    - name: "scan_speed"
+      type: "numerical"
+      description: "Laser scan speed (mm/s)"
+      range: [100.0, 2000.0]
+    - name: "hatch_spacing"
+      type: "numerical"
+      description: "Hatch spacing between scan lines (mm)"
+      range: [0.05, 0.3]
+    - name: "layer_thickness"
+      type: "numerical"
+      description: "Layer thickness (mm)"
+      range: [0.02, 0.1]
+    - name: "energy_density"
+      type: "numerical"
+      description: "Volumetric energy density (J/mm³)"
+      range: [10.0, 500.0]
+    - name: "scan_strategy"
+      type: "categorical"
+      description: "Laser scanning strategy"
+      categories: ["unidirectional", "bidirectional", "island", "spiral", "contour_hatch"]
+    
+    # Build Parameters
+    - name: "build_temperature"
+      type: "numerical"
+      description: "Build chamber temperature (°C)"
+      range: [20.0, 200.0]
+    - name: "preheat_temperature"
+      type: "numerical"
+      description: "Powder bed preheat temperature (°C)"
+      range: [20.0, 300.0]
+    - name: "cooling_rate"
+      type: "numerical"
+      description: "Average cooling rate (°C/s)"
+      range: [0.1, 1000.0]
+    - name: "build_orientation"
+      type: "categorical"
+      description: "Primary build orientation"
+      categories: ["horizontal", "vertical", "angled_30", "angled_45", "angled_60"]
+    
+    # Material Properties
+    - name: "material_type"
+      type: "categorical"
+      description: "Material type"
+      categories: ["Ti6Al4V", "Inconel718", "AlSi10Mg", "316L", "CoCr", "MaragingSteel"]
+    - name: "powder_particle_size_d50"
+      type: "numerical"
+      description: "50th percentile particle size (μm)"
+      range: [20.0, 150.0]
+    - name: "powder_flowability"
+      type: "numerical"
+      description: "Powder flowability index"
+      range: [0.0, 1.0]
+    - name: "oxygen_content"
+      type: "numerical"
+      description: "Oxygen content in powder (ppm)"
+      range: [0.0, 2000.0]
+    - name: "nitrogen_content"
+      type: "numerical"
+      description: "Nitrogen content in powder (ppm)"
+      range: [0.0, 1000.0]
+    
+    # Heat Treatment
+    - name: "post_build_heat_treatment"
+      type: "categorical"
+      description: "Post-build heat treatment"
+      categories: ["none", "stress_relief", "solution_treatment", "aging", "annealing"]
+    - name: "heat_treatment_temperature"
+      type: "numerical"
+      description: "Heat treatment temperature (°C)"
+      range: [200.0, 1200.0]
+    - name: "heat_treatment_duration"
+      type: "numerical"
+      description: "Heat treatment duration (hours)"
+      range: [0.0, 24.0]
+    - name: "quenching_rate"
+      type: "numerical"
+      description: "Quenching rate (°C/s)"
+      range: [0.1, 1000.0]
+
+  output_classes:
+    - name: "equiaxed_grains"
+      description: "Equiaxed grain structure"
+    - name: "columnar_grains"
+      description: "Columnar grain structure"
+    - name: "basket_weave"
+      description: "Basket weave microstructure"
+    - name: "martensitic"
+      description: "Martensitic microstructure"
+    - name: "widmanstatten"
+      description: "Widmanstätten microstructure"
+    - name: "duplex"
+      description: "Duplex microstructure"
+    - name: "cellular"
+      description: "Cellular microstructure"
+    - name: "mixed"
+      description: "Mixed microstructure"
+
+  training:
+    dataset_path: "/data/training/microstructure_analysis_dataset.csv"
+    image_dataset_path: "/data/training/microstructure_images/"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "stratified_kfold"
+      n_splits: 5
+    metrics:
+      primary: "categorical_accuracy"
+      secondary: ["precision", "recall", "f1_score", "auc_roc"]
+    early_stopping:
+      enabled: true
+      patience: 15
+      monitor: "val_categorical_accuracy"
+    
+  preprocessing:
+    image_preprocessing:
+      resize: [224, 224]
+      normalization: "imagenet"
+      augmentation:
+        rotation_range: 20
+        width_shift_range: 0.1
+        height_shift_range: 0.1
+        horizontal_flip: true
+        zoom_range: 0.1
+        brightness_range: [0.8, 1.2]
+        contrast_range: [0.8, 1.2]
+    scaling:
+      method: "standard_scaler"
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness",
+                "energy_density", "build_temperature", "preheat_temperature",
+                "cooling_rate", "powder_particle_size_d50", "powder_flowability",
+                "oxygen_content", "nitrogen_content", "heat_treatment_temperature",
+                "heat_treatment_duration", "quenching_rate"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["scan_strategy", "build_orientation", "material_type", "post_build_heat_treatment"]
+    feature_engineering:
+      - name: "energy_density_calc"
+        formula: "laser_power / (scan_speed * hatch_spacing * layer_thickness)"
+      - name: "thermal_history_index"
+        formula: "build_temperature * preheat_temperature / cooling_rate"
+      - name: "powder_quality_index"
+        formula: "powder_flowability * (1 - oxygen_content / 1000) * (1 - nitrogen_content / 1000)"
+      - name: "heat_treatment_intensity"
+        formula: "heat_treatment_temperature * heat_treatment_duration / 1000"
+    feature_selection:
+      method: "mutual_info_classif"
+      k_best: 20
+      
+  validation:
+    business_rules:
+      - rule: "high_energy_density_martensite"
+        condition: "energy_density > 200 AND predicted_class == 'martensitic'"
+        action: "validate_prediction"
+      - rule: "low_cooling_rate_equiaxed"
+        condition: "cooling_rate < 10 AND predicted_class == 'equiaxed_grains'"
+        action: "escalate_review"
+      - rule: "heat_treatment_validation"
+        condition: "post_build_heat_treatment == 'aging' AND predicted_class == 'martensitic'"
+        action: "confirm_prediction"
+
+  deployment:
+    inference_mode: "batch"
+    batch_size: 16
+    max_latency_ms: 10000
+    model_format: "tensorflow_savedmodel"
+    artifact_path: "/models/microstructure_analyzer/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "ks_test"
+      threshold: 0.05
+      features: ["laser_power", "scan_speed", "energy_density", "build_temperature"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["categorical_accuracy", "precision", "recall", "f1_score"]
+      alert_thresholds:
+        categorical_accuracy: 0.85
+        f1_score: 0.80
+    explainability:
+      enabled: true
+      method: "grad_cam"
+      sample_size: 100
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.05
+    schedule: "monthly"
+    data_requirements:
+      min_samples: 2000
+      class_balance_threshold: 0.1
+      
+  image_analysis:
+    enabled: true
+    preprocessing_pipeline:
+      - "noise_reduction"
+      - "contrast_enhancement"
+      - "edge_detection"
+      - "feature_extraction"
+    segmentation:
+      enabled: true
+      method: "watershed"
+      parameters:
+        min_distance: 10
+        threshold: 0.3
+    grain_analysis:
+      enabled: true
+      metrics:
+        - "grain_size_distribution"
+        - "grain_orientation"
+        - "grain_boundary_density"
+        - "phase_fraction"

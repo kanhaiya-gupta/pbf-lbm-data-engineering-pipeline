@@ -1,0 +1,389 @@
+# NoSQL ETL Configuration
+# PBF-LB/M Data Pipeline - NoSQL ETL Operations and Transformations
+
+# NoSQL ETL Jobs Configuration
+nosql_etl_jobs:
+  enabled: true
+  
+  # Document ETL (MongoDB)
+  document_etl:
+    enabled: true
+    batch_size: 1000
+    parallel_workers: 4
+    retry_attempts: 3
+    retry_delay: 5
+    
+    extract:
+      collections:
+        - "pbf_process_data"
+        - "ispm_monitoring_data"
+        - "ct_scan_data"
+        - "powder_bed_data"
+      
+      filters:
+        timestamp_field: "timestamp"
+        date_range_days: 7
+        quality_threshold: 0.8
+    
+    transform:
+      document_flattening: true
+      field_mapping:
+        process_id: "process_id"
+        timestamp: "timestamp"
+        material_type: "material_info.material_type"
+        quality_score: "quality_metrics.density"
+      
+      data_cleaning:
+        remove_null_fields: true
+        standardize_timestamps: true
+        validate_required_fields: true
+        normalize_numeric_fields: true
+    
+    load:
+      target_collections:
+        - "processed_pbf_data"
+        - "processed_ispm_data"
+        - "processed_ct_data"
+        - "processed_powder_data"
+      
+      write_concern: "majority"
+      ordered_inserts: true
+      bypass_document_validation: false
+
+  # Key-Value ETL (Redis)
+  key_value_etl:
+    enabled: true
+    batch_size: 500
+    parallel_workers: 2
+    retry_attempts: 3
+    retry_delay: 2
+    
+    extract:
+      key_patterns:
+        - "process:*"
+        - "sensor:*"
+        - "session:*"
+        - "analytics:*"
+      
+      ttl_filter: 86400  # Only extract keys with TTL > 1 day
+    
+    transform:
+      key_transformation:
+        prefix_removal: true
+        case_normalization: "lowercase"
+        special_char_replacement: true
+      
+      value_parsing:
+        json_parsing: true
+        type_detection: true
+        compression_detection: true
+    
+    load:
+      target_databases:
+        - 1  # Process cache
+        - 2  # Analytics cache
+        - 3  # Session cache
+      
+      ttl_policies:
+        process_data: 3600
+        sensor_data: 300
+        analytics_data: 7200
+        session_data: 1800
+
+  # Columnar ETL (Cassandra)
+  columnar_etl:
+    enabled: true
+    batch_size: 2000
+    parallel_workers: 6
+    retry_attempts: 3
+    retry_delay: 10
+    
+    extract:
+      tables:
+        - "process_metrics"
+        - "sensor_data"
+        - "quality_metrics"
+        - "material_properties"
+      
+      time_range:
+        start_field: "timestamp"
+        duration_hours: 24
+        partition_strategy: "daily"
+    
+    transform:
+      column_mapping:
+        process_id: "process_id"
+        metric_timestamp: "timestamp"
+        metric_type: "metric_type"
+        metric_value: "metric_value"
+        quality_score: "quality_score"
+      
+      data_aggregation:
+        time_buckets: ["1m", "5m", "15m", "1h"]
+        aggregation_functions: ["avg", "min", "max", "count"]
+        window_functions: true
+    
+    load:
+      target_tables:
+        - "aggregated_process_metrics"
+        - "aggregated_sensor_data"
+        - "aggregated_quality_metrics"
+      
+      consistency_level: "LOCAL_ONE"
+      ttl_seconds: 2592000  # 30 days
+
+  # Search ETL (Elasticsearch)
+  search_etl:
+    enabled: true
+    batch_size: 1000
+    parallel_workers: 4
+    retry_attempts: 3
+    retry_delay: 5
+    
+    extract:
+      indices:
+        - "pbf_process_data"
+        - "ispm_monitoring_data"
+        - "ct_scan_data"
+        - "powder_bed_data"
+      
+      query:
+        range:
+          timestamp:
+            gte: "now-7d"
+            lte: "now"
+    
+    transform:
+      field_mapping:
+        id: "_id"
+        timestamp: "timestamp"
+        process_id: "process_id"
+        material_type: "material_info.material_type"
+        quality_metrics: "quality_metrics"
+      
+      text_processing:
+        lowercase: true
+        remove_stopwords: true
+        stemming: true
+        synonym_expansion: true
+      
+      indexing_optimization:
+        remove_duplicates: true
+        compress_fields: true
+        optimize_queries: true
+    
+    load:
+      target_indices:
+        - "processed_pbf_data"
+        - "processed_ispm_data"
+        - "processed_ct_data"
+        - "processed_powder_data"
+      
+      index_settings:
+        number_of_shards: 3
+        number_of_replicas: 1
+        refresh_interval: "30s"
+      
+      bulk_settings:
+        bulk_size: 1000
+        bulk_timeout: "30s"
+        max_retries: 3
+
+  # Graph ETL (Neo4j)
+  graph_etl:
+    enabled: true
+    batch_size: 500
+    parallel_workers: 2
+    retry_attempts: 3
+    retry_delay: 5
+    
+    extract:
+      node_labels:
+        - "Process"
+        - "Material"
+        - "Machine"
+        - "Sensor"
+        - "Quality"
+        - "Defect"
+      
+      relationship_types:
+        - "USES_MATERIAL"
+        - "EXECUTED_ON"
+        - "HAS_QUALITY"
+        - "MONITORED_BY"
+        - "OPERATED_BY"
+        - "HAS_DEFECT"
+    
+    transform:
+      node_creation:
+        process_nodes:
+          label: "Process"
+          properties: ["process_id", "timestamp", "material_type", "quality_grade"]
+        
+        material_nodes:
+          label: "Material"
+          properties: ["material_type", "properties", "supplier", "certification"]
+        
+        machine_nodes:
+          label: "Machine"
+          properties: ["machine_id", "machine_type", "model", "status", "location"]
+        
+        sensor_nodes:
+          label: "Sensor"
+          properties: ["sensor_id", "sensor_type", "location", "model", "accuracy"]
+        
+        quality_nodes:
+          label: "Quality"
+          properties: ["grade", "metrics", "standards", "inspector"]
+        
+        defect_nodes:
+          label: "Defect"
+          properties: ["defect_id", "defect_type", "severity", "location", "size"]
+      
+      relationship_creation:
+        process_material:
+          type: "USES_MATERIAL"
+          properties: ["quantity", "unit"]
+        
+        process_machine:
+          type: "EXECUTED_ON"
+          properties: ["duration", "start_time"]
+        
+        process_quality:
+          type: "HAS_QUALITY"
+          properties: ["measured_at"]
+        
+        process_sensor:
+          type: "MONITORED_BY"
+          properties: ["sampling_rate"]
+        
+        process_operator:
+          type: "OPERATED_BY"
+          properties: ["shift"]
+        
+        process_defect:
+          type: "HAS_DEFECT"
+          properties: ["detected_at"]
+    
+    load:
+      target_database: "neo4j"
+      transaction_batch_size: 100
+      constraint_creation: true
+      index_creation: true
+
+# Multi-Model Data Transformation
+multi_model_transformation:
+  enabled: true
+  
+  transformation_rules:
+    document_to_key_value:
+      enabled: true
+      source_model: "document"
+      target_model: "key_value"
+      transformation_type: "flatten_and_cache"
+      
+      field_mappings:
+        process_id: "process_id"
+        timestamp: "timestamp"
+        material_type: "material_type"
+        quality_score: "quality_score"
+      
+      cache_settings:
+        ttl: 3600
+        compression: true
+        serialization: "json"
+    
+    document_to_columnar:
+      enabled: true
+      source_model: "document"
+      target_model: "columnar"
+      transformation_type: "normalize_and_aggregate"
+      
+      time_series_aggregation:
+        time_buckets: ["1m", "5m", "15m", "1h"]
+        metrics: ["avg", "min", "max", "count", "std"]
+        group_by: ["process_id", "material_type"]
+    
+    document_to_search:
+      enabled: true
+      source_model: "document"
+      target_model: "search"
+      transformation_type: "index_and_analyze"
+      
+      text_processing:
+        fields: ["process_parameters", "quality_metrics", "material_info"]
+        analyzers: ["standard", "keyword", "text"]
+        filters: ["lowercase", "stop", "snowball"]
+    
+    document_to_graph:
+      enabled: true
+      source_model: "document"
+      target_model: "graph"
+      transformation_type: "extract_relationships"
+      
+      relationship_extraction:
+        process_material: true
+        process_quality: true
+        process_defects: true
+        material_machine: true
+
+# Data Quality and Validation
+data_quality:
+  enabled: true
+  
+  validation_rules:
+    required_fields:
+      - "process_id"
+      - "timestamp"
+      - "material_type"
+    
+    data_types:
+      process_id: "string"
+      timestamp: "datetime"
+      material_type: "string"
+      quality_score: "float"
+    
+    value_ranges:
+      quality_score:
+        min: 0.0
+        max: 1.0
+      timestamp:
+        min: "2020-01-01T00:00:00Z"
+        max: "now"
+    
+    business_rules:
+      quality_threshold: 0.8
+      material_type_whitelist: ["Ti6Al4V", "Inconel718", "StainlessSteel316L", "AlSi10Mg"]
+      process_duration_max: 86400  # 24 hours in seconds
+  
+  error_handling:
+    invalid_data_action: "log_and_skip"
+    missing_data_action: "use_default"
+    duplicate_data_action: "skip"
+    quality_failure_action: "quarantine"
+    
+    default_values:
+      quality_score: 0.0
+      material_type: "Unknown"
+      process_status: "unknown"
+
+# Performance Optimization
+performance:
+  parallel_processing: true
+  max_workers: 8
+  batch_optimization: true
+  memory_management: true
+  
+  caching:
+    enabled: true
+    cache_size: "1GB"
+    cache_ttl: 3600
+    cache_strategy: "LRU"
+  
+  monitoring:
+    enabled: true
+    metrics_interval: 60
+    performance_thresholds:
+      processing_time_max: 300  # 5 minutes
+      memory_usage_max: 0.8     # 80%
+      error_rate_max: 0.05      # 5%

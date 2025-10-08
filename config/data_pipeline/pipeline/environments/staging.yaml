@@ -1,0 +1,100 @@
+# PBF-LB/M Data Pipeline - Staging Environment Configuration
+# This file contains staging-specific settings
+
+environment:
+  name: "staging"
+  description: "Staging environment for PBF-LB/M data pipeline"
+  
+  # Environment-specific settings
+  settings:
+    debug_mode: false
+    log_level: "INFO"
+    data_retention_days: 30
+    max_concurrent_jobs: 5
+    
+  # Staging-specific configurations
+  staging:
+    production_like: true
+    performance_testing: true
+    integration_testing: true
+    
+  # Resource allocation (moderate for staging)
+  resources:
+    memory:
+      driver_memory: "2g"
+      executor_memory: "4g"
+      executor_cores: 2
+      
+    parallelism:
+      default_parallelism: 100
+      max_parallelism: 500
+      
+  # Staging databases
+  databases:
+    postgres:
+      host: "staging-postgres.example.com"
+      port: 5432
+      database: "pbf_lbm_staging"
+      username: "staging_user"
+      password: "${POSTGRES_STAGING_PASSWORD}"
+      
+    snowflake:
+      account: "staging_account"
+      warehouse: "STAGING_WH"
+      database: "PBF_LBM_STAGING"
+      schema: "PUBLIC"
+      
+    s3:
+      bucket: "pbf-lbm-staging-data"
+      region: "us-east-1"
+      endpoint: null
+      
+  # Staging services
+  services:
+    kafka:
+      bootstrap_servers: "staging-kafka.example.com:9092"
+      auto_create_topics: false
+      
+    airflow:
+      webserver_url: "https://staging-airflow.example.com"
+      dag_folder: "/opt/airflow/dags"
+      
+    spark:
+      master: "yarn"
+      app_name: "PBF_LB_M_STAGING"
+      
+  # Staging monitoring
+  monitoring:
+    metrics:
+      enabled: true
+      collection_interval: 120
+      
+    logging:
+      enabled: true
+      level: "INFO"
+      console_output: false
+      
+    alerting:
+      enabled: true
+      channels: ["email"]
+      
+  # Staging security (moderate)
+  security:
+    encryption:
+      enabled: true
+      algorithm: "AES-256"
+      
+    authentication:
+      enabled: true
+      method: "oauth2"
+      
+    authorization:
+      enabled: true
+      rbac_enabled: false
+      
+  # Staging backup
+  backup:
+    enabled: true
+    frequency: "daily"
+    retention_days: 14
+    compression: true

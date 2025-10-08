@@ -1,0 +1,339 @@
+# Cost Optimizer Configuration
+# Model for optimizing maintenance and operational costs in PBF-LBM systems
+
+model:
+  name: "cost_optimizer"
+  version: "1.0.0"
+  type: "regression"
+  framework: "xgboost"
+  
+  architecture:
+    algorithm: "XGBRegressor"
+    parameters:
+      n_estimators: 400
+      max_depth: 10
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+      objective: "reg:squarederror"
+    
+  input_features:
+    # Equipment Parameters
+    - name: "equipment_age"
+      type: "numerical"
+      description: "Equipment age in years"
+      range: [0.0, 20.0]
+    - name: "operating_hours_total"
+      type: "numerical"
+      description: "Total operating hours"
+      range: [0.0, 100000.0]
+    - name: "utilization_rate"
+      type: "numerical"
+      description: "Equipment utilization rate (%)"
+      range: [0.0, 100.0]
+    - name: "power_consumption"
+      type: "numerical"
+      description: "Average power consumption (kW)"
+      range: [0.0, 100.0]
+    - name: "energy_efficiency"
+      type: "numerical"
+      description: "Energy efficiency rating"
+      range: [0.0, 1.0]
+    
+    # Maintenance History
+    - name: "maintenance_frequency"
+      type: "numerical"
+      description: "Maintenance events per year"
+      range: [0.0, 12.0]
+    - name: "preventive_maintenance_ratio"
+      type: "numerical"
+      description: "Ratio of preventive to total maintenance"
+      range: [0.0, 1.0]
+    - name: "emergency_maintenance_ratio"
+      type: "numerical"
+      description: "Ratio of emergency to total maintenance"
+      range: [0.0, 1.0]
+    - name: "maintenance_cost_trend"
+      type: "numerical"
+      description: "Maintenance cost trend (USD/month)"
+      range: [0.0, 20000.0]
+    - name: "downtime_hours"
+      type: "numerical"
+      description: "Total downtime hours per year"
+      range: [0.0, 2000.0]
+    
+    # Operational Costs
+    - name: "material_cost_per_build"
+      type: "numerical"
+      description: "Material cost per build (USD)"
+      range: [10.0, 5000.0]
+    - name: "powder_consumption_rate"
+      type: "numerical"
+      description: "Powder consumption rate (kg/hour)"
+      range: [0.0, 10.0]
+    - name: "powder_waste_percentage"
+      type: "numerical"
+      description: "Powder waste percentage (%)"
+      range: [0.0, 50.0]
+    - name: "gas_consumption_rate"
+      type: "numerical"
+      description: "Inert gas consumption rate (L/hour)"
+      range: [0.0, 100.0]
+    - name: "energy_cost_per_kwh"
+      type: "numerical"
+      description: "Energy cost per kWh (USD)"
+      range: [0.0, 1.0]
+    
+    # Quality Metrics
+    - name: "defect_rate"
+      type: "numerical"
+      description: "Defect rate percentage (%)"
+      range: [0.0, 20.0]
+    - name: "rework_rate"
+      type: "numerical"
+      description: "Rework rate percentage (%)"
+      range: [0.0, 30.0]
+    - name: "scrap_rate"
+      type: "numerical"
+      description: "Scrap rate percentage (%)"
+      range: [0.0, 15.0]
+    - name: "first_pass_yield"
+      type: "numerical"
+      description: "First pass yield percentage (%)"
+      range: [50.0, 100.0]
+    - name: "quality_cost_per_part"
+      type: "numerical"
+      description: "Quality-related cost per part (USD)"
+      range: [0.0, 1000.0]
+    
+    # Labor Costs
+    - name: "operator_hours_per_build"
+      type: "numerical"
+      description: "Operator hours per build"
+      range: [0.0, 50.0]
+    - name: "operator_hourly_rate"
+      type: "numerical"
+      description: "Operator hourly rate (USD)"
+      range: [10.0, 100.0]
+    - name: "maintenance_technician_rate"
+      type: "numerical"
+      description: "Maintenance technician hourly rate (USD)"
+      range: [20.0, 150.0]
+    - name: "overtime_percentage"
+      type: "numerical"
+      description: "Overtime percentage (%)"
+      range: [0.0, 50.0]
+    - name: "training_cost_per_employee"
+      type: "numerical"
+      description: "Training cost per employee (USD)"
+      range: [0.0, 10000.0]
+    
+    # Process Parameters
+    - name: "build_success_rate"
+      type: "numerical"
+      description: "Build success rate (%)"
+      range: [70.0, 100.0]
+    - name: "average_build_time"
+      type: "numerical"
+      description: "Average build time (hours)"
+      range: [1.0, 200.0]
+    - name: "setup_time_per_build"
+      type: "numerical"
+      description: "Setup time per build (hours)"
+      range: [0.0, 20.0]
+    - name: "post_processing_time"
+      type: "numerical"
+      description: "Post-processing time per build (hours)"
+      range: [0.0, 100.0]
+    - name: "process_efficiency"
+      type: "numerical"
+      description: "Overall process efficiency (%)"
+      range: [0.0, 100.0]
+    
+    # Market Factors
+    - name: "material_price_index"
+      type: "numerical"
+      description: "Material price index (base=100)"
+      range: [50.0, 200.0]
+    - name: "energy_price_index"
+      type: "numerical"
+      description: "Energy price index (base=100)"
+      range: [50.0, 200.0]
+    - name: "labor_cost_index"
+      type: "numerical"
+      description: "Labor cost index (base=100)"
+      range: [50.0, 200.0]
+    - name: "competition_level"
+      type: "categorical"
+      description: "Market competition level"
+      categories: ["low", "medium", "high", "very_high"]
+    - name: "customer_price_sensitivity"
+      type: "numerical"
+      description: "Customer price sensitivity (1-10 scale)"
+      range: [1.0, 10.0]
+    
+    # Technology Factors
+    - name: "technology_maturity"
+      type: "categorical"
+      description: "Technology maturity level"
+      categories: ["emerging", "developing", "mature", "legacy"]
+    - name: "automation_level"
+      type: "numerical"
+      description: "Automation level (%)"
+      range: [0.0, 100.0]
+    - name: "digital_twin_usage"
+      type: "boolean"
+      description: "Digital twin technology usage"
+      values: [true, false]
+    - name: "predictive_maintenance_usage"
+      type: "boolean"
+      description: "Predictive maintenance implementation"
+      values: [true, false]
+    - name: "ai_optimization_usage"
+      type: "boolean"
+      description: "AI-based optimization usage"
+      values: [true, false]
+
+  output_targets:
+    - name: "total_cost_per_part"
+      description: "Total cost per manufactured part (USD)"
+      range: [10.0, 10000.0]
+    - name: "maintenance_cost_per_hour"
+      description: "Maintenance cost per operating hour (USD)"
+      range: [0.0, 100.0]
+    - name: "operational_cost_per_hour"
+      description: "Operational cost per hour (USD)"
+      range: [0.0, 500.0]
+    - name: "quality_cost_per_part"
+      description: "Quality-related cost per part (USD)"
+      range: [0.0, 2000.0]
+    - name: "energy_cost_per_part"
+      description: "Energy cost per part (USD)"
+      range: [0.0, 100.0]
+    - name: "labor_cost_per_part"
+      description: "Labor cost per part (USD)"
+      range: [0.0, 500.0]
+    - name: "material_cost_per_part"
+      description: "Material cost per part (USD)"
+      range: [0.0, 5000.0]
+    - name: "overhead_cost_per_part"
+      description: "Overhead cost per part (USD)"
+      range: [0.0, 1000.0]
+
+  training:
+    dataset_path: "/data/training/cost_optimization_dataset.csv"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "kfold"
+      n_splits: 5
+    metrics:
+      primary: "neg_mean_squared_error"
+      secondary: ["neg_mean_absolute_error", "r2", "explained_variance"]
+    early_stopping:
+      enabled: true
+      patience: 25
+      monitor: "val_neg_mean_squared_error"
+    
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["equipment_age", "operating_hours_total", "utilization_rate", "power_consumption",
+                "energy_efficiency", "maintenance_frequency", "preventive_maintenance_ratio",
+                "emergency_maintenance_ratio", "maintenance_cost_trend", "downtime_hours",
+                "material_cost_per_build", "powder_consumption_rate", "powder_waste_percentage",
+                "gas_consumption_rate", "energy_cost_per_kwh", "defect_rate", "rework_rate",
+                "scrap_rate", "first_pass_yield", "quality_cost_per_part", "operator_hours_per_build",
+                "operator_hourly_rate", "maintenance_technician_rate", "overtime_percentage",
+                "training_cost_per_employee", "build_success_rate", "average_build_time",
+                "setup_time_per_build", "post_processing_time", "process_efficiency",
+                "material_price_index", "energy_price_index", "labor_cost_index",
+                "customer_price_sensitivity", "automation_level"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["competition_level", "technology_maturity"]
+    feature_engineering:
+      - name: "total_operating_cost"
+        formula: "power_consumption * energy_cost_per_kwh * operating_hours_total / 1000"
+      - name: "maintenance_efficiency_index"
+        formula: "preventive_maintenance_ratio / (1 + emergency_maintenance_ratio)"
+      - name: "quality_efficiency_index"
+        formula: "first_pass_yield / 100 * (1 - defect_rate / 100)"
+      - name: "labor_efficiency_index"
+        formula: "process_efficiency / 100 * (1 - overtime_percentage / 100)"
+      - name: "material_efficiency_index"
+        formula: "(1 - powder_waste_percentage / 100) * (1 - scrap_rate / 100)"
+      - name: "technology_advantage_index"
+        formula: "automation_level / 100 + (digital_twin_usage ? 0.2 : 0) + (predictive_maintenance_usage ? 0.3 : 0) + (ai_optimization_usage ? 0.2 : 0)"
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 40
+      
+  validation:
+    business_rules:
+      - rule: "minimum_profit_margin"
+        condition: "predicted_total_cost_per_part > customer_price * 0.8"
+        action: "flag_for_cost_review"
+      - rule: "high_maintenance_cost_alert"
+        condition: "predicted_maintenance_cost_per_hour > 50"
+        action: "suggest_preventive_maintenance"
+      - rule: "quality_cost_optimization"
+        condition: "predicted_quality_cost_per_part > material_cost_per_part * 0.3"
+        action: "recommend_quality_improvement"
+
+  deployment:
+    inference_mode: "batch"
+    batch_size: 16
+    max_latency_ms: 8000
+    model_format: "joblib"
+    artifact_path: "/models/cost_optimizer/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["material_price_index", "energy_price_index", "labor_cost_index", "utilization_rate"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["mse", "mae", "r2", "explained_variance"]
+      alert_thresholds:
+        mse: 1000000.0
+        mae: 100.0
+        r2: 0.85
+    explainability:
+      enabled: true
+      method: "shap"
+      sample_size: 2000
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.1
+    schedule: "monthly"
+    data_requirements:
+      min_samples: 2000
+      cost_category_balance_threshold: 0.1
+      
+  optimization:
+    enabled: true
+    objective: "minimize_total_cost"
+    constraints:
+      - "quality_standards >= 95"
+      - "delivery_time <= target_time"
+      - "maintenance_budget <= available_budget"
+    solver: "scipy_optimize"
+    method: "SLSQP"
+    max_iterations: 1000
+    
+  cost_breakdown:
+    enabled: true
+    categories:
+      - "direct_materials"
+      - "direct_labor"
+      - "manufacturing_overhead"
+      - "quality_costs"
+      - "maintenance_costs"
+      - "energy_costs"
+      - "administrative_costs"
+    reporting_frequency: "monthly"

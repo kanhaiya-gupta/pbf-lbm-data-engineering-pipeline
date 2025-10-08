@@ -1,0 +1,543 @@
+# Maintenance Service Configuration
+# Real-time predictive maintenance service for PBF-LBM equipment
+
+service:
+  name: "maintenance_service"
+  version: "1.0.0"
+  description: "Real-time predictive maintenance service for PBF-LBM equipment"
+  
+  deployment:
+    type: "kubernetes"
+    namespace: "ml-services"
+    replicas: 2
+    resources:
+      requests:
+        cpu: "1000m"
+        memory: "2Gi"
+      limits:
+        cpu: "4000m"
+        memory: "8Gi"
+    autoscaling:
+      enabled: true
+      min_replicas: 2
+      max_replicas: 8
+      target_cpu_utilization: 70
+      target_memory_utilization: 80
+      
+  models:
+    - name: "equipment_health_monitor"
+      model_path: "/models/predictive_maintenance/equipment_health_monitor/latest/"
+      model_type: "anomaly_detection"
+      framework: "scikit-learn"
+      input_schema:
+        required_fields:
+          - "laser_power_actual"
+          - "laser_temperature"
+          - "galvo_temperature"
+          - "chamber_temperature"
+          - "system_load"
+        optional_fields:
+          - "operating_hours"
+          - "maintenance_interval"
+          - "error_count_24h"
+      output_schema:
+        fields:
+          - name: "anomaly_score"
+            type: "float"
+            range: [0.0, 1.0]
+          - name: "health_status"
+            type: "string"
+            enum: ["healthy", "warning", "critical"]
+          - name: "confidence"
+            type: "float"
+            range: [0.0, 1.0]
+          - name: "prediction_time"
+            type: "float"
+            unit: "milliseconds"
+            
+    - name: "failure_predictor"
+      model_path: "/models/predictive_maintenance/failure_predictor/latest/"
+      model_type: "classification"
+      framework: "xgboost"
+      input_schema:
+        required_fields:
+          - "laser_power_actual"
+          - "laser_power_stability"
+          - "galvo_vibration_level"
+          - "powder_feeder_consistency"
+          - "chamber_temperature"
+        optional_fields:
+          - "operating_hours"
+          - "maintenance_interval"
+          - "error_count_24h"
+          - "warning_count_24h"
+      output_schema:
+        fields:
+          - name: "failure_probability"
+            type: "float"
+            range: [0.0, 1.0]
+          - name: "failure_class"
+            type: "string"
+            enum: ["no_failure", "imminent_failure", "critical_failure"]
+          - name: "time_to_failure"
+            type: "float"
+            unit: "hours"
+          - name: "confidence"
+            type: "float"
+            range: [0.0, 1.0]
+          - name: "prediction_time"
+            type: "float"
+            unit: "milliseconds"
+            
+    - name: "maintenance_scheduler"
+      model_path: "/models/predictive_maintenance/maintenance_scheduler/latest/"
+      model_type: "regression"
+      framework: "scikit-learn"
+      input_schema:
+        required_fields:
+          - "laser_operating_hours"
+          - "laser_power_degradation"
+          - "galvo_operating_hours"
+          - "powder_system_operating_hours"
+          - "maintenance_interval"
+        optional_fields:
+          - "production_demand"
+          - "maintenance_budget"
+          - "criticality_level"
+      output_schema:
+        fields:
+          - name: "optimal_maintenance_interval"
+            type: "float"
+            unit: "days"
+          - name: "maintenance_priority_score"
+            type: "float"
+            range: [0.0, 100.0]
+          - name: "estimated_maintenance_cost"
+            type: "float"
+            unit: "USD"
+          - name: "downtime_risk_score"
+            type: "float"
+            range: [0.0, 100.0]
+          - name: "performance_impact_score"
+            type: "float"
+            range: [0.0, 100.0]
+          - name: "confidence"
+            type: "float"
+            range: [0.0, 1.0]
+          - name: "prediction_time"
+            type: "float"
+            unit: "milliseconds"
+            
+  api:
+    endpoints:
+      - name: "predict_health"
+        path: "/api/v1/maintenance/health"
+        method: "POST"
+        description: "Predict equipment health status"
+        input_schema:
+          type: "object"
+          required: ["equipment_id", "sensor_data"]
+          properties:
+            equipment_id:
+              type: "string"
+            sensor_data:
+              type: "object"
+              properties:
+                laser_power_actual:
+                  type: "number"
+                  minimum: 0
+                  maximum: 1000
+                laser_temperature:
+                  type: "number"
+                  minimum: 20
+                  maximum: 80
+                galvo_temperature:
+                  type: "number"
+                  minimum: 20
+                  maximum: 60
+                chamber_temperature:
+                  type: "number"
+                  minimum: 20
+                  maximum: 200
+                system_load:
+                  type: "number"
+                  minimum: 0
+                  maximum: 100
+                operating_hours:
+                  type: "number"
+                  minimum: 0
+                maintenance_interval:
+                  type: "number"
+                  minimum: 0
+                error_count_24h:
+                  type: "number"
+                  minimum: 0
+        output_schema:
+          type: "object"
+          properties:
+            equipment_id:
+              type: "string"
+            health_status:
+              type: "string"
+              enum: ["healthy", "warning", "critical"]
+            anomaly_score:
+              type: "number"
+              minimum: 0
+              maximum: 1
+            confidence:
+              type: "number"
+              minimum: 0
+              maximum: 1
+            recommendations:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  action: { type: "string" }
+                  priority: { type: "string" }
+                  estimated_cost: { type: "number" }
+            timestamp:
+              type: "string"
+              format: "date-time"
+              
+      - name: "predict_failure"
+        path: "/api/v1/maintenance/failure"
+        method: "POST"
+        description: "Predict equipment failure probability"
+        input_schema:
+          type: "object"
+          required: ["equipment_id", "sensor_data"]
+          properties:
+            equipment_id:
+              type: "string"
+            sensor_data:
+              type: "object"
+              properties:
+                laser_power_actual:
+                  type: "number"
+                  minimum: 0
+                  maximum: 1000
+                laser_power_stability:
+                  type: "number"
+                  minimum: 0
+                  maximum: 0.1
+                galvo_vibration_level:
+                  type: "number"
+                  minimum: 0
+                  maximum: 10
+                powder_feeder_consistency:
+                  type: "number"
+                  minimum: 0
+                  maximum: 0.3
+                chamber_temperature:
+                  type: "number"
+                  minimum: 20
+                  maximum: 200
+                operating_hours:
+                  type: "number"
+                  minimum: 0
+                maintenance_interval:
+                  type: "number"
+                  minimum: 0
+                error_count_24h:
+                  type: "number"
+                  minimum: 0
+                warning_count_24h:
+                  type: "number"
+                  minimum: 0
+        output_schema:
+          type: "object"
+          properties:
+            equipment_id:
+              type: "string"
+            failure_probability:
+              type: "number"
+              minimum: 0
+              maximum: 1
+            failure_class:
+              type: "string"
+              enum: ["no_failure", "imminent_failure", "critical_failure"]
+            time_to_failure:
+              type: "number"
+              unit: "hours"
+            confidence:
+              type: "number"
+              minimum: 0
+              maximum: 1
+            risk_factors:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  factor: { type: "string" }
+                  impact: { type: "number" }
+                  recommendation: { type: "string" }
+            timestamp:
+              type: "string"
+              format: "date-time"
+              
+      - name: "schedule_maintenance"
+        path: "/api/v1/maintenance/schedule"
+        method: "POST"
+        description: "Schedule optimal maintenance"
+        input_schema:
+          type: "object"
+          required: ["equipment_id", "maintenance_data"]
+          properties:
+            equipment_id:
+              type: "string"
+            maintenance_data:
+              type: "object"
+              properties:
+                laser_operating_hours:
+                  type: "number"
+                  minimum: 0
+                laser_power_degradation:
+                  type: "number"
+                  minimum: 0
+                  maximum: 20
+                galvo_operating_hours:
+                  type: "number"
+                  minimum: 0
+                powder_system_operating_hours:
+                  type: "number"
+                  minimum: 0
+                maintenance_interval:
+                  type: "number"
+                  minimum: 0
+                production_demand:
+                  type: "number"
+                  minimum: 1
+                  maximum: 10
+                maintenance_budget:
+                  type: "number"
+                  minimum: 0
+                criticality_level:
+                  type: "string"
+                  enum: ["low", "medium", "high", "critical"]
+        output_schema:
+          type: "object"
+          properties:
+            equipment_id:
+              type: "string"
+            optimal_maintenance_interval:
+              type: "number"
+              unit: "days"
+            maintenance_priority_score:
+              type: "number"
+              minimum: 0
+              maximum: 100
+            estimated_maintenance_cost:
+              type: "number"
+              unit: "USD"
+            downtime_risk_score:
+              type: "number"
+              minimum: 0
+              maximum: 100
+            performance_impact_score:
+              type: "number"
+              minimum: 0
+              maximum: 100
+            recommended_actions:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  action: { type: "string" }
+                  priority: { type: "string" }
+                  estimated_duration: { type: "number" }
+                  estimated_cost: { type: "number" }
+            confidence:
+              type: "number"
+              minimum: 0
+              maximum: 1
+            timestamp:
+              type: "string"
+              format: "date-time"
+              
+      - name: "health_check"
+        path: "/api/v1/health"
+        method: "GET"
+        description: "Health check endpoint"
+        output_schema:
+          type: "object"
+          properties:
+            status:
+              type: "string"
+              enum: ["healthy", "unhealthy"]
+            timestamp:
+              type: "string"
+              format: "date-time"
+            version:
+              type: "string"
+            models_loaded:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  name: { type: "string" }
+                  status: { type: "string" }
+                  version: { type: "string" }
+                  
+  performance:
+    latency:
+      target_p95: 200
+      target_p99: 500
+      unit: "milliseconds"
+    throughput:
+      target_rps: 500
+      unit: "requests_per_second"
+    availability:
+      target: 99.9
+      unit: "percent"
+      
+  monitoring:
+    metrics:
+      - name: "request_count"
+        type: "counter"
+        labels: ["endpoint", "status_code"]
+      - name: "request_duration"
+        type: "histogram"
+        labels: ["endpoint"]
+        buckets: [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0]
+      - name: "model_prediction_time"
+        type: "histogram"
+        labels: ["model_name"]
+        buckets: [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0]
+      - name: "equipment_health_score"
+        type: "gauge"
+        labels: ["equipment_id"]
+      - name: "failure_predictions"
+        type: "counter"
+        labels: ["equipment_id", "failure_class"]
+      - name: "maintenance_recommendations"
+        type: "counter"
+        labels: ["equipment_id", "priority"]
+      - name: "active_connections"
+        type: "gauge"
+      - name: "memory_usage"
+        type: "gauge"
+      - name: "cpu_usage"
+        type: "gauge"
+        
+    alerts:
+      - name: "high_latency"
+        condition: "request_duration_p95 > 500"
+        severity: "warning"
+        duration: "5m"
+      - name: "high_error_rate"
+        condition: "error_rate > 0.05"
+        severity: "critical"
+        duration: "2m"
+      - name: "critical_failure_prediction"
+        condition: "failure_predictions{failure_class='critical_failure'} > 0"
+        severity: "critical"
+        duration: "1m"
+      - name: "high_maintenance_priority"
+        condition: "maintenance_recommendations{priority='high'} > 5"
+        severity: "warning"
+        duration: "10m"
+      - name: "high_memory_usage"
+        condition: "memory_usage > 0.9"
+        severity: "warning"
+        duration: "5m"
+      - name: "high_cpu_usage"
+        condition: "cpu_usage > 0.9"
+        severity: "warning"
+        duration: "5m"
+        
+  security:
+    authentication:
+      enabled: true
+      type: "jwt"
+      issuer: "ml-services-auth"
+      audience: "maintenance-service"
+    authorization:
+      enabled: true
+      rbac:
+        roles:
+          - name: "maintenance_engineer"
+            permissions: ["read", "predict", "schedule"]
+          - name: "operator"
+            permissions: ["read", "predict"]
+          - name: "admin"
+            permissions: ["read", "write", "admin"]
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 500
+      burst_size: 50
+    cors:
+      enabled: true
+      allowed_origins: ["*"]
+      allowed_methods: ["GET", "POST"]
+      allowed_headers: ["Content-Type", "Authorization"]
+      
+  logging:
+    level: "INFO"
+    format: "json"
+    fields:
+      - "timestamp"
+      - "level"
+      - "message"
+      - "request_id"
+      - "user_id"
+      - "equipment_id"
+      - "endpoint"
+      - "duration"
+      - "status_code"
+    retention_days: 30
+    
+  feature_store:
+    enabled: true
+    type: "feast"
+    registry_path: "/data/feature_store/registry/"
+    online_store:
+      type: "redis"
+      host: "redis-feature-store"
+      port: 6379
+      db: 1
+    features:
+      - name: "equipment_health_features"
+        ttl: "1_hour"
+      - name: "maintenance_features"
+        ttl: "24_hours"
+      - name: "sensor_features"
+        ttl: "1_hour"
+        
+  model_management:
+    auto_update:
+      enabled: true
+      check_interval: "1_hour"
+      staging_validation: true
+    a_b_testing:
+      enabled: true
+      traffic_split: 0.1
+      metrics:
+        - "accuracy"
+        - "precision"
+        - "recall"
+        - "latency"
+    rollback:
+      enabled: true
+      automatic: false
+      threshold: 0.05
+      
+  integration:
+    equipment_management:
+      enabled: true
+      api_endpoint: "http://equipment-management-service:8080"
+      sync_interval: "5_minutes"
+    maintenance_scheduling:
+      enabled: true
+      api_endpoint: "http://maintenance-scheduling-service:8080"
+      sync_interval: "1_minute"
+    alerting:
+      enabled: true
+      channels: ["email", "sms", "slack", "webhook"]
+      escalation_matrix:
+        - level: "warning"
+          threshold: 0.7
+          recipients: ["operators", "supervisors"]
+        - level: "critical"
+          threshold: 0.9
+          recipients: ["operators", "supervisors", "maintenance_team", "management"]

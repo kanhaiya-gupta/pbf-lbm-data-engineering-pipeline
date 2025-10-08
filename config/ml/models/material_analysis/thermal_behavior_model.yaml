@@ -1,0 +1,288 @@
+# Thermal Behavior Model Configuration
+# Model for predicting thermal behavior of PBF-LBM materials
+
+model:
+  name: "thermal_behavior_model"
+  version: "1.0.0"
+  type: "regression"
+  framework: "scikit-learn"
+  
+  architecture:
+    algorithm: "RandomForestRegressor"
+    parameters:
+      n_estimators: 500
+      max_depth: 15
+      min_samples_split: 5
+      min_samples_leaf: 2
+      random_state: 42
+      max_features: "sqrt"
+      bootstrap: true
+    
+  input_features:
+    # Process Parameters
+    - name: "laser_power"
+      type: "numerical"
+      description: "Laser power setting (W)"
+      range: [50.0, 1000.0]
+    - name: "scan_speed"
+      type: "numerical"
+      description: "Laser scan speed (mm/s)"
+      range: [100.0, 2000.0]
+    - name: "hatch_spacing"
+      type: "numerical"
+      description: "Hatch spacing between scan lines (mm)"
+      range: [0.05, 0.3]
+    - name: "layer_thickness"
+      type: "numerical"
+      description: "Layer thickness (mm)"
+      range: [0.02, 0.1]
+    - name: "energy_density"
+      type: "numerical"
+      description: "Volumetric energy density (J/mm³)"
+      range: [10.0, 500.0]
+    - name: "laser_spot_size"
+      type: "numerical"
+      description: "Laser spot size (μm)"
+      range: [50.0, 200.0]
+    - name: "laser_wavelength"
+      type: "numerical"
+      description: "Laser wavelength (nm)"
+      range: [1000.0, 1100.0]
+    
+    # Build Parameters
+    - name: "build_temperature"
+      type: "numerical"
+      description: "Build chamber temperature (°C)"
+      range: [20.0, 200.0]
+    - name: "preheat_temperature"
+      type: "numerical"
+      description: "Powder bed preheat temperature (°C)"
+      range: [20.0, 300.0]
+    - name: "build_orientation"
+      type: "categorical"
+      description: "Primary build orientation"
+      categories: ["horizontal", "vertical", "angled_30", "angled_45", "angled_60"]
+    - name: "support_density"
+      type: "numerical"
+      description: "Support structure density (%)"
+      range: [0.0, 100.0]
+    - name: "part_volume"
+      type: "numerical"
+      description: "Total part volume (mm³)"
+      range: [1.0, 1000000.0]
+    - name: "part_surface_area"
+      type: "numerical"
+      description: "Total part surface area (mm²)"
+      range: [1.0, 100000.0]
+    
+    # Material Properties
+    - name: "material_type"
+      type: "categorical"
+      description: "Material type"
+      categories: ["Ti6Al4V", "Inconel718", "AlSi10Mg", "316L", "CoCr", "MaragingSteel"]
+    - name: "density"
+      type: "numerical"
+      description: "Material density (g/cm³)"
+      range: [1.0, 20.0]
+    - name: "specific_heat"
+      type: "numerical"
+      description: "Specific heat capacity (J/kg·K)"
+      range: [100.0, 1000.0]
+    - name: "thermal_conductivity"
+      type: "numerical"
+      description: "Thermal conductivity (W/m·K)"
+      range: [1.0, 500.0]
+    - name: "thermal_diffusivity"
+      type: "numerical"
+      description: "Thermal diffusivity (m²/s)"
+      range: [1e-7, 1e-4]
+    - name: "melting_temperature"
+      type: "numerical"
+      description: "Melting temperature (°C)"
+      range: [500.0, 2000.0]
+    - name: "thermal_expansion_coefficient"
+      type: "numerical"
+      description: "Thermal expansion coefficient (1/K)"
+      range: [1e-6, 50e-6]
+    - name: "emissivity"
+      type: "numerical"
+      description: "Surface emissivity"
+      range: [0.1, 1.0]
+    
+    # Environmental Conditions
+    - name: "chamber_pressure"
+      type: "numerical"
+      description: "Build chamber pressure (mbar)"
+      range: [0.0, 1000.0]
+    - name: "gas_flow_rate"
+      type: "numerical"
+      description: "Inert gas flow rate (L/min)"
+      range: [0.0, 100.0]
+    - name: "gas_type"
+      type: "categorical"
+      description: "Inert gas type"
+      categories: ["argon", "nitrogen", "helium", "mixed"]
+    - name: "oxygen_content"
+      type: "numerical"
+      description: "Oxygen content in chamber (ppm)"
+      range: [0.0, 1000.0]
+    - name: "humidity"
+      type: "numerical"
+      description: "Relative humidity (%)"
+      range: [0.0, 100.0]
+    
+    # Powder Properties
+    - name: "powder_particle_size_d50"
+      type: "numerical"
+      description: "50th percentile particle size (μm)"
+      range: [20.0, 150.0]
+    - name: "powder_particle_size_distribution"
+      type: "numerical"
+      description: "Particle size distribution width"
+      range: [0.1, 2.0]
+    - name: "powder_density"
+      type: "numerical"
+      description: "Powder apparent density (g/cm³)"
+      range: [1.0, 10.0]
+    - name: "powder_flowability"
+      type: "numerical"
+      description: "Powder flowability index"
+      range: [0.0, 1.0]
+    - name: "powder_porosity"
+      type: "numerical"
+      description: "Powder bed porosity (%)"
+      range: [20.0, 60.0]
+
+  output_targets:
+    - name: "peak_temperature"
+      description: "Peak temperature during melting (°C)"
+      range: [1000.0, 3000.0]
+    - name: "cooling_rate"
+      description: "Average cooling rate (°C/s)"
+      range: [0.1, 10000.0]
+    - name: "thermal_gradient"
+      description: "Maximum thermal gradient (°C/mm)"
+      range: [100.0, 10000.0]
+    - name: "melt_pool_width"
+      description: "Melt pool width (μm)"
+      range: [50.0, 1000.0]
+    - name: "melt_pool_depth"
+      description: "Melt pool depth (μm)"
+      range: [20.0, 500.0]
+    - name: "melt_pool_length"
+      description: "Melt pool length (μm)"
+      range: [100.0, 2000.0]
+    - name: "solidification_time"
+      description: "Solidification time (ms)"
+      range: [0.1, 100.0]
+    - name: "heat_affected_zone_width"
+      description: "Heat affected zone width (μm)"
+      range: [10.0, 500.0]
+    - name: "residual_stress"
+      description: "Residual stress (MPa)"
+      range: [0.0, 1000.0]
+    - name: "distortion"
+      description: "Part distortion (mm)"
+      range: [0.0, 10.0]
+
+  training:
+    dataset_path: "/data/training/thermal_behavior_dataset.csv"
+    validation_split: 0.2
+    test_split: 0.1
+    cross_validation:
+      method: "kfold"
+      n_splits: 5
+    metrics:
+      primary: "neg_mean_squared_error"
+      secondary: ["neg_mean_absolute_error", "r2", "explained_variance"]
+    early_stopping:
+      enabled: true
+      patience: 20
+      monitor: "val_neg_mean_squared_error"
+    
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness",
+                "energy_density", "laser_spot_size", "laser_wavelength", "build_temperature",
+                "preheat_temperature", "support_density", "part_volume", "part_surface_area",
+                "density", "specific_heat", "thermal_conductivity", "thermal_diffusivity",
+                "melting_temperature", "thermal_expansion_coefficient", "emissivity",
+                "chamber_pressure", "gas_flow_rate", "oxygen_content", "humidity",
+                "powder_particle_size_d50", "powder_particle_size_distribution",
+                "powder_density", "powder_flowability", "powder_porosity"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["build_orientation", "material_type", "gas_type"]
+    feature_engineering:
+      - name: "energy_density_calc"
+        formula: "laser_power / (scan_speed * hatch_spacing * layer_thickness)"
+      - name: "thermal_penetration_depth"
+        formula: "sqrt(thermal_diffusivity * layer_thickness / scan_speed)"
+      - name: "powder_thermal_resistance"
+        formula: "powder_porosity / 100 * thermal_conductivity"
+      - name: "convective_heat_transfer"
+        formula: "gas_flow_rate * specific_heat * density / 1000"
+      - name: "radiative_heat_transfer"
+        formula: "emissivity * 5.67e-8 * (build_temperature + 273.15)^4"
+      - name: "thermal_mass_ratio"
+        formula: "part_volume * density * specific_heat / (part_surface_area * thermal_conductivity)"
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 35
+      
+  validation:
+    business_rules:
+      - rule: "excessive_temperature_check"
+        condition: "predicted_peak_temperature > melting_temperature * 1.5"
+        action: "flag_for_parameter_review"
+      - rule: "insufficient_melting_check"
+        condition: "predicted_peak_temperature < melting_temperature * 1.1"
+        action: "suggest_power_increase"
+      - rule: "high_thermal_gradient_warning"
+        condition: "predicted_thermal_gradient > 5000"
+        action: "recommend_preheat_increase"
+
+  deployment:
+    inference_mode: "batch"
+    batch_size: 32
+    max_latency_ms: 8000
+    model_format: "joblib"
+    artifact_path: "/models/thermal_behavior_model/v1.0.0/"
+    
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "ks_test"
+      threshold: 0.05
+      features: ["laser_power", "scan_speed", "energy_density", "build_temperature"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["mse", "mae", "r2", "explained_variance"]
+      alert_thresholds:
+        mse: 10000.0
+        mae: 50.0
+        r2: 0.85
+    explainability:
+      enabled: true
+      method: "shap"
+      sample_size: 2000
+      
+  retraining:
+    trigger: "performance_degradation"
+    threshold: 0.1
+    schedule: "monthly"
+    data_requirements:
+      min_samples: 2500
+      material_balance_threshold: 0.1
+      
+  thermal_simulation:
+    enabled: true
+    method: "finite_element_analysis"
+    mesh_density: "adaptive"
+    time_step: 0.001
+    convergence_criteria: 1e-6
+    validation_metrics:
+      - "temperature_field_accuracy"
+      - "cooling_rate_accuracy"
+      - "melt_pool_geometry_accuracy"

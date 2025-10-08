@@ -1,0 +1,370 @@
+# Process Optimization Training Pipeline Configuration
+# ===================================================
+
+pipeline:
+  name: "process_optimization_training_pipeline"
+  version: "1.0.0"
+  description: "Training pipeline for process optimization models"
+  
+  # Pipeline metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["process_optimization", "training", "multi_objective", "genetic_algorithm"]
+
+# Pipeline Stages
+stages:
+  - name: "data_ingestion"
+    type: "data_loader"
+    description: "Load process optimization training data"
+    config:
+      sources:
+        - type: "postgresql"
+          table: "process_parameters"
+          connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+        - type: "postgresql"
+          table: "quality_metrics"
+          connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+        - type: "mongodb"
+          collection: "build_results"
+          connection: "mongodb://admin:password@mongodb:27017/pbf_data_lake"
+      validation:
+        schema_validation: true
+        data_quality_checks: true
+        outlier_detection: true
+      output: "raw_data"
+      
+  - name: "data_preprocessing"
+    type: "data_preprocessor"
+    description: "Clean and preprocess process data"
+    config:
+      cleaning:
+        remove_duplicates: true
+        handle_missing_values: "interpolate"
+        outlier_detection: "iqr"
+        outlier_threshold: 3.0
+      normalization:
+        method: "standard_scaler"
+        fit_on_train: true
+      feature_selection:
+        enabled: true
+        method: "mutual_information"
+        n_features: 25
+      output: "preprocessed_data"
+      
+  - name: "feature_engineering"
+    type: "feature_processor"
+    description: "Engineer features for process optimization"
+    config:
+      features_config: "config/ml/features/process_features/laser_parameter_features.yaml"
+      transformations:
+        - type: "interaction_features"
+          interactions: ["laser_power*scan_speed", "layer_thickness*hatch_spacing"]
+        - type: "ratio_features"
+          ratios: ["laser_power/scan_speed", "energy_density/hatch_spacing"]
+        - type: "polynomial_features"
+          degree: 2
+          include_bias: false
+        - type: "statistical_features"
+          aggregations: ["mean", "std", "min", "max"]
+          windows: [5, 10, 20]
+      validation:
+        feature_quality_checks: true
+        correlation_analysis: true
+        variance_threshold: 0.01
+      output: "engineered_features"
+      
+  - name: "data_splitting"
+    type: "data_splitter"
+    description: "Split data for training and validation"
+    config:
+      splits:
+        train: 0.7
+        validation: 0.2
+        test: 0.1
+      strategy: "time_series_split"
+      random_state: 42
+      stratification: false
+      output: "split_data"
+      
+  - name: "model_training"
+    type: "model_trainer"
+    description: "Train process optimization models"
+    config:
+      models:
+        - name: "laser_parameter_predictor"
+          config: "config/ml/models/process_optimization/laser_parameter_predictor.yaml"
+          type: "regression"
+        - name: "build_strategy_optimizer"
+          config: "config/ml/models/process_optimization/build_strategy_optimizer.yaml"
+          type: "multi_objective_optimization"
+        - name: "material_tuning_models"
+          config: "config/ml/models/process_optimization/material_tuning_models.yaml"
+          type: "ensemble"
+        - name: "multi_objective_optimizer"
+          config: "config/ml/models/process_optimization/multi_objective_optimizer.yaml"
+          type: "multi_objective_optimization"
+      training_params:
+        batch_size: 32
+        epochs: 1000
+        learning_rate: 0.001
+        early_stopping:
+          patience: 20
+          monitor: "val_loss"
+          restore_best_weights: true
+      validation:
+        validation_split: 0.2
+        validation_frequency: 10
+        cross_validation: true
+        folds: 5
+      output: "trained_models"
+      
+  - name: "model_evaluation"
+    type: "model_evaluator"
+    description: "Evaluate model performance"
+    config:
+      metrics:
+        regression:
+          - "r2_score"
+          - "mse"
+          - "mae"
+          - "rmse"
+          - "mape"
+        multi_objective:
+          - "hypervolume"
+          - "generational_distance"
+          - "inverted_generational_distance"
+          - "spread"
+          - "epsilon_indicator"
+        ensemble:
+          - "ensemble_accuracy"
+          - "individual_model_performance"
+          - "weight_distribution"
+      thresholds:
+        min_r2: 0.80
+        max_mse: 0.15
+        min_hypervolume: 0.7
+        min_ensemble_accuracy: 0.85
+      validation:
+        cross_validation: true
+        folds: 5
+        shuffle: true
+      output: "evaluation_results"
+      
+  - name: "model_validation"
+    type: "model_validator"
+    description: "Validate models meet requirements"
+    config:
+      requirements:
+        regression_models:
+          r2_threshold: 0.80
+          mse_threshold: 0.15
+          mae_threshold: 0.25
+        multi_objective_models:
+          hypervolume_threshold: 0.7
+          convergence_threshold: 0.001
+          diversity_threshold: 0.1
+        ensemble_models:
+          ensemble_accuracy_threshold: 0.85
+          individual_model_threshold: 0.80
+      tests:
+        - type: "performance_test"
+        - type: "latency_test"
+        - type: "memory_test"
+        - type: "robustness_test"
+        - type: "convergence_test"
+      output: "validation_results"
+      
+  - name: "model_registration"
+    type: "model_registry"
+    description: "Register models in MLflow registry"
+    config:
+      registry: "mlflow"
+      stage: "staging"
+      metadata:
+        training_date: "{{ current_date }}"
+        data_version: "{{ data_version }}"
+        performance_metrics: "{{ evaluation_results }}"
+        validation_results: "{{ validation_results }}"
+        model_size: "{{ model_size }}"
+        training_time: "{{ training_time }}"
+      tags:
+        model_type: "process_optimization"
+        algorithm: "multi_model"
+        version: "1.0.0"
+        environment: "development"
+      output: "registered_models"
+
+# Pipeline Scheduling
+scheduling:
+  trigger: "cron"
+  schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM
+  timezone: "UTC"
+  enabled: true
+  
+  # Retry configuration
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: 600  # 10 minutes
+
+# Resource Requirements
+resources:
+  cpu: "8"
+  memory: "16Gi"
+  gpu: "2"
+  storage: "100Gi"
+  
+  # Resource limits
+  limits:
+    cpu: "16"
+    memory: "32Gi"
+    gpu: "4"
+    storage: "200Gi"
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "tensorflow==2.16.1"
+    - "scikit-learn==1.3.0"
+    - "pandas==2.0.3"
+    - "numpy==1.24.3"
+    - "mlflow==2.9.2"
+    - "xgboost==2.0.2"
+    - "deap==1.4.1"
+    - "pymoo==0.6.0"
+  
+  # Environment variables
+  env_vars:
+    MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    MLFLOW_EXPERIMENT_NAME: "process_optimization_experiments"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Retry policy
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: 600
+  
+  # Failure handling
+  failure_handling:
+    strategy: "stop_on_failure"
+    cleanup_on_failure: true
+    preserve_logs: true
+  
+  # Notification
+  notification:
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    on_success: true
+    on_failure: true
+    on_retry: true
+
+# Monitoring and Logging
+monitoring:
+  # Pipeline monitoring
+  pipeline_monitoring:
+    enabled: true
+    metrics:
+      - "execution_time"
+      - "memory_usage"
+      - "cpu_usage"
+      - "stage_duration"
+    
+  # Model monitoring
+  model_monitoring:
+    enabled: true
+    metrics:
+      - "training_loss"
+      - "validation_loss"
+      - "r2_score"
+      - "hypervolume"
+      - "convergence_rate"
+    
+  # Data monitoring
+  data_monitoring:
+    enabled: true
+    metrics:
+      - "data_quality_score"
+      - "feature_distribution"
+      - "missing_value_rate"
+      - "outlier_rate"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/process_optimization_training.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+  
+  # Stage-specific logging
+  stage_logging:
+    enabled: true
+    log_inputs: true
+    log_outputs: false
+    log_metrics: true
+    log_artifacts: true
+
+# Artifact Management
+artifacts:
+  # Artifact storage
+  storage:
+    type: "s3"
+    bucket: "pbf-ml-artifacts"
+    path: "process_optimization/training"
+    compression: "gzip"
+  
+  # Artifact retention
+  retention:
+    enabled: true
+    days: 30
+    keep_best: 5
+    keep_latest: 10
+  
+  # Artifact types
+  types:
+    - "model"
+    - "metrics"
+    - "plots"
+    - "logs"
+    - "configs"
+
+# Pipeline Dependencies
+dependencies:
+  # Data dependencies
+  data_dependencies:
+    - source: "postgresql"
+      table: "process_parameters"
+      min_rows: 10000
+    - source: "postgresql"
+      table: "quality_metrics"
+      min_rows: 5000
+    - source: "mongodb"
+      collection: "build_results"
+      min_documents: 1000
+  
+  # Model dependencies
+  model_dependencies:
+    - type: "feature_store"
+      name: "laser_parameter_features"
+      version: "latest"
+    - type: "preprocessing"
+      name: "standard_scaler"
+      version: "latest"
+  
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "mlflow"
+      endpoint: "http://mlflow:5000"
+    - service: "redis"
+      endpoint: "redis:6379"
+    - service: "postgresql"
+      endpoint: "postgres:5432"

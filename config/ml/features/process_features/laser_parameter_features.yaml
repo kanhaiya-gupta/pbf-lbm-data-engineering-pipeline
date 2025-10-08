@@ -1,0 +1,471 @@
+# Laser Parameter Features Configuration
+# =====================================
+
+features:
+  name: "laser_parameter_features"
+  version: "1.0.0"
+  description: "Features extracted from laser parameter data for PBF-LB/M process optimization"
+  
+  # Feature metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["laser_parameters", "process_optimization", "pbf", "features"]
+
+# Data Sources
+data_sources:
+  primary:
+    type: "postgresql"
+    table: "laser_parameters"
+    connection: "postgresql://pbf_dev:dev_password@postgres:5432/pbf_dev"
+    schema:
+      timestamp: "datetime"
+      laser_power: "float"
+      scan_speed: "float"
+      focus_offset: "float"
+      pulse_frequency: "float"
+      pulse_duration: "float"
+      beam_diameter: "float"
+      process_id: "string"
+      layer_number: "integer"
+  
+  secondary:
+    type: "kafka"
+    topic: "laser_control_data"
+    consumer_group: "laser_feature_processor"
+    schema:
+      timestamp: "datetime"
+      laser_power_setpoint: "float"
+      scan_speed_setpoint: "float"
+      focus_offset_setpoint: "float"
+      control_error: "float"
+      process_id: "string"
+
+# Feature Definitions
+feature_definitions:
+  # Basic laser power features
+  - name: "laser_power_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "laser_power"
+    description: "Mean laser power over 1-minute window"
+    
+  - name: "laser_power_std"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "std"
+    source_field: "laser_power"
+    description: "Standard deviation of laser power over 1-minute window"
+    
+  - name: "laser_power_max"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "max"
+    source_field: "laser_power"
+    description: "Maximum laser power over 1-minute window"
+    
+  - name: "laser_power_min"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "min"
+    source_field: "laser_power"
+    description: "Minimum laser power over 1-minute window"
+    
+  - name: "laser_power_range"
+    type: "derived"
+    formula: "laser_power_max - laser_power_min"
+    dependencies: ["laser_power_max", "laser_power_min"]
+    description: "Laser power range over 1-minute window"
+
+  # Laser power trend features
+  - name: "laser_power_trend"
+    type: "temporal"
+    method: "linear_regression"
+    window: "5min"
+    source_field: "laser_power"
+    description: "Linear trend of laser power over 5-minute window"
+    
+  - name: "laser_power_acceleration"
+    type: "temporal"
+    method: "second_derivative"
+    window: "3min"
+    source_field: "laser_power"
+    description: "Laser power acceleration (second derivative)"
+    
+  - name: "laser_power_volatility"
+    type: "temporal"
+    method: "rolling_std"
+    window: "2min"
+    source_field: "laser_power"
+    description: "Laser power volatility over 2-minute window"
+
+  # Scan speed features
+  - name: "scan_speed_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "scan_speed"
+    description: "Mean scan speed over 1-minute window"
+    
+  - name: "scan_speed_std"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "std"
+    source_field: "scan_speed"
+    description: "Standard deviation of scan speed over 1-minute window"
+    
+  - name: "scan_speed_trend"
+    type: "temporal"
+    method: "linear_regression"
+    window: "3min"
+    source_field: "scan_speed"
+    description: "Linear trend of scan speed over 3-minute window"
+    
+  - name: "scan_speed_acceleration"
+    type: "temporal"
+    method: "second_derivative"
+    window: "2min"
+    source_field: "scan_speed"
+    description: "Scan speed acceleration (second derivative)"
+
+  # Focus offset features
+  - name: "focus_offset_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "focus_offset"
+    description: "Mean focus offset over 1-minute window"
+    
+  - name: "focus_offset_std"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "std"
+    source_field: "focus_offset"
+    description: "Standard deviation of focus offset over 1-minute window"
+    
+  - name: "focus_offset_drift"
+    type: "temporal"
+    method: "drift_detection"
+    window: "10min"
+    source_field: "focus_offset"
+    description: "Focus offset drift over 10-minute window"
+
+  # Pulse features
+  - name: "pulse_frequency_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "pulse_frequency"
+    description: "Mean pulse frequency over 1-minute window"
+    
+  - name: "pulse_duration_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "pulse_duration"
+    description: "Mean pulse duration over 1-minute window"
+    
+  - name: "pulse_energy"
+    type: "derived"
+    formula: "laser_power * pulse_duration"
+    dependencies: ["laser_power", "pulse_duration"]
+    description: "Pulse energy (power × duration)"
+    
+  - name: "pulse_energy_density"
+    type: "derived"
+    formula: "pulse_energy / (beam_diameter * beam_diameter)"
+    dependencies: ["pulse_energy", "beam_diameter"]
+    description: "Pulse energy density"
+
+  # Beam features
+  - name: "beam_diameter_mean"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "mean"
+    source_field: "beam_diameter"
+    description: "Mean beam diameter over 1-minute window"
+    
+  - name: "beam_diameter_std"
+    type: "aggregation"
+    window: "1min"
+    aggregation: "std"
+    source_field: "beam_diameter"
+    description: "Standard deviation of beam diameter over 1-minute window"
+    
+  - name: "beam_quality_factor"
+    type: "derived"
+    formula: "laser_power / (beam_diameter * beam_diameter)"
+    dependencies: ["laser_power", "beam_diameter"]
+    description: "Beam quality factor (power per unit area)"
+
+  # Cross-feature interactions
+  - name: "laser_power_scan_speed_ratio"
+    type: "derived"
+    formula: "laser_power / scan_speed"
+    dependencies: ["laser_power", "scan_speed"]
+    description: "Laser power to scan speed ratio"
+    
+  - name: "energy_density"
+    type: "derived"
+    formula: "laser_power / (scan_speed * beam_diameter)"
+    dependencies: ["laser_power", "scan_speed", "beam_diameter"]
+    description: "Energy density (power per unit speed per unit diameter)"
+    
+  - name: "focus_stability"
+    type: "derived"
+    formula: "1 / (1 + focus_offset_std)"
+    dependencies: ["focus_offset_std"]
+    description: "Focus stability metric (inverse of standard deviation)"
+
+  # Control features
+  - name: "laser_power_error"
+    type: "derived"
+    formula: "laser_power_setpoint - laser_power"
+    dependencies: ["laser_power_setpoint", "laser_power"]
+    description: "Laser power control error"
+    
+  - name: "scan_speed_error"
+    type: "derived"
+    formula: "scan_speed_setpoint - scan_speed"
+    dependencies: ["scan_speed_setpoint", "scan_speed"]
+    description: "Scan speed control error"
+    
+  - name: "focus_offset_error"
+    type: "derived"
+    formula: "focus_offset_setpoint - focus_offset"
+    dependencies: ["focus_offset_setpoint", "focus_offset"]
+    description: "Focus offset control error"
+    
+  - name: "control_accuracy"
+    type: "derived"
+    formula: "1 / (1 + abs(control_error))"
+    dependencies: ["control_error"]
+    description: "Overall control accuracy metric"
+
+  # Lag features
+  - name: "laser_power_lag_1"
+    type: "lag"
+    source_field: "laser_power"
+    lag: 1
+    description: "Laser power value from 1 time step ago"
+    
+  - name: "laser_power_lag_5"
+    type: "lag"
+    source_field: "laser_power"
+    lag: 5
+    description: "Laser power value from 5 time steps ago"
+    
+  - name: "scan_speed_lag_1"
+    type: "lag"
+    source_field: "scan_speed"
+    lag: 1
+    description: "Scan speed value from 1 time step ago"
+    
+  - name: "scan_speed_lag_5"
+    type: "lag"
+    source_field: "scan_speed"
+    lag: 5
+    description: "Scan speed value from 5 time steps ago"
+
+  # Rolling features
+  - name: "laser_power_rolling_mean_5"
+    type: "rolling"
+    source_field: "laser_power"
+    window: 5
+    aggregation: "mean"
+    description: "5-point rolling mean of laser power"
+    
+  - name: "laser_power_rolling_std_5"
+    type: "rolling"
+    source_field: "laser_power"
+    window: 5
+    aggregation: "std"
+    description: "5-point rolling standard deviation of laser power"
+    
+  - name: "scan_speed_rolling_mean_5"
+    type: "rolling"
+    source_field: "scan_speed"
+    window: 5
+    aggregation: "mean"
+    description: "5-point rolling mean of scan speed"
+    
+  - name: "scan_speed_rolling_std_5"
+    type: "rolling"
+    source_field: "scan_speed"
+    window: 5
+    aggregation: "std"
+    description: "5-point rolling standard deviation of scan speed"
+
+  # Frequency domain features
+  - name: "laser_power_fft_peak"
+    type: "frequency"
+    method: "fft_peak"
+    source_field: "laser_power"
+    window: "5min"
+    description: "Peak frequency component of laser power FFT"
+    
+  - name: "scan_speed_spectral_centroid"
+    type: "frequency"
+    method: "spectral_centroid"
+    source_field: "scan_speed"
+    window: "3min"
+    description: "Spectral centroid of scan speed signal"
+
+# Feature Validation
+validation:
+  laser_power:
+    min_value: 0
+    max_value: 1000
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  scan_speed:
+    min_value: 0
+    max_value: 2000
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  focus_offset:
+    min_value: -5
+    max_value: 5
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  pulse_frequency:
+    min_value: 0
+    max_value: 100000
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  pulse_duration:
+    min_value: 0
+    max_value: 1
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+    
+  beam_diameter:
+    min_value: 0
+    max_value: 1
+    null_threshold: 0.05
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+
+# Feature Storage
+storage:
+  online_store:
+    type: "redis"
+    host: "redis"
+    port: 6379
+    db: 6
+    ttl: "1h"
+    key_prefix: "laser_features:"
+    
+  offline_store:
+    type: "parquet"
+    path: "s3://pbf-data-lake/features/laser_parameter_features"
+    partitioning: ["year", "month", "day", "hour"]
+    compression: "snappy"
+    
+  # Feature caching
+  caching:
+    enabled: true
+    cache_size: 10000
+    ttl: "30m"
+    eviction_policy: "lru"
+
+# Feature Engineering Pipeline
+pipeline:
+  # Processing steps
+  steps:
+    - name: "data_validation"
+      type: "validator"
+      config:
+        validation_rules: "validation"
+        
+    - name: "missing_value_handling"
+      type: "imputer"
+      config:
+        strategy: "interpolate"
+        method: "linear"
+        
+    - name: "outlier_detection"
+      type: "outlier_detector"
+      config:
+        method: "iqr"
+        threshold: 3.0
+        
+    - name: "feature_computation"
+      type: "feature_computer"
+      config:
+        features: "feature_definitions"
+        
+    - name: "feature_validation"
+      type: "feature_validator"
+      config:
+        validation_rules: "validation"
+        
+    - name: "feature_storage"
+      type: "feature_storer"
+      config:
+        storage: "storage"
+  
+  # Pipeline scheduling
+  scheduling:
+    trigger: "streaming"  # streaming, batch, cron
+    batch_size: 1000
+    processing_interval: "1s"
+    
+  # Error handling
+  error_handling:
+    retry_policy:
+      max_retries: 3
+      backoff_factor: 2
+    failure_notification:
+      channels: ["email", "slack"]
+      recipients: ["ml-team@company.com"]
+
+# Feature Monitoring
+monitoring:
+  # Feature quality monitoring
+  quality:
+    enabled: true
+    metrics:
+      - "completeness"
+      - "accuracy"
+      - "consistency"
+      - "timeliness"
+    thresholds:
+      completeness: 0.95
+      accuracy: 0.98
+      consistency: 0.90
+      timeliness: 60  # seconds
+  
+  # Feature drift monitoring
+  drift:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+    methods:
+      - "statistical"
+      - "distribution"
+      - "correlation"
+  
+  # Feature performance monitoring
+  performance:
+    enabled: true
+    metrics:
+      - "computation_time"
+      - "memory_usage"
+      - "throughput"
+    thresholds:
+      computation_time: 100  # milliseconds
+      memory_usage: 512  # MB
+      throughput: 1000  # features per second

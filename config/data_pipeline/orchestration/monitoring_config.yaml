@@ -1,0 +1,403 @@
+# PBF-LB/M Data Pipeline - Monitoring Configuration
+# This file contains monitoring and observability configuration settings
+
+monitoring:
+  # General monitoring settings
+  general:
+    enabled: true
+    monitoring_interval: 60  # seconds
+    retention_days: 30
+    alerting_enabled: true
+    reporting_enabled: true
+    
+  # Pipeline monitoring
+  pipeline_monitoring:
+    enabled: true
+    metrics:
+      - name: "pipeline_health"
+        description: "Overall pipeline health status"
+        type: "gauge"
+        labels: ["pipeline_name", "environment"]
+        
+      - name: "pipeline_throughput"
+        description: "Pipeline throughput in records per minute"
+        type: "counter"
+        labels: ["pipeline_name", "data_source"]
+        
+      - name: "pipeline_latency"
+        description: "Pipeline latency in seconds"
+        type: "histogram"
+        labels: ["pipeline_name", "stage"]
+        
+      - name: "pipeline_error_rate"
+        description: "Pipeline error rate"
+        type: "gauge"
+        labels: ["pipeline_name", "error_type"]
+        
+    alerts:
+      - name: "pipeline_health_degraded"
+        condition: "pipeline_health < 0.8"
+        severity: "high"
+        description: "Pipeline health is degraded"
+        
+      - name: "pipeline_throughput_low"
+        condition: "pipeline_throughput < 100"
+        severity: "medium"
+        description: "Pipeline throughput is below threshold"
+        
+      - name: "pipeline_latency_high"
+        condition: "pipeline_latency > 300"
+        severity: "high"
+        description: "Pipeline latency is above threshold"
+        
+      - name: "pipeline_error_rate_high"
+        condition: "pipeline_error_rate > 0.05"
+        severity: "critical"
+        description: "Pipeline error rate is above threshold"
+        
+  # Job monitoring
+  job_monitoring:
+    enabled: true
+    metrics:
+      - name: "job_status"
+        description: "Job execution status"
+        type: "gauge"
+        labels: ["job_name", "status"]
+        
+      - name: "job_duration"
+        description: "Job execution duration in seconds"
+        type: "histogram"
+        labels: ["job_name", "job_type"]
+        
+      - name: "job_success_rate"
+        description: "Job success rate"
+        type: "gauge"
+        labels: ["job_name", "time_window"]
+        
+      - name: "job_retry_count"
+        description: "Job retry count"
+        type: "counter"
+        labels: ["job_name", "retry_reason"]
+        
+    alerts:
+      - name: "job_failed"
+        condition: "job_status == 'failed'"
+        severity: "critical"
+        description: "Job execution failed"
+        
+      - name: "job_duration_high"
+        condition: "job_duration > 3600"
+        severity: "high"
+        description: "Job duration is above threshold"
+        
+      - name: "job_success_rate_low"
+        condition: "job_success_rate < 0.9"
+        severity: "high"
+        description: "Job success rate is below threshold"
+        
+      - name: "job_retry_count_high"
+        condition: "job_retry_count > 3"
+        severity: "medium"
+        description: "Job retry count is above threshold"
+        
+  # Performance monitoring
+  performance_monitoring:
+    enabled: true
+    metrics:
+      - name: "cpu_utilization"
+        description: "CPU utilization percentage"
+        type: "gauge"
+        labels: ["node", "environment"]
+        
+      - name: "memory_utilization"
+        description: "Memory utilization percentage"
+        type: "gauge"
+        labels: ["node", "environment"]
+        
+      - name: "disk_utilization"
+        description: "Disk utilization percentage"
+        type: "gauge"
+        labels: ["node", "mount_point"]
+        
+      - name: "network_utilization"
+        description: "Network utilization percentage"
+        type: "gauge"
+        labels: ["node", "interface"]
+        
+      - name: "spark_application_metrics"
+        description: "Spark application metrics"
+        type: "gauge"
+        labels: ["application_id", "metric_name"]
+        
+    alerts:
+      - name: "cpu_utilization_high"
+        condition: "cpu_utilization > 90"
+        severity: "high"
+        description: "CPU utilization is above threshold"
+        
+      - name: "memory_utilization_high"
+        condition: "memory_utilization > 90"
+        severity: "high"
+        description: "Memory utilization is above threshold"
+        
+      - name: "disk_utilization_high"
+        condition: "disk_utilization > 85"
+        severity: "high"
+        description: "Disk utilization is above threshold"
+        
+      - name: "network_utilization_high"
+        condition: "network_utilization > 80"
+        severity: "medium"
+        description: "Network utilization is above threshold"
+        
+  # Data quality monitoring
+  data_quality_monitoring:
+    enabled: true
+    metrics:
+      - name: "data_quality_score"
+        description: "Data quality score"
+        type: "gauge"
+        labels: ["table_name", "quality_dimension"]
+        
+      - name: "data_completeness"
+        description: "Data completeness percentage"
+        type: "gauge"
+        labels: ["table_name", "column_name"]
+        
+      - name: "data_accuracy"
+        description: "Data accuracy percentage"
+        type: "gauge"
+        labels: ["table_name", "validation_rule"]
+        
+      - name: "data_consistency"
+        description: "Data consistency percentage"
+        type: "gauge"
+        labels: ["table_name", "consistency_rule"]
+        
+      - name: "data_timeliness"
+        description: "Data timeliness percentage"
+        type: "gauge"
+        labels: ["table_name", "time_window"]
+        
+    alerts:
+      - name: "data_quality_score_low"
+        condition: "data_quality_score < 0.8"
+        severity: "high"
+        description: "Data quality score is below threshold"
+        
+      - name: "data_completeness_low"
+        condition: "data_completeness < 0.95"
+        severity: "high"
+        description: "Data completeness is below threshold"
+        
+      - name: "data_accuracy_low"
+        condition: "data_accuracy < 0.9"
+        severity: "high"
+        description: "Data accuracy is below threshold"
+        
+      - name: "data_consistency_low"
+        condition: "data_consistency < 0.85"
+        severity: "medium"
+        description: "Data consistency is below threshold"
+        
+      - name: "data_timeliness_low"
+        condition: "data_timeliness < 0.8"
+        severity: "medium"
+        description: "Data timeliness is below threshold"
+        
+  # Service monitoring
+  service_monitoring:
+    enabled: true
+    services:
+      kafka:
+        enabled: true
+        health_check_url: "http://kafka:9092"
+        metrics:
+          - name: "kafka_broker_status"
+            description: "Kafka broker status"
+            type: "gauge"
+            labels: ["broker_id"]
+            
+          - name: "kafka_topic_lag"
+            description: "Kafka topic consumer lag"
+            type: "gauge"
+            labels: ["topic", "consumer_group"]
+            
+          - name: "kafka_message_rate"
+            description: "Kafka message rate"
+            type: "counter"
+            labels: ["topic", "partition"]
+            
+      spark:
+        enabled: true
+        health_check_url: "http://spark-master:8080"
+        metrics:
+          - name: "spark_application_status"
+            description: "Spark application status"
+            type: "gauge"
+            labels: ["application_id", "status"]
+            
+          - name: "spark_job_duration"
+            description: "Spark job duration"
+            type: "histogram"
+            labels: ["application_id", "job_id"]
+            
+          - name: "spark_stage_duration"
+            description: "Spark stage duration"
+            type: "histogram"
+            labels: ["application_id", "stage_id"]
+            
+      airflow:
+        enabled: true
+        health_check_url: "http://airflow:8080/health"
+        metrics:
+          - name: "airflow_dag_status"
+            description: "Airflow DAG status"
+            type: "gauge"
+            labels: ["dag_id", "status"]
+            
+          - name: "airflow_task_status"
+            description: "Airflow task status"
+            type: "gauge"
+            labels: ["dag_id", "task_id", "status"]
+            
+          - name: "airflow_dag_run_duration"
+            description: "Airflow DAG run duration"
+            type: "histogram"
+            labels: ["dag_id"]
+            
+      postgresql:
+        enabled: true
+        health_check_url: "postgresql://postgres:5432"
+        metrics:
+          - name: "postgresql_connection_count"
+            description: "PostgreSQL connection count"
+            type: "gauge"
+            labels: ["database"]
+            
+          - name: "postgresql_query_duration"
+            description: "PostgreSQL query duration"
+            type: "histogram"
+            labels: ["database", "query_type"]
+            
+          - name: "postgresql_table_size"
+            description: "PostgreSQL table size"
+            type: "gauge"
+            labels: ["database", "table_name"]
+            
+      snowflake:
+        enabled: true
+        health_check_url: "https://snowflake.com"
+        metrics:
+          - name: "snowflake_warehouse_status"
+            description: "Snowflake warehouse status"
+            type: "gauge"
+            labels: ["warehouse_name", "status"]
+            
+          - name: "snowflake_query_duration"
+            description: "Snowflake query duration"
+            type: "histogram"
+            labels: ["warehouse_name", "query_type"]
+            
+          - name: "snowflake_credit_usage"
+            description: "Snowflake credit usage"
+            type: "counter"
+            labels: ["warehouse_name"]
+            
+  # Alert management
+  alert_management:
+    enabled: true
+    channels:
+      - name: "email"
+        enabled: true
+        smtp_host: "${SMTP_HOST}"
+        smtp_port: 587
+        smtp_user: "${SMTP_USER}"
+        smtp_password: "${SMTP_PASSWORD}"
+        recipients: ["data-team@example.com", "ops-team@example.com"]
+        
+      - name: "slack"
+        enabled: true
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#data-pipeline-monitoring"
+        
+      - name: "pagerduty"
+        enabled: true
+        integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+        escalation_policy: "data-pipeline-escalation"
+        
+    severity_levels:
+      - name: "critical"
+        threshold: 0.95
+        channels: ["email", "slack", "pagerduty"]
+        escalation_minutes: 15
+        
+      - name: "high"
+        threshold: 0.90
+        channels: ["email", "slack"]
+        escalation_minutes: 60
+        
+      - name: "medium"
+        threshold: 0.85
+        channels: ["email"]
+        escalation_minutes: 240
+        
+      - name: "low"
+        threshold: 0.80
+        channels: ["email"]
+        escalation_minutes: 480
+        
+  # Dashboard integration
+  dashboard_integration:
+    enabled: true
+    grafana:
+      enabled: true
+      url: "${GRAFANA_URL}"
+      api_key: "${GRAFANA_API_KEY}"
+      dashboards:
+        - name: "pipeline_overview"
+          title: "Pipeline Overview"
+          description: "Overall pipeline health and performance"
+          
+        - name: "data_quality"
+          title: "Data Quality"
+          description: "Data quality metrics and trends"
+          
+        - name: "system_performance"
+          title: "System Performance"
+          description: "System resource utilization and performance"
+          
+        - name: "job_monitoring"
+          title: "Job Monitoring"
+          description: "Job execution status and performance"
+          
+    prometheus:
+      enabled: true
+      url: "${PROMETHEUS_URL}"
+      scrape_interval: "30s"
+      retention_time: "30d"
+      
+  # Monitoring environment-specific overrides
+  environments:
+    development:
+      monitoring_interval: 120
+      retention_days: 7
+      alerting_enabled: false
+      reporting_enabled: false
+      
+    staging:
+      monitoring_interval: 90
+      retention_days: 14
+      alerting_enabled: true
+      reporting_enabled: true
+      
+    production:
+      monitoring_interval: 60
+      retention_days: 30
+      alerting_enabled: true
+      reporting_enabled: true
+      dashboard_integration:
+        grafana:
+          enabled: true
+        prometheus:
+          enabled: true

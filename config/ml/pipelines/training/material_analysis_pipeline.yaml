@@ -1,0 +1,516 @@
+# Material Analysis Training Pipeline Configuration
+# Pipeline for training material analysis models
+
+pipeline:
+  name: "material_analysis_training_pipeline"
+  version: "1.0.0"
+  description: "Training pipeline for material analysis models"
+  
+  stages:
+    - name: "data_ingestion"
+      description: "Ingest material analysis data from various sources"
+      component: "data_ingestion"
+      inputs:
+        - source: "material_database"
+          connection: "postgresql://material-db:5432/materials"
+          tables:
+            - "materials"
+            - "material_properties"
+            - "powder_properties"
+            - "material_tests"
+        - source: "image_storage"
+          path: "/data/materials/microstructure_images/"
+          formats: ["tiff", "png", "jpg"]
+        - source: "test_results"
+          path: "/data/materials/test_results/"
+          format: "csv"
+        - source: "simulation_data"
+          path: "/data/materials/simulation_results/"
+          format: "hdf5"
+      outputs:
+        - name: "raw_material_data"
+          path: "/data/pipeline/material_analysis/raw/material_data/"
+          format: "parquet"
+        - name: "raw_image_data"
+          path: "/data/pipeline/material_analysis/raw/images/"
+          format: "parquet"
+        - name: "raw_test_data"
+          path: "/data/pipeline/material_analysis/raw/test_results/"
+          format: "parquet"
+      parameters:
+        batch_size: 5000
+        parallel_workers: 6
+        timeout_minutes: 90
+        image_processing:
+          resize: [224, 224]
+          normalization: "imagenet"
+          augmentation: true
+          
+    - name: "data_validation"
+      description: "Validate and clean material analysis data"
+      component: "data_validation"
+      inputs:
+        - name: "raw_material_data"
+          from_stage: "data_ingestion"
+        - name: "raw_image_data"
+          from_stage: "data_ingestion"
+        - name: "raw_test_data"
+          from_stage: "data_ingestion"
+      outputs:
+        - name: "validated_material_data"
+          path: "/data/pipeline/material_analysis/validated/material_data/"
+          format: "parquet"
+        - name: "validated_image_data"
+          path: "/data/pipeline/material_analysis/validated/images/"
+          format: "parquet"
+        - name: "validated_test_data"
+          path: "/data/pipeline/material_analysis/validated/test_results/"
+          format: "parquet"
+      parameters:
+        validation_rules:
+          material_data:
+            - name: "composition_sum_check"
+              condition: "sum(composition_percentages) == 100"
+              tolerance: 0.1
+            - name: "property_range_validation"
+              parameters:
+                density: [1.0, 20.0]
+                melting_temperature: [500.0, 2000.0]
+                thermal_conductivity: [1.0, 500.0]
+            - name: "powder_property_consistency"
+              condition: "d10 <= d50 <= d90"
+          image_data:
+            - name: "image_quality_check"
+              min_resolution: [224, 224]
+              max_file_size_mb: 10
+              format_validation: true
+            - name: "image_content_validation"
+              method: "cv2_validation"
+              check_corruption: true
+          test_data:
+            - name: "test_result_completeness"
+              required_fields: ["material_id", "test_type", "test_date", "test_results"]
+            - name: "test_standard_validation"
+              allowed_standards: ["ASTM", "ISO", "JIS", "DIN"]
+        error_handling: "flag_invalid"
+        max_error_rate: 0.03
+        
+    - name: "data_fusion"
+      description: "Fuse material data with images and test results"
+      component: "data_fusion"
+      inputs:
+        - name: "validated_material_data"
+          from_stage: "data_validation"
+        - name: "validated_image_data"
+          from_stage: "data_validation"
+        - name: "validated_test_data"
+          from_stage: "data_validation"
+      outputs:
+        - name: "fused_data"
+          path: "/data/pipeline/material_analysis/fused/"
+          format: "parquet"
+      parameters:
+        fusion_strategy: "material_id_based"
+        join_type: "left_join"
+        image_processing:
+          feature_extraction: true
+          method: "resnet50"
+          layer: "avg_pool"
+        test_result_aggregation:
+          method: "statistical_summary"
+          statistics: ["mean", "std", "min", "max", "count"]
+        quality_scoring:
+          enabled: true
+          factors: ["completeness", "consistency", "accuracy"]
+          
+    - name: "feature_engineering"
+      description: "Engineer features for material analysis"
+      component: "feature_engineering"
+      inputs:
+        - name: "fused_data"
+          from_stage: "data_fusion"
+      outputs:
+        - name: "features"
+          path: "/data/pipeline/material_analysis/features/"
+          format: "parquet"
+      parameters:
+        feature_groups:
+          - name: "composition_features"
+            parameters:
+              element_ratios: true
+              alloy_classification: true
+              phase_diagram_features: true
+          - name: "powder_features"
+            config_file: "config/ml/features/process_features/laser_parameter_features.yaml"
+            parameters:
+              particle_size_distribution: true
+              flowability_metrics: true
+              density_characteristics: true
+          - name: "image_features"
+            config_file: "config/ml/features/image_features/ct_scan_features.yaml"
+            parameters:
+              microstructure_features: true
+              grain_analysis: true
+              defect_detection: true
+          - name: "process_features"
+            config_file: "config/ml/features/process_features/laser_parameter_features.yaml"
+            parameters:
+              thermal_history: true
+              solidification_parameters: true
+              heat_treatment_effects: true
+          - name: "property_features"
+            parameters:
+              mechanical_properties: true
+              thermal_properties: true
+              physical_properties: true
+              derived_properties: true
+        feature_selection:
+          method: "mutual_info_regression"
+          k_best: 80
+        scaling:
+          method: "standard_scaler"
+        encoding:
+          method: "one_hot_encoding"
+        dimensionality_reduction:
+          method: "pca"
+          n_components: 50
+          
+    - name: "data_splitting"
+      description: "Split data into train/validation/test sets"
+      component: "data_splitting"
+      inputs:
+        - name: "features"
+          from_stage: "feature_engineering"
+      outputs:
+        - name: "train_data"
+          path: "/data/pipeline/material_analysis/splits/train/"
+        - name: "validation_data"
+          path: "/data/pipeline/material_analysis/splits/validation/"
+        - name: "test_data"
+          path: "/data/pipeline/material_analysis/splits/test/"
+      parameters:
+        train_ratio: 0.7
+        validation_ratio: 0.15
+        test_ratio: 0.15
+        stratification_column: "material_type"
+        random_state: 42
+        cross_validation:
+          enabled: true
+          method: "stratified_kfold"
+          n_splits: 5
+          
+    - name: "model_training"
+      description: "Train material analysis models"
+      component: "model_training"
+      inputs:
+        - name: "train_data"
+          from_stage: "data_splitting"
+        - name: "validation_data"
+          from_stage: "data_splitting"
+      outputs:
+        - name: "trained_models"
+          path: "/models/material_analysis/"
+      parameters:
+        models:
+          - name: "material_property_predictor"
+            config_file: "config/ml/models/material_analysis/material_property_predictor.yaml"
+            algorithm: "RandomForestRegressor"
+            hyperparameters:
+              n_estimators: [200, 300, 400]
+              max_depth: [10, 15, 20]
+              min_samples_split: [5, 10, 15]
+              min_samples_leaf: [2, 4, 6]
+          - name: "microstructure_analyzer"
+            config_file: "config/ml/models/material_analysis/microstructure_analyzer.yaml"
+            algorithm: "ConvolutionalNeuralNetwork"
+            hyperparameters:
+              learning_rate: [0.001, 0.01, 0.1]
+              batch_size: [16, 32, 64]
+              dropout_rate: [0.2, 0.3, 0.4]
+              dense_units: [128, 256, 512]
+          - name: "thermal_behavior_model"
+            config_file: "config/ml/models/material_analysis/thermal_behavior_model.yaml"
+            algorithm: "RandomForestRegressor"
+            hyperparameters:
+              n_estimators: [300, 500, 700]
+              max_depth: [12, 15, 18]
+              min_samples_split: [5, 10, 15]
+              max_features: ["sqrt", "log2", 0.8]
+        optimization:
+          method: "grid_search"
+          cv_folds: 5
+          scoring: "neg_mean_squared_error"
+          n_jobs: -1
+        early_stopping:
+          enabled: true
+          patience: 20
+          monitor: "val_loss"
+        data_augmentation:
+          enabled: true
+          techniques:
+            - "rotation"
+            - "flip"
+            - "brightness_adjustment"
+            - "contrast_adjustment"
+            - "noise_injection"
+        transfer_learning:
+          enabled: true
+          base_model: "resnet50"
+          pretrained: true
+          fine_tuning: true
+          
+    - name: "model_evaluation"
+      description: "Evaluate trained models with material-specific metrics"
+      component: "model_evaluation"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "test_data"
+          from_stage: "data_splitting"
+      outputs:
+        - name: "evaluation_results"
+          path: "/data/pipeline/material_analysis/evaluation/"
+        - name: "model_metrics"
+          path: "/data/pipeline/material_analysis/metrics/"
+      parameters:
+        metrics:
+          regression:
+            - "mse"
+            - "mae"
+            - "r2"
+            - "explained_variance"
+            - "mean_absolute_percentage_error"
+            - "symmetric_mean_absolute_percentage_error"
+          classification:
+            - "accuracy"
+            - "precision"
+            - "recall"
+            - "f1_score"
+            - "auc_roc"
+            - "confusion_matrix"
+          material_specific:
+            - "property_prediction_accuracy"
+            - "microstructure_classification_accuracy"
+            - "thermal_behavior_accuracy"
+        cross_validation:
+          enabled: true
+          cv_folds: 5
+          scoring: "neg_mean_squared_error"
+        statistical_tests:
+          enabled: true
+          tests: ["t_test", "wilcoxon_test", "mann_whitney_u"]
+        confidence_intervals:
+          enabled: true
+          confidence_level: 0.95
+        material_validation:
+          - name: "property_range_validation"
+            enabled: true
+            property_ranges:
+              density: [1.0, 20.0]
+              melting_temperature: [500.0, 2000.0]
+              thermal_conductivity: [1.0, 500.0]
+          - name: "microstructure_consistency"
+            enabled: true
+            validation_rules:
+              - "grain_size_positive"
+              - "phase_fraction_sum_100"
+              - "porosity_positive"
+              
+    - name: "model_validation"
+      description: "Validate models against material science domain rules"
+      component: "model_validation"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "evaluation_results"
+          from_stage: "model_evaluation"
+      outputs:
+        - name: "validation_report"
+          path: "/data/pipeline/material_analysis/validation/"
+      parameters:
+        business_rules:
+          - name: "minimum_accuracy"
+            condition: "accuracy >= 0.85"
+            severity: "error"
+          - name: "property_prediction_accuracy"
+            condition: "property_prediction_accuracy >= 0.80"
+            severity: "error"
+          - name: "microstructure_classification_accuracy"
+            condition: "microstructure_classification_accuracy >= 0.90"
+            severity: "warning"
+          - name: "thermal_behavior_accuracy"
+            condition: "thermal_behavior_accuracy >= 0.85"
+            severity: "warning"
+        domain_validation:
+          - name: "material_property_consistency"
+            enabled: true
+            rules:
+              - "density_positive"
+              - "melting_temperature_positive"
+              - "thermal_conductivity_positive"
+              - "mechanical_properties_positive"
+          - name: "microstructure_validation"
+            enabled: true
+            rules:
+              - "grain_size_positive"
+              - "phase_fraction_sum_100"
+              - "porosity_0_to_100"
+          - name: "thermal_behavior_validation"
+            enabled: true
+            rules:
+              - "peak_temperature_above_melting"
+              - "cooling_rate_positive"
+              - "thermal_gradient_positive"
+        explainability:
+          enabled: true
+          method: "shap"
+          sample_size: 1500
+          feature_importance_threshold: 0.01
+        physics_constraints:
+          enabled: true
+          constraints:
+            - "conservation_of_mass"
+            - "conservation_of_energy"
+            - "thermodynamic_consistency"
+            - "phase_equilibrium"
+          
+    - name: "model_registration"
+      description: "Register validated models in MLflow"
+      component: "model_registration"
+      inputs:
+        - name: "trained_models"
+          from_stage: "model_training"
+        - name: "validation_report"
+          from_stage: "model_validation"
+      outputs:
+        - name: "registered_models"
+          path: "/models/registry/material_analysis/"
+      parameters:
+        registry:
+          type: "mlflow"
+          tracking_uri: "http://mlflow-server:5000"
+          experiment_name: "material_analysis_training"
+        model_staging:
+          stages: ["staging", "production"]
+          auto_promotion: false
+          promotion_criteria:
+            - "validation_score >= 0.85"
+            - "domain_validation_passed == true"
+            - "physics_constraints_satisfied == true"
+        metadata:
+          tags:
+            - "material_analysis"
+            - "microstructure"
+            - "thermal_behavior"
+            - "property_prediction"
+          description: "Material analysis models for PBF-LBM materials"
+        versioning:
+          enabled: true
+          auto_increment: true
+          semantic_versioning: true
+          
+    - name: "pipeline_monitoring"
+      description: "Monitor pipeline execution and model performance"
+      component: "pipeline_monitoring"
+      inputs:
+        - name: "all_stages"
+          from_stage: "*"
+      outputs:
+        - name: "monitoring_metrics"
+          path: "/data/pipeline/material_analysis/monitoring/"
+      parameters:
+        metrics:
+          - "pipeline_execution_time"
+          - "data_processing_throughput"
+          - "model_training_time"
+          - "model_performance_metrics"
+          - "resource_utilization"
+          - "data_quality_score"
+          - "feature_importance_stability"
+          - "image_processing_quality"
+        alerts:
+          - name: "pipeline_failure"
+            condition: "status == 'failed'"
+            severity: "critical"
+          - name: "performance_degradation"
+            condition: "model_performance < 0.8"
+            severity: "warning"
+          - name: "data_quality_issues"
+            condition: "data_quality_score < 0.9"
+            severity: "warning"
+          - name: "image_processing_errors"
+            condition: "image_processing_error_rate > 0.05"
+            severity: "warning"
+        notifications:
+          channels: ["email", "slack", "dashboard"]
+          recipients: ["ml_team", "materials_team", "quality_team"]
+
+  scheduling:
+    trigger: "schedule"
+    schedule: "0 4 * * 3"  # Every Wednesday at 4 AM
+    timezone: "UTC"
+    retry_policy:
+      max_retries: 3
+      retry_delay_minutes: 45
+      exponential_backoff: true
+      
+  resources:
+    compute:
+      type: "spark_cluster"
+      nodes: 8
+      cores_per_node: 16
+      memory_per_node: "128GB"
+      storage: "1TB"
+    gpu:
+      enabled: true
+      type: "nvidia_tesla_v100"
+      count: 2
+      memory_per_gpu: "32GB"
+    storage:
+      type: "s3"
+      bucket: "ml-pipeline-data"
+      region: "us-west-2"
+      
+  environment:
+    python_version: "3.9"
+    dependencies:
+      - "scikit-learn==1.3.0"
+      - "tensorflow==2.13.0"
+      - "torch==2.0.1"
+      - "pandas==2.0.3"
+      - "numpy==1.24.3"
+      - "opencv-python==4.8.0.74"
+      - "pillow==10.0.0"
+      - "mlflow==2.5.0"
+      - "shap==0.42.1"
+      - "evidently==0.2.8"
+      - "h5py==3.9.0"
+    environment_variables:
+      MLFLOW_TRACKING_URI: "http://mlflow-server:5000"
+      AWS_DEFAULT_REGION: "us-west-2"
+      LOG_LEVEL: "INFO"
+      CUDA_VISIBLE_DEVICES: "0,1"
+      
+  monitoring:
+    enabled: true
+    metrics_collection:
+      - "pipeline_execution_time"
+      - "data_processing_throughput"
+      - "model_training_time"
+      - "model_performance_metrics"
+      - "resource_utilization"
+      - "data_quality_score"
+      - "image_processing_quality"
+      - "gpu_utilization"
+    logging:
+      level: "INFO"
+      format: "json"
+      retention_days: 60
+    alerting:
+      enabled: true
+      channels: ["email", "slack"]
+      thresholds:
+        execution_time_hours: 10
+        failure_rate_percent: 3
+        data_quality_score: 0.9
+        gpu_utilization_percent: 90

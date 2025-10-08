@@ -1,0 +1,323 @@
+# Real-time Defect Predictor Model Configuration
+# ==============================================
+
+model:
+  name: "real_time_defect_predictor"
+  version: "1.0.0"
+  type: "classification"
+  algorithm: "lstm"
+  description: "LSTM model for real-time defect prediction based on ISPM sensor data"
+  
+  # Model metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["defect_detection", "real_time", "lstm", "ispm"]
+
+# Model Architecture
+architecture:
+  input_shape: [24, 10]  # 24 time steps, 10 features
+  output_shape: [3]      # 3 defect classes
+  
+  layers:
+    - type: "LSTM"
+      units: 64
+      return_sequences: true
+      dropout: 0.2
+      recurrent_dropout: 0.2
+      input_shape: [24, 10]
+    
+    - type: "LSTM"
+      units: 32
+      return_sequences: false
+      dropout: 0.2
+      recurrent_dropout: 0.2
+    
+    - type: "Dense"
+      units: 16
+      activation: "relu"
+      dropout: 0.3
+    
+    - type: "Dense"
+      units: 3  # 3 defect classes: NONE, MINOR, MAJOR
+      activation: "softmax"
+  
+  # Model compilation
+  optimizer: "adam"
+  loss_function: "categorical_crossentropy"
+  metrics: ["accuracy", "precision", "recall", "f1_score"]
+
+# Training Configuration
+training:
+  # Hyperparameters
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 100
+  
+  # Early stopping
+  early_stopping:
+    patience: 10
+    monitor: "val_loss"
+    mode: "min"
+    restore_best_weights: true
+    min_delta: 0.001
+  
+  # Learning rate scheduling
+  learning_rate_schedule:
+    type: "reduce_on_plateau"
+    factor: 0.5
+    patience: 5
+    min_lr: 0.0001
+  
+  # Data augmentation
+  data_augmentation:
+    enabled: true
+    noise_factor: 0.01
+    time_shift: 0.1
+  
+  # Regularization
+  regularization:
+    l1: 0.0
+    l2: 0.01
+    dropout: 0.2
+
+# Data Configuration
+data:
+  # Input features
+  features:
+    - name: "laser_power"
+      type: "float"
+      range: [0, 1000]
+      unit: "W"
+    
+    - name: "scan_speed"
+      type: "float"
+      range: [0, 2000]
+      unit: "mm/s"
+    
+    - name: "temperature"
+      type: "float"
+      range: [0, 3000]
+      unit: "°C"
+    
+    - name: "melt_pool_size"
+      type: "float"
+      range: [0, 5]
+      unit: "mm"
+    
+    - name: "spatter_count"
+      type: "int"
+      range: [0, 100]
+      unit: "count"
+    
+    - name: "powder_flow_rate"
+      type: "float"
+      range: [0, 50]
+      unit: "g/min"
+    
+    - name: "chamber_pressure"
+      type: "float"
+      range: [0, 1000]
+      unit: "mbar"
+    
+    - name: "oxygen_level"
+      type: "float"
+      range: [0, 100]
+      unit: "ppm"
+    
+    - name: "layer_thickness"
+      type: "float"
+      range: [0, 0.1]
+      unit: "mm"
+    
+    - name: "hatch_spacing"
+      type: "float"
+      range: [0, 0.5]
+      unit: "mm"
+  
+  # Target variable
+  target:
+    name: "defect_type"
+    type: "categorical"
+    classes: ["NONE", "MINOR", "MAJOR"]
+    encoding: "one_hot"
+  
+  # Data preprocessing
+  preprocessing:
+    sequence_length: 24
+    prediction_horizon: 1
+    normalization: "standard_scaler"
+    missing_value_strategy: "interpolate"
+    outlier_detection: "iqr"
+    outlier_threshold: 3.0
+  
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    random_state: 42
+
+# Performance Requirements
+performance:
+  # Accuracy thresholds
+  accuracy_threshold: 0.95
+  precision_threshold: 0.90
+  recall_threshold: 0.90
+  f1_threshold: 0.90
+  
+  # Latency requirements
+  latency_threshold: 100  # milliseconds
+  throughput_threshold: 1000  # predictions per second
+  
+  # Memory requirements
+  memory_threshold: 512  # MB
+  model_size_threshold: 50  # MB
+
+# Model Validation
+validation:
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Validation metrics
+  metrics:
+    - "accuracy"
+    - "precision_macro"
+    - "recall_macro"
+    - "f1_macro"
+    - "confusion_matrix"
+    - "classification_report"
+  
+  # Validation thresholds
+  thresholds:
+    min_accuracy: 0.90
+    min_precision: 0.85
+    min_recall: 0.85
+    min_f1: 0.85
+
+# Model Serving
+serving:
+  # API configuration
+  api:
+    endpoint: "/api/v1/predict/defect"
+    method: "POST"
+    content_type: "application/json"
+  
+  # Input schema
+  input_schema:
+    type: "object"
+    properties:
+      sensor_data:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            timestamp: 
+              type: "string"
+              format: "date-time"
+            laser_power: {"type": "number", "minimum": 0, "maximum": 1000}
+            scan_speed: {"type": "number", "minimum": 0, "maximum": 2000}
+            temperature: {"type": "number", "minimum": 0, "maximum": 3000}
+            melt_pool_size: {"type": "number", "minimum": 0, "maximum": 5}
+            spatter_count: {"type": "integer", "minimum": 0, "maximum": 100}
+            powder_flow_rate: {"type": "number", "minimum": 0, "maximum": 50}
+            chamber_pressure: {"type": "number", "minimum": 0, "maximum": 1000}
+            oxygen_level: {"type": "number", "minimum": 0, "maximum": 100}
+            layer_thickness: {"type": "number", "minimum": 0, "maximum": 0.1}
+            hatch_spacing: {"type": "number", "minimum": 0, "maximum": 0.5}
+    required: ["sensor_data"]
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      prediction: 
+        type: "string"
+        enum: ["NONE", "MINOR", "MAJOR"]
+      confidence: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+      defect_type: 
+        type: "string"
+        enum: ["NONE", "MINOR", "MAJOR"]
+      severity: 
+        type: "string"
+        enum: ["LOW", "MEDIUM", "HIGH"]
+      timestamp: 
+        type: "string"
+        format: "date-time"
+      model_version: 
+        type: "string"
+    required: ["prediction", "confidence", "defect_type", "severity", "timestamp"]
+
+# Monitoring Configuration
+monitoring:
+  # Model performance monitoring
+  performance:
+    enabled: true
+    metrics_interval: 60  # seconds
+    retention_days: 30
+  
+  # Drift detection
+  drift_detection:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      accuracy_drop: 0.05
+      latency_increase: 50  # milliseconds
+      error_rate: 0.05
+
+# Model Deployment
+deployment:
+  # Deployment configuration
+  strategy: "rolling"
+  replicas: 2
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+    gpu: "0"
+  
+  # Health checks
+  health_checks:
+    initial_delay: 30
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    min_replicas: 2
+    max_replicas: 10
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Model Versioning
+versioning:
+  # Version strategy
+  strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Version requirements
+  requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    trigger_threshold: 0.05  # 5% performance drop
+    automatic: false  # Manual rollback required

@@ -1,0 +1,518 @@
+# MLflow Experiments Configuration
+# Configuration for MLflow experiments management
+
+experiments:
+  name: "mlflow_experiments"
+  version: "1.0.0"
+  description: "MLflow experiments configuration for PBF-LBM ML models"
+  
+  experiment_templates:
+    - name: "quality_assessment_experiment"
+      description: "Quality assessment model experiments"
+      tags:
+        - "quality"
+        - "assessment"
+        - "regression"
+      parameters:
+        - name: "model_type"
+          type: "string"
+          default: "regression"
+          description: "Type of model to train"
+        - name: "algorithm"
+          type: "string"
+          default: "random_forest"
+          description: "Algorithm to use for training"
+        - name: "max_depth"
+          type: "int"
+          default: 10
+          description: "Maximum depth of the tree"
+        - name: "n_estimators"
+          type: "int"
+          default: 100
+          description: "Number of estimators"
+        - name: "learning_rate"
+          type: "float"
+          default: 0.1
+          description: "Learning rate"
+        - name: "random_state"
+          type: "int"
+          default: 42
+          description: "Random state for reproducibility"
+      metrics:
+        - name: "accuracy"
+          description: "Model accuracy"
+        - name: "precision"
+          description: "Model precision"
+        - name: "recall"
+          description: "Model recall"
+        - name: "f1_score"
+          description: "Model F1 score"
+        - name: "mae"
+          description: "Mean Absolute Error"
+        - name: "rmse"
+          description: "Root Mean Square Error"
+        - name: "r2_score"
+          description: "R-squared score"
+      artifacts:
+        - name: "model"
+          type: "model"
+          description: "Trained model artifact"
+        - name: "feature_importance"
+          type: "plot"
+          description: "Feature importance plot"
+        - name: "confusion_matrix"
+          type: "plot"
+          description: "Confusion matrix plot"
+        - name: "roc_curve"
+          type: "plot"
+          description: "ROC curve plot"
+        - name: "training_logs"
+          type: "text"
+          description: "Training logs"
+        - name: "validation_metrics"
+          type: "json"
+          description: "Validation metrics"
+          
+    - name: "maintenance_experiment"
+      description: "Predictive maintenance model experiments"
+      tags:
+        - "maintenance"
+        - "prediction"
+        - "classification"
+      parameters:
+        - name: "model_type"
+          type: "string"
+          default: "classification"
+          description: "Type of model to train"
+        - name: "algorithm"
+          type: "string"
+          default: "xgboost"
+          description: "Algorithm to use for training"
+        - name: "max_depth"
+          type: "int"
+          default: 6
+          description: "Maximum depth of the tree"
+        - name: "n_estimators"
+          type: "int"
+          default: 100
+          description: "Number of estimators"
+        - name: "learning_rate"
+          type: "float"
+          default: 0.1
+          description: "Learning rate"
+        - name: "random_state"
+          type: "int"
+          default: 42
+          description: "Random state for reproducibility"
+      metrics:
+        - name: "accuracy"
+          description: "Model accuracy"
+        - name: "precision"
+          description: "Model precision"
+        - name: "recall"
+          description: "Model recall"
+        - name: "f1_score"
+          description: "Model F1 score"
+        - name: "auc"
+          description: "Area Under Curve"
+        - name: "log_loss"
+          description: "Log loss"
+      artifacts:
+        - name: "model"
+          type: "model"
+          description: "Trained model artifact"
+        - name: "feature_importance"
+          type: "plot"
+          description: "Feature importance plot"
+        - name: "confusion_matrix"
+          type: "plot"
+          description: "Confusion matrix plot"
+        - name: "roc_curve"
+          type: "plot"
+          description: "ROC curve plot"
+        - name: "training_logs"
+          type: "text"
+          description: "Training logs"
+        - name: "validation_metrics"
+          type: "json"
+          description: "Validation metrics"
+          
+    - name: "process_optimization_experiment"
+      description: "Process optimization model experiments"
+      tags:
+        - "optimization"
+        - "process"
+        - "regression"
+      parameters:
+        - name: "model_type"
+          type: "string"
+          default: "regression"
+          description: "Type of model to train"
+        - name: "algorithm"
+          type: "string"
+          default: "neural_network"
+          description: "Algorithm to use for training"
+        - name: "hidden_layers"
+          type: "int"
+          default: 3
+          description: "Number of hidden layers"
+        - name: "hidden_units"
+          type: "int"
+          default: 128
+          description: "Number of hidden units per layer"
+        - name: "learning_rate"
+          type: "float"
+          default: 0.001
+          description: "Learning rate"
+        - name: "batch_size"
+          type: "int"
+          default: 32
+          description: "Batch size for training"
+        - name: "epochs"
+          type: "int"
+          default: 100
+          description: "Number of training epochs"
+        - name: "random_state"
+          type: "int"
+          default: 42
+          description: "Random state for reproducibility"
+      metrics:
+        - name: "accuracy"
+          description: "Model accuracy"
+        - name: "precision"
+          description: "Model precision"
+        - name: "recall"
+          description: "Model recall"
+        - name: "f1_score"
+          description: "Model F1 score"
+        - name: "mae"
+          description: "Mean Absolute Error"
+        - name: "rmse"
+          description: "Root Mean Square Error"
+        - name: "r2_score"
+          description: "R-squared score"
+      artifacts:
+        - name: "model"
+          type: "model"
+          description: "Trained model artifact"
+        - name: "feature_importance"
+          type: "plot"
+          description: "Feature importance plot"
+        - name: "training_history"
+          type: "plot"
+          description: "Training history plot"
+        - name: "validation_metrics"
+          type: "json"
+          description: "Validation metrics"
+        - name: "training_logs"
+          type: "text"
+          description: "Training logs"
+          
+    - name: "defect_detection_experiment"
+      description: "Defect detection model experiments"
+      tags:
+        - "defect"
+        - "detection"
+        - "classification"
+      parameters:
+        - name: "model_type"
+          type: "string"
+          default: "classification"
+          description: "Type of model to train"
+        - name: "algorithm"
+          type: "string"
+          default: "cnn"
+          description: "Algorithm to use for training"
+        - name: "conv_layers"
+          type: "int"
+          default: 3
+          description: "Number of convolutional layers"
+        - name: "filters"
+          type: "int"
+          default: 32
+          description: "Number of filters in first layer"
+        - name: "kernel_size"
+          type: "int"
+          default: 3
+          description: "Kernel size for convolutional layers"
+        - name: "learning_rate"
+          type: "float"
+          default: 0.001
+          description: "Learning rate"
+        - name: "batch_size"
+          type: "int"
+          default: 32
+          description: "Batch size for training"
+        - name: "epochs"
+          type: "int"
+          default: 50
+          description: "Number of training epochs"
+        - name: "random_state"
+          type: "int"
+          default: 42
+          description: "Random state for reproducibility"
+      metrics:
+        - name: "accuracy"
+          description: "Model accuracy"
+        - name: "precision"
+          description: "Model precision"
+        - name: "recall"
+          description: "Model recall"
+        - name: "f1_score"
+          description: "Model F1 score"
+        - name: "auc"
+          description: "Area Under Curve"
+        - name: "log_loss"
+          description: "Log loss"
+      artifacts:
+        - name: "model"
+          type: "model"
+          description: "Trained model artifact"
+        - name: "feature_importance"
+          type: "plot"
+          description: "Feature importance plot"
+        - name: "confusion_matrix"
+          type: "plot"
+          description: "Confusion matrix plot"
+        - name: "roc_curve"
+          type: "plot"
+          description: "ROC curve plot"
+        - name: "training_history"
+          type: "plot"
+          description: "Training history plot"
+        - name: "validation_metrics"
+          type: "json"
+          description: "Validation metrics"
+        - name: "training_logs"
+          type: "text"
+          description: "Training logs"
+          
+    - name: "material_analysis_experiment"
+      description: "Material analysis model experiments"
+      tags:
+        - "material"
+        - "analysis"
+        - "regression"
+      parameters:
+        - name: "model_type"
+          type: "string"
+          default: "regression"
+          description: "Type of model to train"
+        - name: "algorithm"
+          type: "string"
+          default: "random_forest"
+          description: "Algorithm to use for training"
+        - name: "max_depth"
+          type: "int"
+          default: 10
+          description: "Maximum depth of the tree"
+        - name: "n_estimators"
+          type: "int"
+          default: 100
+          description: "Number of estimators"
+        - name: "learning_rate"
+          type: "float"
+          default: 0.1
+          description: "Learning rate"
+        - name: "random_state"
+          type: "int"
+          default: 42
+          description: "Random state for reproducibility"
+      metrics:
+        - name: "accuracy"
+          description: "Model accuracy"
+        - name: "precision"
+          description: "Model precision"
+        - name: "recall"
+          description: "Model recall"
+        - name: "f1_score"
+          description: "Model F1 score"
+        - name: "mae"
+          description: "Mean Absolute Error"
+        - name: "rmse"
+          description: "Root Mean Square Error"
+        - name: "r2_score"
+          description: "R-squared score"
+      artifacts:
+        - name: "model"
+          type: "model"
+          description: "Trained model artifact"
+        - name: "feature_importance"
+          type: "plot"
+          description: "Feature importance plot"
+        - name: "validation_metrics"
+          type: "json"
+          description: "Validation metrics"
+        - name: "training_logs"
+          type: "text"
+          description: "Training logs"
+          
+  experiment_management:
+    auto_creation:
+      enabled: true
+      default_tags:
+        - "pbf-lbm"
+        - "manufacturing"
+        - "ml"
+      naming_convention: "{model_type}_{timestamp}"
+      
+    experiment_lifecycle:
+      stages:
+        - name: "development"
+          description: "Initial development and experimentation"
+          duration: "7_days"
+          auto_archive: false
+        - name: "validation"
+          description: "Model validation and testing"
+          duration: "14_days"
+          auto_archive: false
+        - name: "staging"
+          description: "Staging environment testing"
+          duration: "30_days"
+          auto_archive: false
+        - name: "production"
+          description: "Production deployment"
+          duration: "90_days"
+          auto_archive: false
+        - name: "archived"
+          description: "Archived experiments"
+          duration: "365_days"
+          auto_archive: true
+          
+    experiment_cleanup:
+      enabled: true
+      schedule: "0 2 * * 0"
+      retention_policy:
+        development: "30_days"
+        validation: "60_days"
+        staging: "90_days"
+        production: "365_days"
+        archived: "730_days"
+      cleanup_actions:
+        - name: "delete_artifacts"
+          condition: "experiment_age > retention_period"
+          action: "delete"
+        - name: "archive_experiment"
+          condition: "experiment_age > retention_period"
+          action: "archive"
+        - name: "compress_logs"
+          condition: "experiment_age > 30_days"
+          action: "compress"
+          
+  experiment_tracking:
+    enabled: true
+    tracking_uri: "http://mlflow:5000"
+    experiment_name: "pbf-lbm-ml-experiments"
+    run_name: "{model_type}_{algorithm}_{timestamp}"
+    tags:
+      - "pbf-lbm"
+      - "manufacturing"
+      - "ml"
+      - "experiment"
+      
+  experiment_metrics:
+    enabled: true
+    collection_interval: "1_minute"
+    retention_days: 90
+    custom_metrics:
+      - name: "experiment_count"
+        type: "gauge"
+        labels: ["experiment_type", "status"]
+      - name: "run_count"
+        type: "gauge"
+        labels: ["experiment_name", "status"]
+      - name: "model_accuracy"
+        type: "gauge"
+        labels: ["experiment_name", "run_id"]
+      - name: "training_duration"
+        type: "histogram"
+        labels: ["experiment_name", "algorithm"]
+      - name: "feature_importance"
+        type: "gauge"
+        labels: ["experiment_name", "feature_name"]
+        
+  experiment_alerting:
+    enabled: true
+    channels: ["slack", "email"]
+    rules:
+      - name: "experiment_failure"
+        condition: "run_status == 'FAILED'"
+        severity: "warning"
+        duration: "1m"
+      - name: "low_accuracy"
+        condition: "model_accuracy < 0.8"
+        severity: "warning"
+        duration: "5m"
+      - name: "high_training_time"
+        condition: "training_duration > 2_hours"
+        severity: "info"
+        duration: "10m"
+      - name: "experiment_cleanup_failure"
+        condition: "cleanup_status == 'FAILED'"
+        severity: "critical"
+        duration: "1m"
+        
+  experiment_reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["ml_team", "data_team", "management"]
+    include_metrics:
+      - "experiment_summary"
+      - "model_performance"
+      - "training_metrics"
+      - "feature_importance"
+      - "trend_analysis"
+    dashboard:
+      enabled: true
+      url: "http://mlflow:5000"
+      refresh_interval: "5_minutes"
+      
+  experiment_storage:
+    results:
+      type: "s3"
+      bucket: "mlflow-experiments"
+      region: "us-west-2"
+      prefix: "experiments/"
+      retention_days: 90
+    artifacts:
+      type: "s3"
+      bucket: "mlflow-artifacts"
+      region: "us-west-2"
+      prefix: "artifacts/"
+      retention_days: 90
+    logs:
+      type: "elasticsearch"
+      endpoint: "http://elasticsearch:9200"
+      index: "mlflow-experiments"
+      retention_days: 30
+      
+  experiment_validation:
+    enabled: true
+    checks:
+      - name: "experiment_completeness"
+        condition: "required_artifacts_present == true"
+        action: "flag_incomplete"
+      - name: "metric_validation"
+        condition: "metrics_in_range == true"
+        action: "flag_invalid"
+      - name: "artifact_validation"
+        condition: "artifacts_valid == true"
+        action: "flag_invalid"
+      - name: "run_validation"
+        condition: "run_completed_successfully == true"
+        action: "flag_failed"
+        
+  experiment_integration:
+    mlflow:
+      enabled: true
+      tracking_uri: "http://mlflow:5000"
+      experiment_name: "pbf-lbm-ml-experiments"
+    feast:
+      enabled: true
+      registry_path: "/data/feature_store/registry/"
+      online_store: "redis://redis-feature-store:6379"
+    airflow:
+      enabled: true
+      dag_id: "mlflow_experiment_pipeline"
+      schedule_interval: "0 * * * *"

@@ -1,0 +1,226 @@
+# PBF-LB/M Data Pipeline - S3 Configuration
+# This file contains S3-specific configuration settings
+
+s3:
+  # S3 connection configuration
+  connection:
+    region: "us-east-1"
+    endpoint_url: "${S3_ENDPOINT_URL}"
+    access_key_id: "${AWS_ACCESS_KEY_ID}"
+    secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+    session_token: "${AWS_SESSION_TOKEN}"
+    
+  # S3 bucket configuration
+  buckets:
+    # Data Lake Bucket
+    data_lake:
+      name: "pbf-lbm-data-lake"
+      region: "us-east-1"
+      versioning: true
+      encryption: "AES256"
+      lifecycle_rules:
+        - id: "raw_data_retention"
+          status: "Enabled"
+          transitions:
+            - days: 30
+              storage_class: "STANDARD_IA"
+            - days: 90
+              storage_class: "GLACIER"
+            - days: 365
+              storage_class: "DEEP_ARCHIVE"
+              
+    # Archive Bucket
+    archive:
+      name: "pbf-lbm-archive"
+      region: "us-east-1"
+      versioning: true
+      encryption: "AES256"
+      lifecycle_rules:
+        - id: "archive_retention"
+          status: "Enabled"
+          transitions:
+            - days: 0
+              storage_class: "GLACIER"
+            - days: 365
+              storage_class: "DEEP_ARCHIVE"
+              
+    # CT Scans Bucket
+    ct_scans:
+      name: "pbf-lbm-ct-scans"
+      region: "us-east-1"
+      versioning: true
+      encryption: "AES256"
+      lifecycle_rules:
+        - id: "ct_scan_retention"
+          status: "Enabled"
+          transitions:
+            - days: 7
+              storage_class: "STANDARD_IA"
+            - days: 30
+              storage_class: "GLACIER"
+            - days: 90
+              storage_class: "DEEP_ARCHIVE"
+              
+    # Checkpoints Bucket
+    checkpoints:
+      name: "pbf-lbm-checkpoints"
+      region: "us-east-1"
+      versioning: false
+      encryption: "AES256"
+      lifecycle_rules:
+        - id: "checkpoint_retention"
+          status: "Enabled"
+          expiration:
+            days: 30
+            
+  # S3 path configuration
+  paths:
+    # Raw data paths
+    raw:
+      pbf_process: "raw/pbf_process/"
+      ispm_monitoring: "raw/ispm_monitoring/"
+      ct_scan: "raw/ct_scan/"
+      powder_bed: "raw/powder_bed/"
+      
+    # Processed data paths
+    processed:
+      pbf_process: "processed/pbf_process/"
+      ispm_monitoring: "processed/ispm_monitoring/"
+      ct_scan: "processed/ct_scan/"
+      powder_bed: "processed/powder_bed/"
+      
+    # Archive paths
+    archive:
+      pbf_process: "archive/pbf_process/"
+      ispm_monitoring: "archive/ispm_monitoring/"
+      ct_scan: "archive/ct_scan/"
+      powder_bed: "archive/powder_bed/"
+      
+    # Checkpoint paths
+    checkpoints:
+      spark: "spark/checkpoints/"
+      flink: "flink/checkpoints/"
+      airflow: "airflow/checkpoints/"
+      
+  # S3 upload configuration
+  upload:
+    multipart_threshold: 8388608  # 8MB
+    multipart_chunksize: 8388608  # 8MB
+    max_concurrency: 10
+    use_threads: true
+    max_bandwidth: null
+    max_io_queue: 1000
+    
+  # S3 download configuration
+  download:
+    max_concurrency: 10
+    use_threads: true
+    max_bandwidth: null
+    max_io_queue: 1000
+    
+  # S3 security configuration
+  security:
+    encryption_enabled: true
+    encryption_algorithm: "AES256"
+    ssl_enabled: true
+    signature_version: "s3v4"
+    
+  # S3 monitoring configuration
+  monitoring:
+    enabled: true
+    metrics_enabled: true
+    cloudwatch_enabled: true
+    health_check_interval: 300  # 5 minutes
+    
+  # S3 performance tuning
+  performance:
+    # Connection settings
+    max_connections: 50
+    connection_timeout: 60
+    read_timeout: 60
+    
+    # Retry settings
+    max_retries: 3
+    retry_delay: 1
+    retry_backoff: 2
+    
+    # Caching settings
+    cache_enabled: true
+    cache_size: 1000
+    cache_ttl: 3600  # 1 hour
+    
+  # S3 data formats
+  data_formats:
+    parquet:
+      compression: "snappy"
+      row_group_size: 134217728  # 128MB
+      page_size: 1048576  # 1MB
+      
+    json:
+      compression: "gzip"
+      line_delimiter: "\n"
+      
+    csv:
+      compression: "gzip"
+      delimiter: ","
+      quote_char: "\""
+      escape_char: "\\"
+      
+  # S3 partitioning
+  partitioning:
+    enabled: true
+    strategy: "hive"
+    columns:
+      - name: "year"
+        type: "string"
+        format: "yyyy"
+      - name: "month"
+        type: "string"
+        format: "MM"
+      - name: "day"
+        type: "string"
+        format: "dd"
+      - name: "hour"
+        type: "string"
+        format: "HH"
+        
+  # S3 environment-specific overrides
+  environments:
+    development:
+      buckets:
+        data_lake:
+          name: "pbf-lbm-dev-data"
+        archive:
+          name: "pbf-lbm-dev-archive"
+        ct_scans:
+          name: "pbf-lbm-dev-ct-scans"
+        checkpoints:
+          name: "pbf-lbm-dev-checkpoints"
+      endpoint_url: "http://localhost:9000"  # MinIO
+      encryption_enabled: false
+      
+    staging:
+      buckets:
+        data_lake:
+          name: "pbf-lbm-staging-data"
+        archive:
+          name: "pbf-lbm-staging-archive"
+        ct_scans:
+          name: "pbf-lbm-staging-ct-scans"
+        checkpoints:
+          name: "pbf-lbm-staging-checkpoints"
+      encryption_enabled: true
+      
+    production:
+      buckets:
+        data_lake:
+          name: "pbf-lbm-prod-data"
+        archive:
+          name: "pbf-lbm-prod-archive"
+        ct_scans:
+          name: "pbf-lbm-prod-ct-scans"
+        checkpoints:
+          name: "pbf-lbm-prod-checkpoints"
+      encryption_enabled: true
+      cross_region_replication: true
+      backup_region: "us-west-2"

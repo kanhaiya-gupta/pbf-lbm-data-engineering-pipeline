@@ -1,0 +1,76 @@
+# Evidently Target Drift Configuration
+# Configuration for target drift monitoring
+
+target_drift:
+  name: "evidently_target_drift"
+  version: "1.0.0"
+  description: "Target drift monitoring configuration for PBF-LBM models"
+  
+  reference_data:
+    source: "training_data"
+    window_size: "30_days"
+    min_samples: 1000
+    
+  current_data:
+    source: "production_data"
+    window_size: "1_day"
+    min_samples: 100
+    
+  drift_detection:
+    methods:
+      - name: "statistical_tests"
+        enabled: true
+        tests:
+          - name: "ks_test"
+            threshold: 0.05
+          - name: "chi_square_test"
+            threshold: 0.05
+          - name: "mann_whitney_u"
+            threshold: 0.05
+            
+      - name: "distance_metrics"
+        enabled: true
+        metrics:
+          - name: "jensen_shannon_divergence"
+            threshold: 0.1
+          - name: "kl_divergence"
+            threshold: 0.1
+          - name: "wasserstein_distance"
+            threshold: 0.1
+            
+      - name: "psi"
+        enabled: true
+        threshold: 0.1
+        bins: 10
+        
+  targets:
+    - name: "quality_score"
+      type: "numerical"
+      drift_threshold: 0.1
+    - name: "dimensional_accuracy"
+      type: "numerical"
+      drift_threshold: 0.1
+    - name: "surface_roughness"
+      type: "numerical"
+      drift_threshold: 0.1
+    - name: "failure_probability"
+      type: "numerical"
+      drift_threshold: 0.1
+    - name: "maintenance_priority"
+      type: "categorical"
+      drift_threshold: 0.1
+      
+  monitoring:
+    frequency: "hourly"
+    alerting:
+      enabled: true
+      channels: ["slack", "email"]
+      thresholds:
+        warning: 0.1
+        critical: 0.2
+        
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    dashboard_url: "http://evidently-dashboard:3000"

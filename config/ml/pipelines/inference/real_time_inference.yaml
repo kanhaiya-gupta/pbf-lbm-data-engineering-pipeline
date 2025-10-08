@@ -1,0 +1,375 @@
+# Real-time Inference Pipeline Configuration
+# =========================================
+
+pipeline:
+  name: "real_time_inference_pipeline"
+  version: "1.0.0"
+  description: "Real-time inference pipeline for defect detection and process optimization"
+  
+  # Pipeline metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["inference", "real_time", "defect_detection", "process_optimization"]
+
+# Pipeline Stages
+stages:
+  - name: "data_ingestion"
+    type: "stream_ingester"
+    description: "Ingest real-time data from Kafka streams"
+    config:
+      sources:
+        - type: "kafka"
+          topic: "ispm_sensor_data"
+          consumer_group: "inference_consumer"
+          auto_offset_reset: "latest"
+          enable_auto_commit: true
+          max_poll_records: 100
+        - type: "kafka"
+          topic: "process_parameters"
+          consumer_group: "inference_consumer"
+          auto_offset_reset: "latest"
+      windowing:
+        type: "sliding"
+        size: "1min"
+        slide: "10s"
+      output: "stream_data"
+      
+  - name: "data_validation"
+    type: "stream_validator"
+    description: "Validate incoming stream data"
+    config:
+      validation_rules:
+        schema_validation: true
+        range_validation: true
+        null_check: true
+        outlier_detection: true
+      thresholds:
+        null_threshold: 0.05
+        outlier_threshold: 3.0
+      error_handling:
+        strategy: "skip_invalid"
+        log_errors: true
+      output: "validated_data"
+      
+  - name: "feature_engineering"
+    type: "stream_feature_processor"
+    description: "Engineer features from stream data"
+    config:
+      features_config: "config/ml/features/sensor_features/pyrometer_features.yaml"
+      processing:
+        window_size: 24
+        overlap: 12
+        aggregation_method: "mean"
+      transformations:
+        - type: "temporal_features"
+          lags: [1, 2, 3, 6, 12, 24]
+        - type: "rolling_features"
+          windows: [5, 10, 20]
+        - type: "statistical_features"
+          aggregations: ["mean", "std", "min", "max"]
+      caching:
+        enabled: true
+        ttl: "5m"
+        max_size: 10000
+      output: "engineered_features"
+      
+  - name: "model_loading"
+    type: "model_loader"
+    description: "Load trained models for inference"
+    config:
+      models:
+        - name: "defect_detector"
+          registry: "mlflow"
+          stage: "production"
+          version: "latest"
+          framework: "tensorflow"
+          format: "savedmodel"
+        - name: "process_optimizer"
+          registry: "mlflow"
+          stage: "production"
+          version: "latest"
+          framework: "tensorflow"
+          format: "savedmodel"
+      caching:
+        enabled: true
+        ttl: "1h"
+        max_models: 10
+      output: "loaded_models"
+      
+  - name: "inference"
+    type: "model_inference"
+    description: "Run inference on engineered features"
+    config:
+      models:
+        defect_detector:
+          input_shape: [24, 10]
+          output_shape: [3]
+          batch_size: 1
+          timeout: 100  # milliseconds
+        process_optimizer:
+          input_shape: [20]
+          output_shape: [5]
+          batch_size: 1
+          timeout: 50  # milliseconds
+      preprocessing:
+        normalization: true
+        scaling: "standard_scaler"
+      postprocessing:
+        confidence_threshold: 0.8
+        ensemble_voting: true
+      output: "predictions"
+      
+  - name: "result_processing"
+    type: "result_processor"
+    description: "Process and format inference results"
+    config:
+      formatting:
+        include_confidence: true
+        include_timestamp: true
+        include_model_version: true
+        include_metadata: true
+      filtering:
+        confidence_threshold: 0.8
+        anomaly_threshold: 0.9
+      aggregation:
+        window_size: "1min"
+        method: "majority_vote"
+      output: "processed_results"
+      
+  - name: "result_publishing"
+    type: "result_publisher"
+    description: "Publish results to output streams"
+    config:
+      destinations:
+        - type: "kafka"
+          topic: "ml_predictions"
+          partition_key: "process_id"
+        - type: "kafka"
+          topic: "defect_alerts"
+          partition_key: "process_id"
+        - type: "postgresql"
+          table: "ml_predictions"
+          batch_size: 100
+        - type: "mongodb"
+          collection: "inference_results"
+          batch_size: 100
+      serialization:
+        format: "json"
+        schema_registry: true
+      output: "published_results"
+
+# Pipeline Scheduling
+scheduling:
+  trigger: "streaming"
+  enabled: true
+  
+  # Stream processing configuration
+  stream_processing:
+    parallelism: 4
+    checkpoint_interval: "1min"
+    watermark_delay: "30s"
+    max_lateness: "5min"
+  
+  # Backpressure handling
+  backpressure:
+    enabled: true
+    strategy: "drop_oldest"
+    max_queue_size: 10000
+
+# Resource Requirements
+resources:
+  cpu: "2"
+  memory: "4Gi"
+  gpu: "0"
+  storage: "20Gi"
+  
+  # Resource limits
+  limits:
+    cpu: "4"
+    memory: "8Gi"
+    gpu: "1"
+    storage: "50Gi"
+
+# Performance Configuration
+performance:
+  # Latency requirements
+  latency:
+    target: 100  # milliseconds
+    p95: 200
+    p99: 500
+  
+  # Throughput requirements
+  throughput:
+    target: 1000  # predictions per second
+    max: 5000
+  
+  # Memory requirements
+  memory:
+    target: 2  # GB
+    max: 4
+  
+  # CPU requirements
+  cpu:
+    target: 1
+    max: 2
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "tensorflow==2.16.1"
+    - "kafka-python==2.0.2"
+    - "pandas==2.0.3"
+    - "numpy==1.24.3"
+    - "mlflow==2.9.2"
+  
+  # Environment variables
+  env_vars:
+    MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Retry policy
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: 1000  # milliseconds
+  
+  # Failure handling
+  failure_handling:
+    strategy: "continue_on_failure"
+    dead_letter_queue: true
+    error_topic: "ml_errors"
+  
+  # Circuit breaker
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    recovery_timeout: "30s"
+    half_open_max_calls: 3
+
+# Monitoring and Logging
+monitoring:
+  # Pipeline monitoring
+  pipeline_monitoring:
+    enabled: true
+    metrics:
+      - "throughput"
+      - "latency"
+      - "error_rate"
+      - "queue_size"
+      - "processing_time"
+    
+  # Model monitoring
+  model_monitoring:
+    enabled: true
+    metrics:
+      - "prediction_accuracy"
+      - "confidence_distribution"
+      - "model_latency"
+      - "model_throughput"
+    
+  # Data monitoring
+  data_monitoring:
+    enabled: true
+    metrics:
+      - "data_quality_score"
+      - "feature_distribution"
+      - "missing_value_rate"
+      - "outlier_rate"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/real_time_inference.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+  
+  # Stage-specific logging
+  stage_logging:
+    enabled: true
+    log_inputs: false
+    log_outputs: false
+    log_metrics: true
+    log_errors: true
+
+# Caching Configuration
+caching:
+  # Feature caching
+  feature_caching:
+    enabled: true
+    ttl: "5m"
+    max_size: 10000
+    eviction_policy: "lru"
+  
+  # Model caching
+  model_caching:
+    enabled: true
+    ttl: "1h"
+    max_models: 10
+    eviction_policy: "lru"
+  
+  # Result caching
+  result_caching:
+    enabled: true
+    ttl: "1m"
+    max_size: 1000
+    eviction_policy: "lru"
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    secret_key: "${JWT_SECRET_KEY}"
+    expiration_hours: 24
+  
+  # Authorization
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles: ["ml_user", "ml_admin"]
+  
+  # Data encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+
+# Pipeline Dependencies
+dependencies:
+  # Data dependencies
+  data_dependencies:
+    - source: "kafka"
+      topic: "ispm_sensor_data"
+      min_partitions: 3
+    - source: "kafka"
+      topic: "process_parameters"
+      min_partitions: 2
+  
+  # Model dependencies
+  model_dependencies:
+    - type: "model_registry"
+      name: "defect_detector"
+      stage: "production"
+    - type: "model_registry"
+      name: "process_optimizer"
+      stage: "production"
+  
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "kafka"
+      endpoint: "kafka:29092"
+    - service: "mlflow"
+      endpoint: "http://mlflow:5000"
+    - service: "redis"
+      endpoint: "redis:6379"

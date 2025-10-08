@@ -1,0 +1,399 @@
+# Equipment Health Monitor Model Configuration
+# ===========================================
+
+model:
+  name: "equipment_health_monitor"
+  version: "1.0.0"
+  type: "classification"
+  algorithm: "isolation_forest"
+  description: "Isolation Forest model for equipment health monitoring and anomaly detection in PBF-LB/M systems"
+  
+  # Model metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["predictive_maintenance", "equipment_health", "anomaly_detection", "isolation_forest"]
+
+# Model Architecture
+architecture:
+  input_shape: [25]  # 25 input features
+  output_shape: [3]  # 3 health states: HEALTHY, DEGRADED, CRITICAL
+  
+  # Isolation Forest parameters
+  isolation_forest:
+    n_estimators: 200
+    max_samples: "auto"
+    contamination: 0.1
+    max_features: 1.0
+    bootstrap: false
+    random_state: 42
+    n_jobs: -1
+
+# Training Configuration
+training:
+  # Hyperparameters
+  contamination: 0.1
+  n_estimators: 200
+  max_samples: "auto"
+  max_features: 1.0
+  
+  # Early stopping
+  early_stopping:
+    patience: 20
+    monitor: "val_anomaly_score"
+    mode: "min"
+    restore_best_weights: true
+    min_delta: 0.001
+  
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Regularization
+  regularization:
+    l1: 0.0
+    l2: 0.0
+    dropout: 0.0
+
+# Data Configuration
+data:
+  # Input features
+  features:
+    - name: "laser_power_actual"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "W"
+    - name: "laser_power_setpoint"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "W"
+    - name: "laser_power_error"
+      type: "continuous"
+      range: [-100, 100]
+      unit: "W"
+    - name: "scan_speed_actual"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "mm/s"
+    - name: "scan_speed_setpoint"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "mm/s"
+    - name: "scan_speed_error"
+      type: "continuous"
+      range: [-200, 200]
+      unit: "mm/s"
+    - name: "chamber_temperature"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "chamber_temperature_setpoint"
+      type: "continuous"
+      range: [20, 200]
+      unit: "°C"
+    - name: "chamber_temperature_error"
+      type: "continuous"
+      range: [-50, 50]
+      unit: "°C"
+    - name: "oxygen_level"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "ppm"
+    - name: "oxygen_level_setpoint"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "ppm"
+    - name: "oxygen_level_error"
+      type: "continuous"
+      range: [-100, 100]
+      unit: "ppm"
+    - name: "powder_flow_rate"
+      type: "continuous"
+      range: [0, 50]
+      unit: "g/min"
+    - name: "powder_flow_rate_setpoint"
+      type: "continuous"
+      range: [0, 50]
+      unit: "g/min"
+    - name: "powder_flow_rate_error"
+      type: "continuous"
+      range: [-10, 10]
+      unit: "g/min"
+    - name: "recoater_speed"
+      type: "continuous"
+      range: [10, 200]
+      unit: "mm/s"
+    - name: "recoater_speed_setpoint"
+      type: "continuous"
+      range: [10, 200]
+      unit: "mm/s"
+    - name: "recoater_speed_error"
+      type: "continuous"
+      range: [-20, 20]
+      unit: "mm/s"
+    - name: "build_plate_temperature"
+      type: "continuous"
+      range: [20, 300]
+      unit: "°C"
+    - name: "build_plate_temperature_setpoint"
+      type: "continuous"
+      range: [20, 300]
+      unit: "°C"
+    - name: "build_plate_temperature_error"
+      type: "continuous"
+      range: [-50, 50]
+      unit: "°C"
+    - name: "vibration_level"
+      type: "continuous"
+      range: [0, 10]
+      unit: "mm/s"
+    - name: "atmospheric_pressure"
+      type: "continuous"
+      range: [0, 2000]
+      unit: "mbar"
+    - name: "humidity"
+      type: "continuous"
+      range: [0, 100]
+      unit: "%"
+    - name: "equipment_age"
+      type: "continuous"
+      range: [0, 10000]
+      unit: "hours"
+    - name: "maintenance_cycles"
+      type: "continuous"
+      range: [0, 1000]
+      unit: "count"
+  
+  # Target variable
+  target:
+    name: "equipment_health"
+    type: "categorical"
+    classes: ["HEALTHY", "DEGRADED", "CRITICAL"]
+    encoding: "one_hot"
+  
+  # Data preprocessing
+  preprocessing:
+    normalization: "standard_scaler"
+    missing_value_strategy: "interpolate"
+    outlier_detection: "iqr"
+    outlier_threshold: 3.0
+    feature_selection: true
+    feature_selection_method: "mutual_information"
+    n_features: 25
+  
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    random_state: 42
+
+# Performance Requirements
+performance:
+  # Accuracy thresholds
+  accuracy_threshold: 0.95
+  precision_threshold: 0.90
+  recall_threshold: 0.90
+  f1_threshold: 0.90
+  
+  # Latency requirements
+  latency_threshold: 50  # milliseconds
+  throughput_threshold: 5000  # predictions per second
+  
+  # Memory requirements
+  memory_threshold: 128  # MB
+  model_size_threshold: 25  # MB
+
+# Model Validation
+validation:
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Validation metrics
+  metrics:
+    - "accuracy"
+    - "precision_macro"
+    - "recall_macro"
+    - "f1_macro"
+    - "confusion_matrix"
+    - "classification_report"
+    - "roc_auc"
+  
+  # Validation thresholds
+  thresholds:
+    min_accuracy: 0.90
+    min_precision: 0.85
+    min_recall: 0.85
+    min_f1: 0.85
+
+# Model Serving
+serving:
+  # API configuration
+  api:
+    endpoint: "/api/v1/monitor/equipment_health"
+    method: "POST"
+    content_type: "application/json"
+  
+  # Input schema
+  input_schema:
+    type: "object"
+    properties:
+      laser_power_actual: {"type": "number", "minimum": 0, "maximum": 1000}
+      laser_power_setpoint: {"type": "number", "minimum": 0, "maximum": 1000}
+      laser_power_error: {"type": "number", "minimum": -100, "maximum": 100}
+      scan_speed_actual: {"type": "number", "minimum": 0, "maximum": 2000}
+      scan_speed_setpoint: {"type": "number", "minimum": 0, "maximum": 2000}
+      scan_speed_error: {"type": "number", "minimum": -200, "maximum": 200}
+      chamber_temperature: {"type": "number", "minimum": 20, "maximum": 200}
+      chamber_temperature_setpoint: {"type": "number", "minimum": 20, "maximum": 200}
+      chamber_temperature_error: {"type": "number", "minimum": -50, "maximum": 50}
+      oxygen_level: {"type": "number", "minimum": 0, "maximum": 1000}
+      oxygen_level_setpoint: {"type": "number", "minimum": 0, "maximum": 1000}
+      oxygen_level_error: {"type": "number", "minimum": -100, "maximum": 100}
+      powder_flow_rate: {"type": "number", "minimum": 0, "maximum": 50}
+      powder_flow_rate_setpoint: {"type": "number", "minimum": 0, "maximum": 50}
+      powder_flow_rate_error: {"type": "number", "minimum": -10, "maximum": 10}
+      recoater_speed: {"type": "number", "minimum": 10, "maximum": 200}
+      recoater_speed_setpoint: {"type": "number", "minimum": 10, "maximum": 200}
+      recoater_speed_error: {"type": "number", "minimum": -20, "maximum": 20}
+      build_plate_temperature: {"type": "number", "minimum": 20, "maximum": 300}
+      build_plate_temperature_setpoint: {"type": "number", "minimum": 20, "maximum": 300}
+      build_plate_temperature_error: {"type": "number", "minimum": -50, "maximum": 50}
+      vibration_level: {"type": "number", "minimum": 0, "maximum": 10}
+      atmospheric_pressure: {"type": "number", "minimum": 0, "maximum": 2000}
+      humidity: {"type": "number", "minimum": 0, "maximum": 100}
+      equipment_age: {"type": "number", "minimum": 0, "maximum": 10000}
+      maintenance_cycles: {"type": "number", "minimum": 0, "maximum": 1000}
+    required: ["laser_power_actual", "scan_speed_actual", "chamber_temperature", "oxygen_level", "powder_flow_rate"]
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      equipment_health: 
+        type: "string"
+        enum: ["HEALTHY", "DEGRADED", "CRITICAL"]
+        description: "Predicted equipment health state"
+      health_score: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+        description: "Health score (0-1 scale)"
+      anomaly_score: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+        description: "Anomaly score (0-1 scale)"
+      confidence: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+        description: "Confidence score for the prediction"
+      risk_factors:
+        type: "array"
+        items: 
+          type: "object"
+          properties:
+            factor: {"type": "string"}
+            impact: {"type": "number", "minimum": 0, "maximum": 1}
+            description: {"type": "string"}
+      recommendations:
+        type: "array"
+        items: {"type": "string"}
+        description: "Maintenance recommendations"
+      predicted_failure_time:
+        type: "string"
+        format: "date-time"
+        description: "Predicted time to failure (if applicable)"
+      maintenance_urgency:
+        type: "string"
+        enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+        description: "Maintenance urgency level"
+      timestamp: 
+        type: "string"
+        format: "date-time"
+      model_version: 
+        type: "string"
+      processing_time_ms: 
+        type: "number"
+        minimum: 0
+      feature_importance: 
+        type: "array"
+        items: {"type": "number"}
+        description: "Feature importance scores"
+    required: ["equipment_health", "health_score", "anomaly_score", "confidence", "timestamp"]
+
+# Monitoring Configuration
+monitoring:
+  # Model performance monitoring
+  performance:
+    enabled: true
+    metrics_interval: 60  # seconds
+    retention_days: 30
+  
+  # Drift detection
+  drift_detection:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack", "pagerduty"]
+    recipients: ["maintenance-team@company.com"]
+    thresholds:
+      accuracy_drop: 0.05
+      latency_increase: 25  # milliseconds
+      error_rate: 0.05
+      critical_health_detected: 0.8
+
+# Model Deployment
+deployment:
+  # Deployment configuration
+  strategy: "rolling"
+  replicas: 2
+  resources:
+    cpu: "1"
+    memory: "2Gi"
+    gpu: "0"
+  
+  # Health checks
+  health_checks:
+    initial_delay: 30
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    min_replicas: 2
+    max_replicas: 8
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Model Versioning
+versioning:
+  # Version strategy
+  strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Version requirements
+  requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    trigger_threshold: 0.05  # 5% performance drop
+    automatic: false  # Manual rollback required

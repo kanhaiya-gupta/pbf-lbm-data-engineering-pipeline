@@ -1,0 +1,124 @@
+# PBF-LB/M Data Pipeline - Feature Flags
+# This file contains feature toggles for the data pipeline
+
+feature_flags:
+  # Pipeline features
+  pipeline:
+    enable_new_etl_engine: false
+    enable_streaming_processing: true
+    enable_real_time_quality_checks: false
+    enable_advanced_monitoring: true
+    
+  # Ingestion features
+  ingestion:
+    enable_kafka_streaming: true
+    enable_batch_processing: true
+    enable_cdc_processing: true
+    enable_s3_ingestion: true
+    enable_database_ingestion: true
+    
+  # Processing features
+  processing:
+    enable_spark_processing: true
+    enable_dbt_transformations: true
+    enable_schema_evolution: false
+    enable_incremental_processing: true
+    enable_stream_processing: true
+    
+  # Storage features
+  storage:
+    enable_data_lake: true
+    enable_data_warehouse: true
+    enable_operational_db: true
+    enable_delta_lake: true
+    enable_parquet_optimization: true
+    
+  # Quality features
+  quality:
+    enable_real_time_validation: false
+    enable_batch_validation: true
+    enable_anomaly_detection: true
+    enable_data_profiling: true
+    enable_quality_scoring: true
+    
+  # Orchestration features
+  orchestration:
+    enable_airflow_dags: true
+    enable_job_scheduling: true
+    enable_dependency_management: true
+    enable_resource_allocation: true
+    enable_priority_management: true
+    
+  # Monitoring features
+  monitoring:
+    enable_pipeline_monitoring: true
+    enable_job_monitoring: true
+    enable_performance_monitoring: true
+    enable_alert_management: true
+    enable_dashboard_integration: true
+    
+  # Security features
+  security:
+    enable_encryption: true
+    enable_authentication: true
+    enable_authorization: true
+    enable_audit_logging: true
+    enable_rbac: false
+    
+  # Data source specific features
+  data_sources:
+    pbf_process:
+      enable_real_time_processing: true
+      enable_batch_processing: true
+      enable_quality_validation: true
+      enable_anomaly_detection: false
+      
+    ispm_monitoring:
+      enable_real_time_processing: true
+      enable_batch_processing: false
+      enable_quality_validation: true
+      enable_anomaly_detection: true
+      
+    ct_scan:
+      enable_real_time_processing: false
+      enable_batch_processing: true
+      enable_quality_validation: true
+      enable_anomaly_detection: true
+      
+    powder_bed:
+      enable_real_time_processing: true
+      enable_batch_processing: true
+      enable_quality_validation: true
+      enable_anomaly_detection: false
+      
+  # Experimental features
+  experimental:
+    enable_ml_integration: false
+    enable_graph_analytics: false
+    enable_time_series_analysis: false
+    enable_predictive_quality: false
+    
+  # Performance features
+  performance:
+    enable_query_optimization: true
+    enable_caching: true
+    enable_compression: true
+    enable_partitioning: true
+    enable_indexing: true
+    
+  # Integration features
+  integrations:
+    enable_grafana_dashboards: true
+    enable_prometheus_metrics: true
+    enable_jaeger_tracing: false
+    enable_datadog_apm: false
+    enable_slack_notifications: true
+    enable_email_notifications: true
+    
+  # Feature flag management
+  management:
+    enable_dynamic_updates: true
+    enable_environment_specific: true
+    enable_user_specific: false
+    enable_rollback_capability: true
+    enable_audit_trail: true

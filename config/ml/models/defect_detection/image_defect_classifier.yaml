@@ -1,0 +1,335 @@
+# Image Defect Classifier Model Configuration
+# ===========================================
+
+model:
+  name: "image_defect_classifier"
+  version: "1.0.0"
+  type: "classification"
+  algorithm: "resnet50"
+  description: "ResNet-50 based CNN for defect classification in PBF-LB/M images"
+  
+  # Model metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["defect_detection", "image_classification", "cnn", "resnet50"]
+
+# Model Architecture
+architecture:
+  input_shape: [224, 224, 3]  # RGB images
+  output_shape: [10]  # 10 defect classes
+  
+  # ResNet-50 configuration
+  resnet_config:
+    backbone: "resnet50"
+    pretrained: true
+    freeze_backbone: false
+    num_classes: 10
+    dropout_rate: 0.5
+    activation: "softmax"
+  
+  # Custom layers
+  custom_layers:
+    - type: "GlobalAveragePooling2D"
+    - type: "Dense"
+      units: 512
+      activation: "relu"
+      dropout: 0.5
+    - type: "Dense"
+      units: 256
+      activation: "relu"
+      dropout: 0.3
+    - type: "Dense"
+      units: 10
+      activation: "softmax"
+
+# Training Configuration
+training:
+  # Hyperparameters
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 100
+  
+  # Early stopping
+  early_stopping:
+    patience: 15
+    monitor: "val_accuracy"
+    mode: "max"
+    restore_best_weights: true
+    min_delta: 0.001
+  
+  # Learning rate scheduling
+  learning_rate_schedule:
+    type: "reduce_on_plateau"
+    factor: 0.5
+    patience: 5
+    min_lr: 0.0001
+  
+  # Data augmentation
+  data_augmentation:
+    enabled: true
+    rotation_range: 20
+    width_shift_range: 0.1
+    height_shift_range: 0.1
+    horizontal_flip: true
+    vertical_flip: false
+    zoom_range: 0.1
+    brightness_range: [0.8, 1.2]
+    contrast_range: [0.8, 1.2]
+    noise_factor: 0.01
+  
+  # Regularization
+  regularization:
+    l1: 0.0
+    l2: 0.01
+    dropout: 0.5
+
+# Data Configuration
+data:
+  # Input features
+  features:
+    - name: "image"
+      type: "image"
+      format: "RGB"
+      size: [224, 224]
+      channels: 3
+      normalization: "imagenet"
+      augmentation: true
+  
+  # Target variable
+  target:
+    name: "defect_type"
+    type: "categorical"
+    classes: [
+      "NONE",
+      "POROSITY",
+      "LACK_OF_FUSION", 
+      "CRACK",
+      "DISTORTION",
+      "SURFACE_ROUGHNESS",
+      "DELAMINATION",
+      "POWDER_CONTAMINATION",
+      "RECOATER_STREAK",
+      "BALLING"
+    ]
+    encoding: "one_hot"
+  
+  # Data preprocessing
+  preprocessing:
+    image_resize: [224, 224]
+    normalization: "imagenet"
+    augmentation: true
+    validation_split: 0.2
+    test_split: 0.1
+  
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    random_state: 42
+
+# Performance Requirements
+performance:
+  # Accuracy thresholds
+  accuracy_threshold: 0.95
+  precision_threshold: 0.90
+  recall_threshold: 0.90
+  f1_threshold: 0.90
+  
+  # Latency requirements
+  latency_threshold: 200  # milliseconds
+  throughput_threshold: 500  # predictions per second
+  
+  # Memory requirements
+  memory_threshold: 1024  # MB
+  model_size_threshold: 100  # MB
+
+# Model Validation
+validation:
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+  
+  # Validation metrics
+  metrics:
+    - "accuracy"
+    - "precision_macro"
+    - "recall_macro"
+    - "f1_macro"
+    - "confusion_matrix"
+    - "classification_report"
+    - "roc_auc"
+  
+  # Validation thresholds
+  thresholds:
+    min_accuracy: 0.90
+    min_precision: 0.85
+    min_recall: 0.85
+    min_f1: 0.85
+
+# Model Serving
+serving:
+  # API configuration
+  api:
+    endpoint: "/api/v1/classify/defect_image"
+    method: "POST"
+    content_type: "multipart/form-data"
+  
+  # Input schema
+  input_schema:
+    type: "object"
+    properties:
+      image:
+        type: "string"
+        format: "binary"
+        description: "Image file (JPEG, PNG, TIFF)"
+      image_type:
+        type: "string"
+        enum: ["powder_bed", "ct_scan", "surface", "cross_section"]
+        description: "Type of image being analyzed"
+      process_id:
+        type: "string"
+        description: "Associated process ID"
+      layer_number:
+        type: "integer"
+        minimum: 0
+        description: "Layer number if applicable"
+    required: ["image", "image_type"]
+  
+  # Output schema
+  output_schema:
+    type: "object"
+    properties:
+      prediction: 
+        type: "string"
+        enum: ["NONE", "POROSITY", "LACK_OF_FUSION", "CRACK", "DISTORTION", "SURFACE_ROUGHNESS", "DELAMINATION", "POWDER_CONTAMINATION", "RECOATER_STREAK", "BALLING"]
+      confidence: 
+        type: "number"
+        minimum: 0
+        maximum: 1
+      defect_type: 
+        type: "string"
+        enum: ["NONE", "POROSITY", "LACK_OF_FUSION", "CRACK", "DISTORTION", "SURFACE_ROUGHNESS", "DELAMINATION", "POWDER_CONTAMINATION", "RECOATER_STREAK", "BALLING"]
+      severity: 
+        type: "string"
+        enum: ["LOW", "MEDIUM", "HIGH"]
+      probability_distribution:
+        type: "object"
+        properties:
+          NONE: {"type": "number", "minimum": 0, "maximum": 1}
+          POROSITY: {"type": "number", "minimum": 0, "maximum": 1}
+          LACK_OF_FUSION: {"type": "number", "minimum": 0, "maximum": 1}
+          CRACK: {"type": "number", "minimum": 0, "maximum": 1}
+          DISTORTION: {"type": "number", "minimum": 0, "maximum": 1}
+          SURFACE_ROUGHNESS: {"type": "number", "minimum": 0, "maximum": 1}
+          DELAMINATION: {"type": "number", "minimum": 0, "maximum": 1}
+          POWDER_CONTAMINATION: {"type": "number", "minimum": 0, "maximum": 1}
+          RECOATER_STREAK: {"type": "number", "minimum": 0, "maximum": 1}
+          BALLING: {"type": "number", "minimum": 0, "maximum": 1}
+      defect_location:
+        type: "object"
+        properties:
+          bounding_box: 
+            type: "array"
+            items: {"type": "number"}
+            minItems: 4
+            maxItems: 4
+            description: "[x, y, width, height]"
+          center_point: 
+            type: "array"
+            items: {"type": "number"}
+            minItems: 2
+            maxItems: 2
+            description: "[x, y]"
+          area: {"type": "number", "minimum": 0}
+          perimeter: {"type": "number", "minimum": 0}
+      timestamp: 
+        type: "string"
+        format: "date-time"
+      model_version: 
+        type: "string"
+      processing_time_ms: 
+        type: "number"
+        minimum: 0
+      metadata:
+        type: "object"
+        properties:
+          image_size: 
+            type: "array"
+            items: {"type": "integer"}
+            minItems: 2
+            maxItems: 2
+          image_format: {"type": "string"}
+          preprocessing_applied: {"type": "array", "items": {"type": "string"}}
+    required: ["prediction", "confidence", "defect_type", "severity", "timestamp"]
+
+# Monitoring Configuration
+monitoring:
+  # Model performance monitoring
+  performance:
+    enabled: true
+    metrics_interval: 60  # seconds
+    retention_days: 30
+  
+  # Drift detection
+  drift_detection:
+    enabled: true
+    threshold: 0.1
+    window_size: 1000
+    check_interval: 3600  # 1 hour
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      accuracy_drop: 0.05
+      latency_increase: 100  # milliseconds
+      error_rate: 0.05
+
+# Model Deployment
+deployment:
+  # Deployment configuration
+  strategy: "rolling"
+  replicas: 2
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+    gpu: "1"
+  
+  # Health checks
+  health_checks:
+    initial_delay: 30
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    min_replicas: 2
+    max_replicas: 8
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+
+# Model Versioning
+versioning:
+  # Version strategy
+  strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Version requirements
+  requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    trigger_threshold: 0.05  # 5% performance drop
+    automatic: false  # Manual rollback required

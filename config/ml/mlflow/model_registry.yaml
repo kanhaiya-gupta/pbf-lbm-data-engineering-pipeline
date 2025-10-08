@@ -1,0 +1,590 @@
+# MLflow Model Registry Configuration
+# ==================================
+
+model_registry:
+  name: "pbf_mlflow_model_registry"
+  version: "1.0.0"
+  description: "MLflow model registry configuration for PBF-LB/M ML models"
+  owner: "ml-team@company.com"
+  
+  # Registry metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["mlflow", "model_registry", "model_management", "pbf"]
+
+# Registry Configuration
+registry:
+  # Basic configuration
+  name: "pbf_model_registry"
+  description: "Model registry for PBF-LB/M ML models"
+  backend_store: "postgresql://mlflow_user:mlflow_password@postgres:5432/mlflow_db"
+  artifact_store: "s3://pbf-mlflow-artifacts"
+  
+  # Registry settings
+  settings:
+    auto_register: false
+    default_stage: "staging"
+    production_stage: "production"
+    archived_stage: "archived"
+    max_models_per_stage: 100
+    max_versions_per_model: 50
+
+# Model Stages
+model_stages:
+  - name: "staging"
+    description: "Staging stage for model validation and testing"
+    auto_transition: false
+    validation_required: true
+    approval_required: true
+    max_models: 10
+    retention_days: 30
+    
+  - name: "production"
+    description: "Production stage for deployed models"
+    auto_transition: false
+    validation_required: true
+    approval_required: true
+    max_models: 5
+    retention_days: 365
+    
+  - name: "archived"
+    description: "Archived stage for deprecated models"
+    auto_transition: false
+    validation_required: false
+    approval_required: false
+    max_models: 100
+    retention_days: 90
+
+# Model Validation
+model_validation:
+  # Validation rules
+  validation_rules:
+    - name: "accuracy_threshold"
+      rule: "accuracy >= 0.90"
+      description: "Model accuracy must be at least 90%"
+      severity: "error"
+      
+    - name: "precision_threshold"
+      rule: "precision >= 0.85"
+      description: "Model precision must be at least 85%"
+      severity: "error"
+      
+    - name: "recall_threshold"
+      rule: "recall >= 0.85"
+      description: "Model recall must be at least 85%"
+      severity: "error"
+      
+    - name: "f1_score_threshold"
+      rule: "f1_score >= 0.85"
+      description: "Model F1 score must be at least 85%"
+      severity: "error"
+      
+    - name: "latency_threshold"
+      rule: "latency <= 100"
+      description: "Model latency must be at most 100ms"
+      severity: "warning"
+      
+    - name: "model_size_threshold"
+      rule: "model_size <= 100"
+      description: "Model size must be at most 100MB"
+      severity: "warning"
+      
+    - name: "memory_usage_threshold"
+      rule: "memory_usage <= 512"
+      description: "Model memory usage must be at most 512MB"
+      severity: "warning"
+      
+  # Validation configuration
+  validation_config:
+    enabled: true
+    validation_frequency: "on_registration"
+    validation_timeout: 300  # 5 minutes
+    validation_retries: 3
+    validation_parallel: true
+    max_validation_workers: 4
+
+# Model Lifecycle
+model_lifecycle:
+  # Lifecycle stages
+  lifecycle_stages:
+    - name: "development"
+      description: "Development stage for model experimentation"
+      auto_transition: false
+      validation_required: false
+      approval_required: false
+      max_models: 100
+      retention_days: 7
+      
+    - name: "staging"
+      description: "Staging stage for model validation"
+      auto_transition: false
+      validation_required: true
+      approval_required: true
+      max_models: 10
+      retention_days: 30
+      
+    - name: "production"
+      description: "Production stage for deployed models"
+      auto_transition: false
+      validation_required: true
+      approval_required: true
+      max_models: 5
+      retention_days: 365
+      
+    - name: "archived"
+      description: "Archived stage for deprecated models"
+      auto_transition: false
+      validation_required: false
+      approval_required: false
+      max_models: 100
+      retention_days: 90
+      
+  # Transition rules
+  transition_rules:
+    - from_stage: "development"
+      to_stage: "staging"
+      conditions:
+        - "validation_passed"
+        - "approval_granted"
+      auto_transition: false
+      
+    - from_stage: "staging"
+      to_stage: "production"
+      conditions:
+        - "validation_passed"
+        - "approval_granted"
+        - "performance_verified"
+      auto_transition: false
+      
+    - from_stage: "production"
+      to_stage: "archived"
+      conditions:
+        - "deprecation_requested"
+        - "approval_granted"
+      auto_transition: false
+
+# Model Metadata
+model_metadata:
+  # Required metadata
+  required_metadata:
+    - name: "model_name"
+      type: "string"
+      description: "Name of the model"
+      required: true
+      
+    - name: "model_version"
+      type: "string"
+      description: "Version of the model"
+      required: true
+      
+    - name: "model_type"
+      type: "string"
+      description: "Type of the model"
+      required: true
+      values: ["classification", "regression", "multi_objective_optimization", "anomaly_detection"]
+      
+    - name: "framework"
+      type: "string"
+      description: "ML framework used"
+      required: true
+      values: ["tensorflow", "scikit-learn", "xgboost", "pytorch", "genetic_algorithm", "isolation_forest"]
+      
+    - name: "training_date"
+      type: "datetime"
+      description: "Date when the model was trained"
+      required: true
+      
+    - name: "training_data_version"
+      type: "string"
+      description: "Version of the training data"
+      required: true
+      
+    - name: "model_accuracy"
+      type: "float"
+      description: "Model accuracy score"
+      required: true
+      min_value: 0.0
+      max_value: 1.0
+      
+    - name: "model_size"
+      type: "float"
+      description: "Model size in MB"
+      required: true
+      min_value: 0.0
+      max_value: 1000.0
+      
+  # Optional metadata
+  optional_metadata:
+    - name: "model_description"
+      type: "string"
+      description: "Description of the model"
+      required: false
+      
+    - name: "model_author"
+      type: "string"
+      description: "Author of the model"
+      required: false
+      
+    - name: "model_tags"
+      type: "array"
+      description: "Tags associated with the model"
+      required: false
+      
+    - name: "model_hyperparameters"
+      type: "object"
+      description: "Hyperparameters used for training"
+      required: false
+      
+    - name: "model_metrics"
+      type: "object"
+      description: "Additional model metrics"
+      required: false
+      
+    - name: "model_artifacts"
+      type: "array"
+      description: "Model artifacts and files"
+      required: false
+
+# Model Deployment
+model_deployment:
+  # Deployment configuration
+  deployment_config:
+    enabled: true
+    deployment_strategy: "rolling"
+    max_replicas: 10
+    min_replicas: 2
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    
+  # Deployment stages
+  deployment_stages:
+    - name: "staging"
+      description: "Staging deployment for model validation"
+      replicas: 1
+      resources:
+        cpu: "1"
+        memory: "2Gi"
+      health_check: true
+      
+    - name: "production"
+      description: "Production deployment for model serving"
+      replicas: 3
+      resources:
+        cpu: "2"
+        memory: "4Gi"
+      health_check: true
+      auto_scaling: true
+      
+  # Deployment validation
+  deployment_validation:
+    enabled: true
+    validation_rules:
+      - name: "health_check"
+        rule: "health_check_passed"
+        description: "Model health check must pass"
+        severity: "error"
+        
+      - name: "performance_test"
+        rule: "performance_test_passed"
+        description: "Model performance test must pass"
+        severity: "error"
+        
+      - name: "load_test"
+        rule: "load_test_passed"
+        description: "Model load test must pass"
+        severity: "warning"
+
+# Model Monitoring
+model_monitoring:
+  # Monitoring configuration
+  monitoring_config:
+    enabled: true
+    monitoring_frequency: "5m"
+    monitoring_metrics:
+      - "prediction_accuracy"
+      - "prediction_latency"
+      - "prediction_throughput"
+      - "model_memory_usage"
+      - "model_cpu_usage"
+      - "error_rate"
+      
+  # Monitoring thresholds
+  monitoring_thresholds:
+    prediction_accuracy:
+      warning: 0.05
+      error: 0.10
+    prediction_latency:
+      warning: 200  # ms
+      error: 500  # ms
+    prediction_throughput:
+      warning: 0.8  # 80% of expected
+      error: 0.6  # 60% of expected
+    model_memory_usage:
+      warning: 0.8  # 80% of limit
+      error: 0.9  # 90% of limit
+    model_cpu_usage:
+      warning: 0.8  # 80% of limit
+      error: 0.9  # 90% of limit
+    error_rate:
+      warning: 0.05  # 5%
+      error: 0.10  # 10%
+      
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["slack", "email", "pagerduty"]
+    recipients: ["ml-team@company.com", "on-call@company.com"]
+    alert_frequency: "immediate"
+    alert_cooldown: "5m"
+
+# Model Versioning
+model_versioning:
+  # Versioning strategy
+  versioning_strategy: "semantic"  # semantic, timestamp, git_hash
+  
+  # Semantic versioning
+  semantic_versioning:
+    enabled: true
+    format: "major.minor.patch"
+    auto_increment: true
+    increment_rules:
+      major: "breaking_changes"
+      minor: "new_features"
+      patch: "bug_fixes"
+      
+  # Version requirements
+  version_requirements:
+    min_performance_improvement: 0.02  # 2%
+    max_performance_degradation: 0.01  # 1%
+    min_accuracy_improvement: 0.01  # 1%
+    max_accuracy_degradation: 0.005  # 0.5%
+    
+  # Version validation
+  version_validation:
+    enabled: true
+    validation_rules:
+      - name: "performance_improvement"
+        rule: "performance_improvement >= 0.02"
+        description: "Performance improvement must be at least 2%"
+        severity: "warning"
+        
+      - name: "accuracy_improvement"
+        rule: "accuracy_improvement >= 0.01"
+        description: "Accuracy improvement must be at least 1%"
+        severity: "warning"
+        
+      - name: "backward_compatibility"
+        rule: "backward_compatible"
+        description: "Model must be backward compatible"
+        severity: "error"
+
+# Model Rollback
+model_rollback:
+  # Rollback configuration
+  rollback_config:
+    enabled: true
+    rollback_strategy: "automatic"
+    rollback_threshold: 0.05  # 5% performance drop
+    rollback_delay: "5m"
+    max_rollback_attempts: 3
+    
+  # Rollback triggers
+  rollback_triggers:
+    - name: "performance_drop"
+      condition: "performance_drop >= 0.05"
+      description: "Performance drop of 5% or more"
+      severity: "critical"
+      
+    - name: "accuracy_drop"
+      condition: "accuracy_drop >= 0.05"
+      description: "Accuracy drop of 5% or more"
+      severity: "critical"
+      
+    - name: "error_rate_increase"
+      condition: "error_rate_increase >= 0.05"
+      description: "Error rate increase of 5% or more"
+      severity: "critical"
+      
+    - name: "latency_increase"
+      condition: "latency_increase >= 0.2"
+      description: "Latency increase of 20% or more"
+      severity: "warning"
+      
+  # Rollback actions
+  rollback_actions:
+    - name: "notify_stakeholders"
+      description: "Notify stakeholders about rollback"
+      channels: ["slack", "email"]
+      recipients: ["ml-team@company.com", "engineering-team@company.com"]
+      
+    - name: "update_deployment"
+      description: "Update deployment to previous version"
+      target_stage: "previous_stable"
+      
+    - name: "investigate_issue"
+      description: "Investigate the root cause of the issue"
+      assignee: "ml-ops@company.com"
+      priority: "high"
+
+# Model Cleanup
+model_cleanup:
+  # Cleanup configuration
+  cleanup_config:
+    enabled: true
+    cleanup_schedule: "0 2 * * *"  # Daily at 2 AM
+    cleanup_strategy: "age_based"
+    retention_days: 90
+    max_models_per_stage: 100
+    
+  # Cleanup rules
+  cleanup_rules:
+    - stage: "development"
+      retention_days: 7
+      max_models: 100
+      cleanup_strategy: "age_based"
+      
+    - stage: "staging"
+      retention_days: 30
+      max_models: 10
+      cleanup_strategy: "age_based"
+      
+    - stage: "production"
+      retention_days: 365
+      max_models: 5
+      cleanup_strategy: "performance_based"
+      
+    - stage: "archived"
+      retention_days: 90
+      max_models: 100
+      cleanup_strategy: "age_based"
+      
+  # Cleanup actions
+  cleanup_actions:
+    - name: "archive_model"
+      description: "Archive model to long-term storage"
+      target: "s3://pbf-mlflow-archives"
+      
+    - name: "delete_artifacts"
+      description: "Delete model artifacts"
+      target: "s3://pbf-mlflow-artifacts"
+      
+    - name: "update_metadata"
+      description: "Update model metadata"
+      action: "mark_as_archived"
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    secret_key: "${JWT_SECRET_KEY}"
+    expiration_hours: 24
+    
+  # Authorization
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles:
+      - name: "admin"
+        permissions: ["read", "write", "delete", "admin"]
+      - name: "user"
+        permissions: ["read", "write"]
+      - name: "viewer"
+        permissions: ["read"]
+        
+  # Data encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+    
+  # Audit logging
+  audit_logging:
+    enabled: true
+    log_events:
+      - "model_registration"
+      - "model_stage_transition"
+      - "model_deployment"
+      - "model_rollback"
+      - "model_cleanup"
+    log_destination: "s3://pbf-mlflow-audit-logs"
+
+# Monitoring Configuration
+monitoring:
+  # Registry monitoring
+  registry_monitoring:
+    enabled: true
+    metrics:
+      - "model_count"
+      - "model_registration_rate"
+      - "model_stage_transition_rate"
+      - "model_deployment_rate"
+      - "model_rollback_rate"
+      - "model_cleanup_rate"
+      
+  # Performance monitoring
+  performance_monitoring:
+    enabled: true
+    metrics:
+      - "registry_response_time"
+      - "registry_throughput"
+      - "registry_error_rate"
+      - "registry_memory_usage"
+      - "registry_cpu_usage"
+      
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["slack", "email"]
+    recipients: ["ml-team@company.com"]
+    thresholds:
+      registry_error_rate: 0.05
+      registry_response_time: 5.0
+      registry_memory_usage: 80
+      registry_cpu_usage: 80
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/mlflow_model_registry.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+      
+  # Registry-specific logging
+  registry_logging:
+    enabled: true
+    log_model_events: true
+    log_stage_transitions: true
+    log_deployments: true
+    log_rollbacks: true
+    log_cleanups: true
+
+# Pipeline Dependencies
+dependencies:
+  # Database dependencies
+  database_dependencies:
+    - service: "postgresql"
+      endpoint: "postgres:5432"
+      database: "mlflow_db"
+      
+  # Storage dependencies
+  storage_dependencies:
+    - service: "s3"
+      endpoint: "s3://pbf-mlflow-artifacts"
+      bucket: "pbf-mlflow-artifacts"
+      
+  # Infrastructure dependencies
+  infrastructure_dependencies:
+    - service: "kafka"
+      endpoint: "kafka:9092"
+    - service: "redis"
+      endpoint: "redis:6379"
+    - service: "kubernetes"
+      endpoint: "kubernetes-api-server:6443"

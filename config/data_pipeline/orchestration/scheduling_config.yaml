@@ -1,0 +1,336 @@
+# PBF-LB/M Data Pipeline - Scheduling Configuration
+# This file contains job scheduling configuration settings
+
+scheduling:
+  # General scheduling settings
+  general:
+    default_timezone: "UTC"
+    default_retry_attempts: 3
+    default_retry_delay_minutes: 5
+    default_timeout_minutes: 60
+    
+  # Job scheduling configuration
+  jobs:
+    # PBF Process Data Jobs
+    pbf_process_jobs:
+      pbf_process_etl:
+        name: "PBF Process Data ETL"
+        description: "ETL job for PBF process data"
+        enabled: true
+        schedule: "0 0 * * *"  # Daily at midnight
+        priority: "high"
+        timeout_minutes: 120
+        retry_attempts: 3
+        retry_delay_minutes: 10
+        dependencies: []
+        
+      pbf_process_quality_check:
+        name: "PBF Process Data Quality Check"
+        description: "Quality check for PBF process data"
+        enabled: true
+        schedule: "0 1 * * *"  # Daily at 1 AM
+        priority: "high"
+        timeout_minutes: 30
+        retry_attempts: 2
+        retry_delay_minutes: 5
+        dependencies: ["pbf_process_etl"]
+        
+      pbf_process_archive:
+        name: "PBF Process Data Archive"
+        description: "Archive PBF process data"
+        enabled: true
+        schedule: "0 2 * * *"  # Daily at 2 AM
+        priority: "medium"
+        timeout_minutes: 60
+        retry_attempts: 2
+        retry_delay_minutes: 10
+        dependencies: ["pbf_process_quality_check"]
+        
+    # ISPM Monitoring Data Jobs
+    ispm_monitoring_jobs:
+      ispm_monitoring_etl:
+        name: "ISPM Monitoring Data ETL"
+        description: "ETL job for ISPM monitoring data"
+        enabled: true
+        schedule: "0 */15 * * *"  # Every 15 minutes
+        priority: "high"
+        timeout_minutes: 30
+        retry_attempts: 3
+        retry_delay_minutes: 5
+        dependencies: []
+        
+      ispm_monitoring_quality_check:
+        name: "ISPM Monitoring Data Quality Check"
+        description: "Quality check for ISPM monitoring data"
+        enabled: true
+        schedule: "5 */15 * * *"  # Every 15 minutes, 5 minutes after ETL
+        priority: "high"
+        timeout_minutes: 15
+        retry_attempts: 2
+        retry_delay_minutes: 3
+        dependencies: ["ispm_monitoring_etl"]
+        
+      ispm_monitoring_anomaly_detection:
+        name: "ISPM Monitoring Anomaly Detection"
+        description: "Anomaly detection for ISPM monitoring data"
+        enabled: true
+        schedule: "10 */15 * * *"  # Every 15 minutes, 10 minutes after ETL
+        priority: "medium"
+        timeout_minutes: 20
+        retry_attempts: 2
+        retry_delay_minutes: 5
+        dependencies: ["ispm_monitoring_quality_check"]
+        
+    # CT Scan Data Jobs
+    ct_scan_jobs:
+      ct_scan_etl:
+        name: "CT Scan Data ETL"
+        description: "ETL job for CT scan data"
+        enabled: true
+        schedule: "0 2 * * *"  # Daily at 2 AM
+        priority: "medium"
+        timeout_minutes: 180
+        retry_attempts: 2
+        retry_delay_minutes: 15
+        dependencies: []
+        
+      ct_scan_quality_check:
+        name: "CT Scan Data Quality Check"
+        description: "Quality check for CT scan data"
+        enabled: true
+        schedule: "0 3 * * *"  # Daily at 3 AM
+        priority: "medium"
+        timeout_minutes: 60
+        retry_attempts: 2
+        retry_delay_minutes: 10
+        dependencies: ["ct_scan_etl"]
+        
+      ct_scan_defect_analysis:
+        name: "CT Scan Defect Analysis"
+        description: "Defect analysis for CT scan data"
+        enabled: true
+        schedule: "0 4 * * *"  # Daily at 4 AM
+        priority: "medium"
+        timeout_minutes: 120
+        retry_attempts: 2
+        retry_delay_minutes: 15
+        dependencies: ["ct_scan_quality_check"]
+        
+    # Powder Bed Data Jobs
+    powder_bed_jobs:
+      powder_bed_etl:
+        name: "Powder Bed Data ETL"
+        description: "ETL job for powder bed monitoring data"
+        enabled: true
+        schedule: "0 */30 * * *"  # Every 30 minutes
+        priority: "medium"
+        timeout_minutes: 45
+        retry_attempts: 3
+        retry_delay_minutes: 5
+        dependencies: []
+        
+      powder_bed_quality_check:
+        name: "Powder Bed Data Quality Check"
+        description: "Quality check for powder bed data"
+        enabled: true
+        schedule: "5 */30 * * *"  # Every 30 minutes, 5 minutes after ETL
+        priority: "medium"
+        timeout_minutes: 20
+        retry_attempts: 2
+        retry_delay_minutes: 3
+        dependencies: ["powder_bed_etl"]
+        
+      powder_bed_surface_analysis:
+        name: "Powder Bed Surface Analysis"
+        description: "Surface analysis for powder bed data"
+        enabled: true
+        schedule: "10 */30 * * *"  # Every 30 minutes, 10 minutes after ETL
+        priority: "low"
+        timeout_minutes: 30
+        retry_attempts: 2
+        retry_delay_minutes: 5
+        dependencies: ["powder_bed_quality_check"]
+        
+    # Data Quality Jobs
+    data_quality_jobs:
+      data_quality_monitoring:
+        name: "Data Quality Monitoring"
+        description: "Data quality monitoring job"
+        enabled: true
+        schedule: "0 1 * * *"  # Daily at 1 AM
+        priority: "high"
+        timeout_minutes: 60
+        retry_attempts: 2
+        retry_delay_minutes: 10
+        dependencies: []
+        
+      data_quality_reporting:
+        name: "Data Quality Reporting"
+        description: "Data quality reporting job"
+        enabled: true
+        schedule: "0 2 * * *"  # Daily at 2 AM
+        priority: "medium"
+        timeout_minutes: 30
+        retry_attempts: 2
+        retry_delay_minutes: 5
+        dependencies: ["data_quality_monitoring"]
+        
+      data_quality_remediation:
+        name: "Data Quality Remediation"
+        description: "Data quality remediation job"
+        enabled: true
+        schedule: "0 3 * * *"  # Daily at 3 AM
+        priority: "medium"
+        timeout_minutes: 90
+        retry_attempts: 2
+        retry_delay_minutes: 15
+        dependencies: ["data_quality_reporting"]
+        
+    # DBT Transformation Jobs
+    dbt_jobs:
+      dbt_staging_models:
+        name: "DBT Staging Models"
+        description: "DBT staging models transformation"
+        enabled: true
+        schedule: "0 3 * * *"  # Daily at 3 AM
+        priority: "high"
+        timeout_minutes: 60
+        retry_attempts: 2
+        retry_delay_minutes: 10
+        dependencies: []
+        
+      dbt_intermediate_models:
+        name: "DBT Intermediate Models"
+        description: "DBT intermediate models transformation"
+        enabled: true
+        schedule: "0 4 * * *"  # Daily at 4 AM
+        priority: "high"
+        timeout_minutes: 90
+        retry_attempts: 2
+        retry_delay_minutes: 15
+        dependencies: ["dbt_staging_models"]
+        
+      dbt_mart_models:
+        name: "DBT Mart Models"
+        description: "DBT mart models transformation"
+        enabled: true
+        schedule: "0 5 * * *"  # Daily at 5 AM
+        priority: "high"
+        timeout_minutes: 120
+        retry_attempts: 2
+        retry_delay_minutes: 20
+        dependencies: ["dbt_intermediate_models"]
+        
+  # Job dependency management
+  dependency_management:
+    enabled: true
+    max_concurrent_dependencies: 10
+    dependency_timeout_minutes: 30
+    retry_failed_dependencies: true
+    
+  # Resource allocation
+  resource_allocation:
+    enabled: true
+    cpu_limit: 8
+    memory_limit: "16g"
+    disk_limit: "100g"
+    network_limit: "1g"
+    
+  # Priority management
+  priority_management:
+    enabled: true
+    priority_levels:
+      - name: "critical"
+        weight: 10
+        max_concurrent_jobs: 2
+        
+      - name: "high"
+        weight: 8
+        max_concurrent_jobs: 5
+        
+      - name: "medium"
+        weight: 5
+        max_concurrent_jobs: 10
+        
+      - name: "low"
+        weight: 2
+        max_concurrent_jobs: 20
+        
+  # Job monitoring
+  monitoring:
+    enabled: true
+    health_check_interval: 60
+    performance_monitoring: true
+    alerting_enabled: true
+    
+  # Job alerting
+  alerting:
+    channels:
+      - name: "email"
+        enabled: true
+        recipients: ["data-team@example.com", "ops-team@example.com"]
+        
+      - name: "slack"
+        enabled: true
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#job-scheduling-alerts"
+        
+    severity_levels:
+      - name: "critical"
+        conditions: ["job_failed", "job_timeout", "dependency_failed"]
+        channels: ["email", "slack"]
+        escalation_minutes: 15
+        
+      - name: "high"
+        conditions: ["job_retry", "job_delayed"]
+        channels: ["email", "slack"]
+        escalation_minutes: 60
+        
+      - name: "medium"
+        conditions: ["job_warning", "resource_limit_exceeded"]
+        channels: ["email"]
+        escalation_minutes: 240
+        
+      - name: "low"
+        conditions: ["job_info", "job_completed"]
+        channels: ["email"]
+        escalation_minutes: 480
+        
+  # Job reporting
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["data-team@example.com", "management@example.com"]
+    include_metrics: true
+    include_trends: true
+    include_recommendations: true
+    
+  # Job scheduling environment-specific overrides
+  environments:
+    development:
+      default_timeout_minutes: 120
+      default_retry_attempts: 5
+      default_retry_delay_minutes: 2
+      resource_allocation:
+        cpu_limit: 4
+        memory_limit: "8g"
+        disk_limit: "50g"
+        
+    staging:
+      default_timeout_minutes: 90
+      default_retry_attempts: 3
+      default_retry_delay_minutes: 5
+      resource_allocation:
+        cpu_limit: 6
+        memory_limit: "12g"
+        disk_limit: "75g"
+        
+    production:
+      default_timeout_minutes: 60
+      default_retry_attempts: 3
+      default_retry_delay_minutes: 10
+      resource_allocation:
+        cpu_limit: 8
+        memory_limit: "16g"
+        disk_limit: "100g"

@@ -1,0 +1,280 @@
+# PBF-LB/M Data Pipeline - Airflow Configuration
+# This file contains Airflow-specific configuration settings
+
+airflow:
+  # Airflow connection configuration
+  connection:
+    host: "${AIRFLOW_HOST}"
+    port: 8080
+    username: "${AIRFLOW_USERNAME}"
+    password: "${AIRFLOW_PASSWORD}"
+    protocol: "http"
+    
+  # Airflow DAG configuration
+  dags:
+    # PBF Process Data DAG
+    pbf_process_dag:
+      name: "pbf_process_data_pipeline"
+      description: "PBF process data pipeline DAG"
+      enabled: true
+      schedule: "0 0 * * *"  # Daily at midnight
+      max_active_runs: 1
+      max_active_tasks: 10
+      catchup: false
+      tags: ["pbf", "process", "data"]
+      
+    # ISPM Monitoring Data DAG
+    ispm_monitoring_dag:
+      name: "ispm_monitoring_data_pipeline"
+      description: "ISPM monitoring data pipeline DAG"
+      enabled: true
+      schedule: "0 */15 * * *"  # Every 15 minutes
+      max_active_runs: 1
+      max_active_tasks: 5
+      catchup: false
+      tags: ["ispm", "monitoring", "data"]
+      
+    # CT Scan Data DAG
+    ct_scan_dag:
+      name: "ct_scan_data_pipeline"
+      description: "CT scan data pipeline DAG"
+      enabled: true
+      schedule: "0 2 * * *"  # Daily at 2 AM
+      max_active_runs: 1
+      max_active_tasks: 3
+      catchup: false
+      tags: ["ct", "scan", "data"]
+      
+    # Powder Bed Data DAG
+    powder_bed_dag:
+      name: "powder_bed_data_pipeline"
+      description: "Powder bed monitoring data pipeline DAG"
+      enabled: true
+      schedule: "0 */30 * * *"  # Every 30 minutes
+      max_active_runs: 1
+      max_active_tasks: 5
+      catchup: false
+      tags: ["powder", "bed", "data"]
+      
+    # Data Quality DAG
+    data_quality_dag:
+      name: "data_quality_pipeline"
+      description: "Data quality monitoring pipeline DAG"
+      enabled: true
+      schedule: "0 1 * * *"  # Daily at 1 AM
+      max_active_runs: 1
+      max_active_tasks: 3
+      catchup: false
+      tags: ["quality", "monitoring"]
+      
+    # DBT Transformations DAG
+    dbt_dag:
+      name: "dbt_transformations_pipeline"
+      description: "DBT transformations pipeline DAG"
+      enabled: true
+      schedule: "0 3 * * *"  # Daily at 3 AM
+      max_active_runs: 1
+      max_active_tasks: 5
+      catchup: false
+      tags: ["dbt", "transformations"]
+      
+  # Airflow task configuration
+  tasks:
+    # Data ingestion tasks
+    data_ingestion:
+      timeout_minutes: 60
+      retries: 3
+      retry_delay_minutes: 5
+      pool: "data_ingestion_pool"
+      priority_weight: 1
+      
+    # Data processing tasks
+    data_processing:
+      timeout_minutes: 120
+      retries: 2
+      retry_delay_minutes: 10
+      pool: "data_processing_pool"
+      priority_weight: 2
+      
+    # Data quality tasks
+    data_quality:
+      timeout_minutes: 30
+      retries: 2
+      retry_delay_minutes: 5
+      pool: "data_quality_pool"
+      priority_weight: 3
+      
+    # Data storage tasks
+    data_storage:
+      timeout_minutes: 90
+      retries: 2
+      retry_delay_minutes: 10
+      pool: "data_storage_pool"
+      priority_weight: 2
+      
+  # Airflow pools configuration
+  pools:
+    data_ingestion_pool:
+      name: "data_ingestion_pool"
+      slots: 5
+      description: "Pool for data ingestion tasks"
+      
+    data_processing_pool:
+      name: "data_processing_pool"
+      slots: 3
+      description: "Pool for data processing tasks"
+      
+    data_quality_pool:
+      name: "data_quality_pool"
+      slots: 2
+      description: "Pool for data quality tasks"
+      
+    data_storage_pool:
+      name: "data_storage_pool"
+      slots: 3
+      description: "Pool for data storage tasks"
+      
+  # Airflow connections configuration
+  connections:
+    postgres_default:
+      conn_id: "postgres_default"
+      conn_type: "postgres"
+      host: "${POSTGRES_HOST}"
+      port: 5432
+      schema: "${POSTGRES_DATABASE}"
+      login: "${POSTGRES_USERNAME}"
+      password: "${POSTGRES_PASSWORD}"
+      
+    snowflake_default:
+      conn_id: "snowflake_default"
+      conn_type: "snowflake"
+      host: "${SNOWFLAKE_ACCOUNT}"
+      schema: "${SNOWFLAKE_SCHEMA}"
+      login: "${SNOWFLAKE_USER}"
+      password: "${SNOWFLAKE_PASSWORD}"
+      extra:
+        account: "${SNOWFLAKE_ACCOUNT}"
+        warehouse: "${SNOWFLAKE_WAREHOUSE}"
+        database: "${SNOWFLAKE_DATABASE}"
+        role: "${SNOWFLAKE_ROLE}"
+        
+    s3_default:
+      conn_id: "s3_default"
+      conn_type: "s3"
+      extra:
+        aws_access_key_id: "${AWS_ACCESS_KEY_ID}"
+        aws_secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+        region_name: "us-east-1"
+        
+    kafka_default:
+      conn_id: "kafka_default"
+      conn_type: "kafka"
+      host: "${KAFKA_BOOTSTRAP_SERVERS}"
+      extra:
+        bootstrap_servers: "${KAFKA_BOOTSTRAP_SERVERS}"
+        security_protocol: "PLAINTEXT"
+        
+  # Airflow variables configuration
+  variables:
+    data_pipeline_config_path: "/opt/airflow/config/data_pipeline"
+    spark_config_path: "/opt/airflow/config/spark"
+    dbt_config_path: "/opt/airflow/config/dbt"
+    quality_config_path: "/opt/airflow/config/quality"
+    
+  # Airflow email configuration
+  email:
+    enabled: true
+    smtp_host: "${SMTP_HOST}"
+    smtp_port: 587
+    smtp_user: "${SMTP_USER}"
+    smtp_password: "${SMTP_PASSWORD}"
+    smtp_use_tls: true
+    default_recipients: ["data-team@example.com"]
+    
+  # Airflow alerting configuration
+  alerting:
+    enabled: true
+    channels:
+      - name: "email"
+        enabled: true
+        recipients: ["data-team@example.com", "ops-team@example.com"]
+        
+      - name: "slack"
+        enabled: true
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#airflow-alerts"
+        
+    severity_levels:
+      - name: "critical"
+        conditions: ["task_failed", "dag_failed"]
+        channels: ["email", "slack"]
+        
+      - name: "warning"
+        conditions: ["task_retry", "dag_delayed"]
+        channels: ["email"]
+        
+  # Airflow monitoring configuration
+  monitoring:
+    enabled: true
+    metrics_enabled: true
+    health_check_interval: 60
+    performance_monitoring: true
+    
+  # Airflow security configuration
+  security:
+    authentication_enabled: true
+    authorization_enabled: true
+    ssl_enabled: false  # Will be enabled in production
+    audit_logging: true
+    
+  # Airflow performance tuning
+  performance:
+    # Worker configuration
+    workers:
+      count: 4
+      memory: "2g"
+      cpu: 2
+      
+    # Scheduler configuration
+    scheduler:
+      max_threads: 2
+      max_dagruns_per_loop: 10
+      max_tis_per_query: 512
+      
+    # Database configuration
+    database:
+      max_connections: 20
+      pool_size: 5
+      pool_recycle: 3600
+      
+  # Airflow environment-specific overrides
+  environments:
+    development:
+      host: "localhost"
+      port: 8080
+      protocol: "http"
+      ssl_enabled: false
+      workers:
+        count: 2
+        memory: "1g"
+        cpu: 1
+        
+    staging:
+      host: "staging-airflow.example.com"
+      port: 8080
+      protocol: "https"
+      ssl_enabled: true
+      workers:
+        count: 3
+        memory: "2g"
+        cpu: 2
+        
+    production:
+      host: "prod-airflow.example.com"
+      port: 8080
+      protocol: "https"
+      ssl_enabled: true
+      workers:
+        count: 4
+        memory: "4g"
+        cpu: 2

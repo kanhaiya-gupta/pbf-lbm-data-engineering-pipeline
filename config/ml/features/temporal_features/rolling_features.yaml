@@ -1,0 +1,141 @@
+# Rolling Features Configuration
+# Feature engineering for rolling window temporal features
+
+features:
+  name: "rolling_features"
+  version: "1.0.0"
+  description: "Feature engineering for rolling window temporal features in PBF-LBM processes"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "value"
+    optional_fields:
+      - "entity_id"
+      - "window_size"
+      
+  feature_groups:
+    - name: "rolling_statistics"
+      description: "Rolling window statistical features"
+      features:
+        - name: "rolling_mean_5"
+          description: "5-period rolling mean"
+          formula: "rolling_mean(value, window=5)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+        - name: "rolling_mean_10"
+          description: "10-period rolling mean"
+          formula: "rolling_mean(value, window=10)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+        - name: "rolling_mean_20"
+          description: "20-period rolling mean"
+          formula: "rolling_mean(value, window=20)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+        - name: "rolling_std_5"
+          description: "5-period rolling standard deviation"
+          formula: "rolling_std(value, window=5)"
+          type: "numerical"
+          range: [0.0, 100.0]
+        - name: "rolling_std_10"
+          description: "10-period rolling standard deviation"
+          formula: "rolling_std(value, window=10)"
+          type: "numerical"
+          range: [0.0, 100.0]
+        - name: "rolling_std_20"
+          description: "20-period rolling standard deviation"
+          formula: "rolling_std(value, window=20)"
+          type: "numerical"
+          range: [0.0, 100.0]
+        - name: "rolling_min_5"
+          description: "5-period rolling minimum"
+          formula: "rolling_min(value, window=5)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+        - name: "rolling_max_5"
+          description: "5-period rolling maximum"
+          formula: "rolling_max(value, window=5)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+        - name: "rolling_min_10"
+          description: "10-period rolling minimum"
+          formula: "rolling_min(value, window=10)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+        - name: "rolling_max_10"
+          description: "10-period rolling maximum"
+          formula: "rolling_max(value, window=10)"
+          type: "numerical"
+          range: [-1000.0, 1000.0]
+          
+    - name: "rolling_derived"
+      description: "Derived rolling features"
+      features:
+        - name: "rolling_range_5"
+          description: "5-period rolling range"
+          formula: "rolling_max_5 - rolling_min_5"
+          type: "numerical"
+          range: [0.0, 2000.0]
+        - name: "rolling_range_10"
+          description: "10-period rolling range"
+          formula: "rolling_max_10 - rolling_min_10"
+          type: "numerical"
+          range: [0.0, 2000.0]
+        - name: "rolling_cv_5"
+          description: "5-period coefficient of variation"
+          formula: "rolling_std_5 / rolling_mean_5"
+          type: "numerical"
+          range: [0.0, 10.0]
+        - name: "rolling_cv_10"
+          description: "10-period coefficient of variation"
+          formula: "rolling_std_10 / rolling_mean_10"
+          type: "numerical"
+          range: [0.0, 10.0]
+        - name: "rolling_zscore_5"
+          description: "5-period rolling z-score"
+          formula: "(value - rolling_mean_5) / rolling_std_5"
+          type: "numerical"
+          range: [-10.0, 10.0]
+        - name: "rolling_zscore_10"
+          description: "10-period rolling z-score"
+          formula: "(value - rolling_mean_10) / rolling_std_10"
+          type: "numerical"
+          range: [-10.0, 10.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["rolling_mean_5", "rolling_mean_10", "rolling_mean_20", "rolling_std_5", "rolling_std_10", 
+                "rolling_std_20", "rolling_min_5", "rolling_max_5", "rolling_min_10", "rolling_max_10",
+                "rolling_range_5", "rolling_range_10", "rolling_cv_5", "rolling_cv_10", "rolling_zscore_5", "rolling_zscore_10"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 12
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "rolling_mean_check"
+        condition: "rolling_mean_5 >= -1000 AND rolling_mean_5 <= 1000"
+        action: "flag_invalid"
+      - name: "rolling_std_check"
+        condition: "rolling_std_5 >= 0 AND rolling_std_5 <= 100"
+        action: "flag_invalid"
+      - name: "rolling_range_check"
+        condition: "rolling_range_5 >= 0"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["rolling_mean_5", "rolling_std_5", "rolling_cv_5"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 15

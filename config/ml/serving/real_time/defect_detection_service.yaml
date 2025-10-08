@@ -1,0 +1,508 @@
+# Defect Detection Service Configuration
+# =====================================
+
+service:
+  name: "defect_detection_service"
+  version: "1.0.0"
+  description: "Real-time defect detection service for PBF-LB/M process monitoring"
+  
+  # Service metadata
+  metadata:
+    author: "ML Team"
+    created_date: "2024-01-01"
+    last_updated: "2024-01-01"
+    tags: ["defect_detection", "real_time", "lstm", "ispm"]
+
+# Service Endpoints
+endpoints:
+  - name: "predict_defect"
+    path: "/api/v1/predict/defect"
+    method: "POST"
+    description: "Predict defect type and severity from sensor data"
+    
+    # Input schema
+    input_schema:
+      type: "object"
+      properties:
+        sensor_data:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              timestamp: 
+                type: "string"
+                format: "date-time"
+                description: "Timestamp of the sensor reading"
+              laser_power: 
+                type: "number"
+                minimum: 0
+                maximum: 1000
+                description: "Laser power in Watts"
+              scan_speed: 
+                type: "number"
+                minimum: 0
+                maximum: 2000
+                description: "Scan speed in mm/s"
+              temperature: 
+                type: "number"
+                minimum: 0
+                maximum: 3000
+                description: "Temperature in Celsius"
+              melt_pool_size: 
+                type: "number"
+                minimum: 0
+                maximum: 5
+                description: "Melt pool size in mm"
+              spatter_count: 
+                type: "integer"
+                minimum: 0
+                maximum: 100
+                description: "Number of spatter events"
+              powder_flow_rate: 
+                type: "number"
+                minimum: 0
+                maximum: 50
+                description: "Powder flow rate in g/min"
+              chamber_pressure: 
+                type: "number"
+                minimum: 0
+                maximum: 1000
+                description: "Chamber pressure in mbar"
+              oxygen_level: 
+                type: "number"
+                minimum: 0
+                maximum: 100
+                description: "Oxygen level in ppm"
+              layer_thickness: 
+                type: "number"
+                minimum: 0
+                maximum: 0.1
+                description: "Layer thickness in mm"
+              hatch_spacing: 
+                type: "number"
+                minimum: 0
+                maximum: 0.5
+                description: "Hatch spacing in mm"
+            required: ["timestamp", "laser_power", "scan_speed", "temperature"]
+          minItems: 24
+          maxItems: 24
+          description: "Array of 24 sensor readings for LSTM input"
+        process_id:
+          type: "string"
+          description: "Unique identifier for the PBF process"
+        build_id:
+          type: "string"
+          description: "Unique identifier for the build job"
+        layer_number:
+          type: "integer"
+          minimum: 0
+          description: "Current layer number"
+      required: ["sensor_data", "process_id", "build_id", "layer_number"]
+    
+    # Output schema
+    output_schema:
+      type: "object"
+      properties:
+        prediction: 
+          type: "string"
+          enum: ["NONE", "MINOR", "MAJOR"]
+          description: "Predicted defect type"
+        confidence: 
+          type: "number"
+          minimum: 0
+          maximum: 1
+          description: "Confidence score for the prediction"
+        defect_type: 
+          type: "string"
+          enum: ["NONE", "MINOR", "MAJOR"]
+          description: "Detailed defect type classification"
+        severity: 
+          type: "string"
+          enum: ["LOW", "MEDIUM", "HIGH"]
+          description: "Severity level of the predicted defect"
+        probability_distribution:
+          type: "object"
+          properties:
+            NONE: {"type": "number", "minimum": 0, "maximum": 1}
+            MINOR: {"type": "number", "minimum": 0, "maximum": 1}
+            MAJOR: {"type": "number", "minimum": 0, "maximum": 1}
+          description: "Probability distribution over defect types"
+        timestamp: 
+          type: "string"
+          format: "date-time"
+          description: "Timestamp when prediction was made"
+        model_version: 
+          type: "string"
+          description: "Version of the model used for prediction"
+        processing_time_ms: 
+          type: "number"
+          minimum: 0
+          description: "Time taken to process the request in milliseconds"
+        metadata:
+          type: "object"
+          properties:
+            feature_importance: 
+              type: "array"
+              items: {"type": "number"}
+              description: "Feature importance scores"
+            anomaly_score: 
+              type: "number"
+              minimum: 0
+              maximum: 1
+              description: "Anomaly score for the input data"
+            data_quality_score: 
+              type: "number"
+              minimum: 0
+              maximum: 1
+              description: "Quality score of the input data"
+      required: ["prediction", "confidence", "defect_type", "severity", "timestamp", "model_version"]
+
+  - name: "health_check"
+    path: "/health"
+    method: "GET"
+    description: "Health check endpoint for the service"
+    
+    # Output schema
+    output_schema:
+      type: "object"
+      properties:
+        status: 
+          type: "string"
+          enum: ["healthy", "unhealthy", "degraded"]
+        timestamp: 
+          type: "string"
+          format: "date-time"
+        version: 
+          type: "string"
+        uptime: 
+          type: "number"
+        metrics:
+          type: "object"
+          properties:
+            total_requests: {"type": "integer"}
+            successful_requests: {"type": "integer"}
+            failed_requests: {"type": "integer"}
+            average_latency_ms: {"type": "number"}
+            memory_usage_mb: {"type": "number"}
+            cpu_usage_percent: {"type": "number"}
+
+# Model Configuration
+model:
+  name: "real_time_defect_predictor"
+  version: "latest"
+  stage: "production"
+  framework: "tensorflow"
+  format: "savedmodel"
+  
+  # Model loading
+  loading:
+    strategy: "eager_loading"
+    cache_models: true
+    max_cached_models: 5
+    model_refresh_interval: "1h"
+  
+  # Model preprocessing
+  preprocessing:
+    normalization: true
+    scaling_method: "standard_scaler"
+    feature_engineering: true
+    sequence_length: 24
+    feature_count: 10
+  
+  # Model postprocessing
+  postprocessing:
+    confidence_threshold: 0.8
+    ensemble_voting: false
+    calibration: true
+    output_formatting: true
+
+# Service Configuration
+service_config:
+  # Host and port
+  host: "0.0.0.0"
+  port: 8000
+  
+  # Workers and concurrency
+  workers: 4
+  max_concurrent_requests: 100
+  request_timeout: 30  # seconds
+  
+  # Load balancing
+  load_balancing:
+    strategy: "round_robin"
+    health_check_interval: 30
+    health_check_timeout: 5
+    health_check_path: "/health"
+  
+  # Caching
+  caching:
+    enabled: true
+    ttl: "5m"
+    max_size: 10000
+    key_strategy: "feature_hash"
+    cache_misses: true
+
+# Performance Configuration
+performance:
+  # Latency requirements
+  latency:
+    target: 100  # milliseconds
+    p95: 200
+    p99: 500
+    timeout: 1000
+  
+  # Throughput requirements
+  throughput:
+    target: 1000  # requests per second
+    max: 5000
+    burst_capacity: 2000
+  
+  # Memory requirements
+  memory:
+    target: 2  # GB
+    max: 4
+    gc_threshold: 0.8
+  
+  # CPU requirements
+  cpu:
+    target: 1
+    max: 2
+    affinity: "auto"
+
+# Monitoring Configuration
+monitoring:
+  # Health checks
+  health_check:
+    path: "/health"
+    interval: "30s"
+    timeout: "5s"
+    failure_threshold: 3
+    success_threshold: 1
+  
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: "60s"
+    retention_days: 30
+    
+    # Custom metrics
+    custom_metrics:
+      - "prediction_latency"
+      - "prediction_accuracy"
+      - "request_count"
+      - "error_rate"
+      - "confidence_distribution"
+      - "defect_type_distribution"
+      - "data_quality_score"
+      - "model_loading_time"
+      - "cache_hit_rate"
+      - "memory_usage"
+      - "cpu_usage"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    channels: ["email", "slack", "pagerduty"]
+    recipients: ["ml-team@company.com"]
+    
+    # Alert thresholds
+    thresholds:
+      - metric: "prediction_latency"
+        threshold: 200
+        operator: ">"
+        severity: "warning"
+        duration: "5m"
+      - metric: "prediction_latency"
+        threshold: 500
+        operator: ">"
+        severity: "critical"
+        duration: "2m"
+      - metric: "error_rate"
+        threshold: 0.05
+        operator: ">"
+        severity: "warning"
+        duration: "5m"
+      - metric: "error_rate"
+        threshold: 0.1
+        operator: ">"
+        severity: "critical"
+        duration: "2m"
+      - metric: "memory_usage"
+        threshold: 0.8
+        operator: ">"
+        severity: "warning"
+        duration: "10m"
+      - metric: "cpu_usage"
+        threshold: 0.9
+        operator: ">"
+        severity: "critical"
+        duration: "5m"
+
+# Security Configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    secret_key: "${JWT_SECRET_KEY}"
+    algorithm: "HS256"
+    expiration_hours: 24
+    issuer: "pbf-ml-service"
+    audience: "pbf-ml-clients"
+  
+  # Authorization
+  authorization:
+    enabled: true
+    type: "rbac"
+    roles:
+      - "ml_admin"
+      - "ml_engineer"
+      - "ml_user"
+      - "ml_viewer"
+    permissions:
+      ml_admin: ["read", "write", "admin"]
+      ml_engineer: ["read", "write"]
+      ml_user: ["read"]
+      ml_viewer: ["read"]
+  
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst_size: 100
+    per_ip_limit: true
+    per_user_limit: true
+  
+  # Data encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+    encrypt_sensitive_data: true
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: "console"
+    - type: "file"
+      filename: "/app/logs/defect_detection_service.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+    - type: "syslog"
+      facility: "local0"
+  
+  # Request logging
+  request_logging:
+    enabled: true
+    log_requests: true
+    log_responses: false
+    log_headers: false
+    log_body: false
+    sensitive_fields: ["password", "token", "secret"]
+  
+  # Performance logging
+  performance_logging:
+    enabled: true
+    log_latency: true
+    log_memory: true
+    log_cpu: true
+    log_throughput: true
+
+# Deployment Configuration
+deployment:
+  # Deployment strategy
+  strategy: "rolling"
+  replicas: 2
+  max_unavailable: 1
+  max_surge: 1
+  progress_deadline: 600  # 10 minutes
+  
+  # Resource requirements
+  resources:
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+  
+  # Health checks
+  health_checks:
+    liveness:
+      enabled: true
+      path: "/health"
+      initial_delay: 30
+      period: 10
+      timeout: 5
+      success_threshold: 1
+      failure_threshold: 3
+    readiness:
+      enabled: true
+      path: "/health"
+      initial_delay: 5
+      period: 5
+      timeout: 3
+      success_threshold: 1
+      failure_threshold: 3
+  
+  # Scaling
+  scaling:
+    enabled: true
+    min_replicas: 2
+    max_replicas: 10
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    scale_up_stabilization: "60s"
+    scale_down_stabilization: "300s"
+
+# Environment Configuration
+environment:
+  python_version: "3.11"
+  dependencies:
+    - "tensorflow==2.16.1"
+    - "fastapi==0.104.1"
+    - "uvicorn==0.24.0"
+    - "pydantic==2.5.0"
+    - "numpy==1.24.3"
+    - "pandas==2.0.3"
+    - "scikit-learn==1.3.0"
+    - "mlflow==2.9.2"
+  
+  # Environment variables
+  env_vars:
+    MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    MODEL_REGISTRY_URI: "http://mlflow:5000"
+    REDIS_URL: "redis://redis:6379/0"
+    LOG_LEVEL: "INFO"
+    PYTHONPATH: "/app/src:/app/config"
+
+# Error Handling
+error_handling:
+  # Error responses
+  error_responses:
+    format: "json"
+    include_stack_trace: false
+    include_request_id: true
+    log_errors: true
+  
+  # Retry policy
+  retry_policy:
+    max_retries: 3
+    backoff_factor: 2
+    retry_delay: 1000  # milliseconds
+  
+  # Circuit breaker
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    recovery_timeout: "30s"
+    half_open_max_calls: 3
+  
+  # Graceful shutdown
+  graceful_shutdown:
+    enabled: true
+    timeout: "30s"
+    drain_connections: true
+    finish_requests: true

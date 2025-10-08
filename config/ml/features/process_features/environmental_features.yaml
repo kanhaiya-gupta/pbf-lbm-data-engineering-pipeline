@@ -1,0 +1,348 @@
+# Environmental Features Configuration
+# Feature engineering for environmental conditions in PBF-LBM processes
+
+features:
+  name: "environmental_features"
+  version: "1.0.0"
+  description: "Feature engineering for environmental conditions in PBF-LBM manufacturing"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "equipment_id"
+      - "location_id"
+    optional_fields:
+      - "chamber_temperature"
+      - "chamber_pressure"
+      - "oxygen_content"
+      - "nitrogen_content"
+      - "argon_content"
+      - "humidity"
+      - "gas_flow_rate"
+      - "gas_pressure"
+      - "filtration_efficiency"
+      - "preheat_temperature"
+      - "cooling_rate"
+      - "atmosphere_purity"
+      - "particle_count"
+      - "vibration_level"
+      - "acoustic_level"
+      - "electromagnetic_interference"
+      - "facility_temperature"
+      - "facility_humidity"
+      - "facility_pressure"
+      - "power_quality"
+      - "voltage_stability"
+      - "current_stability"
+      - "frequency_stability"
+      - "harmonic_distortion"
+      - "power_factor"
+      - "ground_resistance"
+      - "electrical_noise"
+      - "lighting_level"
+      - "air_flow_rate"
+      - "air_pressure"
+      - "air_quality_index"
+      - "dust_particle_count"
+      - "chemical_contaminants"
+      - "radiation_level"
+      - "magnetic_field_strength"
+      - "electromagnetic_field_strength"
+      
+  feature_groups:
+    - name: "atmospheric_conditions"
+      description: "Features derived from atmospheric conditions"
+      features:
+        - name: "atmosphere_composition"
+          description: "Atmosphere composition vector"
+          formula: "[oxygen_content, nitrogen_content, argon_content]"
+          type: "vector"
+          dimension: 3
+          
+        - name: "atmosphere_purity_index"
+          description: "Overall atmosphere purity index"
+          formula: "1 - (oxygen_content + nitrogen_content + particle_count) / 1000"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "gas_flow_efficiency"
+          description: "Gas flow efficiency"
+          formula: "gas_flow_rate * filtration_efficiency / 100"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "atmosphere_stability"
+          description: "Atmosphere stability index"
+          formula: "1 / (std(oxygen_content) + std(nitrogen_content) + std(particle_count))"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "contamination_level"
+          description: "Contamination level index"
+          formula: "oxygen_content + nitrogen_content + particle_count + chemical_contaminants"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "atmosphere_category"
+          description: "Atmosphere quality category"
+          formula: "categorize_atmosphere(atmosphere_purity_index, contamination_level)"
+          type: "categorical"
+          categories: ["excellent", "good", "fair", "poor", "critical"]
+          
+    - name: "thermal_conditions"
+      description: "Features derived from thermal conditions"
+      features:
+        - name: "temperature_stability"
+          description: "Temperature stability index"
+          formula: "1 / (std(chamber_temperature) + std(preheat_temperature) + std(facility_temperature))"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "thermal_gradient"
+          description: "Thermal gradient between chamber and facility"
+          formula: "abs(chamber_temperature - facility_temperature)"
+          type: "numerical"
+          range: [0.0, 200.0]
+          
+        - name: "cooling_efficiency"
+          description: "Cooling efficiency index"
+          formula: "cooling_rate / (chamber_temperature - facility_temperature)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          
+        - name: "thermal_comfort_index"
+          description: "Thermal comfort index"
+          formula: "1 - abs(chamber_temperature - optimal_temperature) / optimal_temperature"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "temperature_category"
+          description: "Temperature category"
+          formula: "categorize_temperature(chamber_temperature)"
+          type: "categorical"
+          categories: ["low", "optimal", "high", "very_high"]
+          
+    - name: "pressure_conditions"
+      description: "Features derived from pressure conditions"
+      features:
+        - name: "pressure_stability"
+          description: "Pressure stability index"
+          formula: "1 / (std(chamber_pressure) + std(gas_pressure) + std(facility_pressure))"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "pressure_differential"
+          description: "Pressure differential between chamber and facility"
+          formula: "abs(chamber_pressure - facility_pressure)"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "gas_pressure_efficiency"
+          description: "Gas pressure efficiency"
+          formula: "gas_pressure * gas_flow_rate / 1000"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "pressure_category"
+          description: "Pressure category"
+          formula: "categorize_pressure(chamber_pressure)"
+          type: "categorical"
+          categories: ["low", "optimal", "high", "very_high"]
+          
+    - name: "electrical_conditions"
+      description: "Features derived from electrical conditions"
+      features:
+        - name: "power_quality_index"
+          description: "Overall power quality index"
+          formula: "voltage_stability * current_stability * frequency_stability * (1 - harmonic_distortion) * power_factor"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "electrical_stability"
+          description: "Electrical stability index"
+          formula: "1 / (std(voltage_stability) + std(current_stability) + std(frequency_stability))"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "electromagnetic_interference_level"
+          description: "Electromagnetic interference level"
+          formula: "electromagnetic_interference + electromagnetic_field_strength + electrical_noise"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "ground_quality"
+          description: "Ground quality index"
+          formula: "1 / (ground_resistance + electrical_noise)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "power_category"
+          description: "Power quality category"
+          formula: "categorize_power_quality(power_quality_index)"
+          type: "categorical"
+          categories: ["excellent", "good", "fair", "poor", "critical"]
+          
+    - name: "mechanical_conditions"
+      description: "Features derived from mechanical conditions"
+      features:
+        - name: "vibration_level"
+          description: "Overall vibration level"
+          formula: "sqrt(vibration_level^2 + acoustic_level^2)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "mechanical_stability"
+          description: "Mechanical stability index"
+          formula: "1 / (vibration_level + acoustic_level)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "vibration_category"
+          description: "Vibration level category"
+          formula: "categorize_vibration(vibration_level)"
+          type: "categorical"
+          categories: ["minimal", "low", "medium", "high", "excessive"]
+          
+    - name: "air_quality_conditions"
+      description: "Features derived from air quality conditions"
+      features:
+        - name: "air_quality_index"
+          description: "Overall air quality index"
+          formula: "air_quality_index * (1 - dust_particle_count / 1000) * (1 - chemical_contaminants / 100)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "air_flow_efficiency"
+          description: "Air flow efficiency"
+          formula: "air_flow_rate * air_pressure / 1000"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "contamination_index"
+          description: "Air contamination index"
+          formula: "dust_particle_count + chemical_contaminants + particle_count"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "air_quality_category"
+          description: "Air quality category"
+          formula: "categorize_air_quality(air_quality_index)"
+          type: "categorical"
+          categories: ["excellent", "good", "fair", "poor", "hazardous"]
+          
+    - name: "radiation_conditions"
+      description: "Features derived from radiation conditions"
+      features:
+        - name: "radiation_level"
+          description: "Overall radiation level"
+          formula: "radiation_level + magnetic_field_strength + electromagnetic_field_strength"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "electromagnetic_environment"
+          description: "Electromagnetic environment index"
+          formula: "1 / (magnetic_field_strength + electromagnetic_field_strength + electromagnetic_interference)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "radiation_category"
+          description: "Radiation level category"
+          formula: "categorize_radiation(radiation_level)"
+          type: "categorical"
+          categories: ["minimal", "low", "medium", "high", "excessive"]
+          
+    - name: "environmental_stability"
+      description: "Features related to environmental stability"
+      features:
+        - name: "overall_stability_index"
+          description: "Overall environmental stability index"
+          formula: "(temperature_stability + pressure_stability + electrical_stability + mechanical_stability) / 4"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "environmental_quality_score"
+          description: "Overall environmental quality score"
+          formula: "(atmosphere_purity_index + power_quality_index + air_quality_index + electromagnetic_environment) / 4"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "environmental_risk_index"
+          description: "Environmental risk index"
+          formula: "(contamination_level + electromagnetic_interference_level + vibration_level + radiation_level) / 4"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+        - name: "environmental_category"
+          description: "Overall environmental category"
+          formula: "categorize_environment(overall_stability_index, environmental_quality_score, environmental_risk_index)"
+          type: "categorical"
+          categories: ["excellent", "good", "fair", "poor", "critical"]
+          
+    - name: "temporal_features"
+      description: "Temporal features of environmental conditions"
+      features:
+        - name: "environmental_trend"
+          description: "Environmental trend over time"
+          formula: "calculate_trend([chamber_temperature, chamber_pressure, oxygen_content, power_quality_index])"
+          type: "numerical"
+          range: [-1.0, 1.0]
+          
+        - name: "environmental_volatility"
+          description: "Environmental volatility index"
+          formula: "std([chamber_temperature, chamber_pressure, oxygen_content, power_quality_index])"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "environmental_consistency"
+          description: "Environmental consistency index"
+          formula: "1 / (environmental_volatility + 1)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["atmosphere_purity_index", "gas_flow_efficiency", "atmosphere_stability", "contamination_level",
+                "temperature_stability", "thermal_gradient", "cooling_efficiency", "thermal_comfort_index",
+                "pressure_stability", "pressure_differential", "gas_pressure_efficiency", "power_quality_index",
+                "electrical_stability", "electromagnetic_interference_level", "ground_quality", "vibration_level",
+                "mechanical_stability", "air_quality_index", "air_flow_efficiency", "contamination_index",
+                "radiation_level", "electromagnetic_environment", "overall_stability_index", "environmental_quality_score",
+                "environmental_risk_index", "environmental_trend", "environmental_volatility", "environmental_consistency"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["atmosphere_category", "temperature_category", "pressure_category", "power_category",
+                "vibration_category", "air_quality_category", "radiation_category", "environmental_category"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 35
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "temperature_range_check"
+        condition: "chamber_temperature > 0 AND chamber_temperature < 500"
+        action: "flag_invalid"
+      - name: "pressure_range_check"
+        condition: "chamber_pressure > 0 AND chamber_pressure < 2000"
+        action: "flag_invalid"
+      - name: "oxygen_content_check"
+        condition: "oxygen_content >= 0 AND oxygen_content <= 1000"
+        action: "flag_invalid"
+      - name: "power_quality_check"
+        condition: "power_quality_index >= 0 AND power_quality_index <= 1"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["chamber_temperature", "chamber_pressure", "oxygen_content", "power_quality_index"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 20

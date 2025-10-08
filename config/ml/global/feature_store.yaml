@@ -1,0 +1,273 @@
+# Global Feature Store Configuration
+# Configuration for feature store management
+
+feature_store:
+  name: "pbf_lbm_feature_store"
+  version: "1.0.0"
+  description: "Global feature store configuration for PBF-LBM manufacturing"
+  
+  store:
+    type: "feast"
+    registry_path: "/data/feature_store/registry/"
+    online_store: "redis://redis-feature-store:6379"
+    offline_store: "s3://ml-feature-store/"
+    
+  features:
+    - name: "process_features"
+      description: "Process parameter features"
+      entities:
+        - "build_id"
+        - "timestamp"
+      features:
+        - name: "laser_power"
+          dtype: "float32"
+          description: "Laser power setting"
+        - name: "scan_speed"
+          dtype: "float32"
+          description: "Scan speed"
+        - name: "hatch_spacing"
+          dtype: "float32"
+          description: "Hatch spacing"
+        - name: "layer_thickness"
+          dtype: "float32"
+          description: "Layer thickness"
+        - name: "energy_density"
+          dtype: "float32"
+          description: "Energy density"
+      ttl: "1h"
+      
+    - name: "sensor_features"
+      description: "Sensor data features"
+      entities:
+        - "sensor_id"
+        - "timestamp"
+      features:
+        - name: "temperature"
+          dtype: "float32"
+          description: "Temperature reading"
+        - name: "vibration"
+          dtype: "float32"
+          description: "Vibration level"
+        - name: "pressure"
+          dtype: "float32"
+          description: "Pressure reading"
+        - name: "humidity"
+          dtype: "float32"
+          description: "Humidity level"
+      ttl: "1h"
+      
+    - name: "material_features"
+      description: "Material property features"
+      entities:
+        - "material_id"
+        - "batch_id"
+      features:
+        - name: "material_type"
+          dtype: "string"
+          description: "Material type"
+        - name: "powder_size"
+          dtype: "float32"
+          description: "Powder particle size"
+        - name: "flowability"
+          dtype: "float32"
+          description: "Powder flowability"
+        - name: "density"
+          dtype: "float32"
+          description: "Material density"
+      ttl: "24h"
+      
+    - name: "environmental_features"
+      description: "Environmental condition features"
+      entities:
+        - "location_id"
+        - "timestamp"
+      features:
+        - name: "ambient_temperature"
+          dtype: "float32"
+          description: "Ambient temperature"
+        - name: "humidity"
+          dtype: "float32"
+          description: "Humidity level"
+        - name: "pressure"
+          dtype: "float32"
+          description: "Atmospheric pressure"
+        - name: "air_quality"
+          dtype: "float32"
+          description: "Air quality index"
+      ttl: "1h"
+      
+    - name: "quality_features"
+      description: "Quality measurement features"
+      entities:
+        - "part_id"
+        - "timestamp"
+      features:
+        - name: "dimensional_accuracy"
+          dtype: "float32"
+          description: "Dimensional accuracy"
+        - name: "surface_roughness"
+          dtype: "float32"
+          description: "Surface roughness"
+        - name: "defect_count"
+          dtype: "int32"
+          description: "Number of defects"
+        - name: "quality_score"
+          dtype: "float32"
+          description: "Overall quality score"
+      ttl: "24h"
+      
+  data_sources:
+    - name: "process_data_source"
+      description: "Process parameter data source"
+      type: "file"
+      path: "/data/process_data/"
+      format: "parquet"
+      timestamp_field: "timestamp"
+      created_timestamp_column: "created_at"
+      
+    - name: "sensor_data_source"
+      description: "Sensor data source"
+      type: "kafka"
+      bootstrap_servers: "kafka:9092"
+      topic: "sensor_data"
+      timestamp_field: "timestamp"
+      created_timestamp_column: "created_at"
+      
+    - name: "material_data_source"
+      description: "Material data source"
+      type: "database"
+      connection_string: "postgresql://user:password@postgres:5432/materials"
+      table: "material_properties"
+      timestamp_field: "timestamp"
+      created_timestamp_column: "created_at"
+      
+    - name: "quality_data_source"
+      description: "Quality measurement data source"
+      type: "file"
+      path: "/data/quality_data/"
+      format: "parquet"
+      timestamp_field: "timestamp"
+      created_timestamp_column: "created_at"
+      
+  feature_engineering:
+    enabled: true
+    transformations:
+      - name: "normalization"
+        method: "standard_scaler"
+        features: ["laser_power", "scan_speed", "hatch_spacing", "layer_thickness"]
+      - name: "categorical_encoding"
+        method: "one_hot_encoding"
+        features: ["material_type", "build_orientation", "support_type"]
+      - name: "temporal_features"
+        method: "time_based_features"
+        features: ["timestamp"]
+        include: ["hour", "day_of_week", "month"]
+      - name: "lag_features"
+        method: "lag_features"
+        features: ["laser_power", "scan_speed", "hatch_spacing"]
+        lags: [1, 5, 10, 20]
+      - name: "rolling_features"
+        method: "rolling_features"
+        features: ["laser_power", "scan_speed", "hatch_spacing"]
+        windows: [5, 10, 20]
+        aggregations: ["mean", "std", "min", "max"]
+        
+  feature_monitoring:
+    enabled: true
+    frequency: "hourly"
+    metrics:
+      - name: "feature_completeness"
+        type: "gauge"
+        labels: ["feature_name", "feature_type"]
+      - name: "feature_quality"
+        type: "gauge"
+        labels: ["feature_name", "quality_metric"]
+      - name: "feature_drift"
+        type: "gauge"
+        labels: ["feature_name", "drift_metric"]
+      - name: "feature_latency"
+        type: "histogram"
+        labels: ["feature_name", "source"]
+    alerts:
+      - name: "low_completeness"
+        condition: "feature_completeness < 0.9"
+        severity: "warning"
+        duration: "5m"
+      - name: "high_drift"
+        condition: "feature_drift > 0.1"
+        severity: "critical"
+        duration: "2m"
+      - name: "high_latency"
+        condition: "feature_latency_p95 > 1000"
+        severity: "warning"
+        duration: "5m"
+        
+  feature_validation:
+    enabled: true
+    checks:
+      - name: "feature_completeness"
+        condition: "missing_value_ratio < 0.1"
+        action: "flag_incomplete"
+      - name: "feature_range"
+        condition: "feature_value in expected_range"
+        action: "flag_outlier"
+      - name: "feature_type"
+        condition: "feature_type_matches_schema"
+        action: "flag_type_mismatch"
+      - name: "feature_freshness"
+        condition: "feature_age < ttl"
+        action: "flag_stale"
+        
+  feature_storage:
+    online_store:
+      type: "redis"
+      connection_string: "redis://redis-feature-store:6379"
+      database: 0
+      key_prefix: "feast:"
+      key_ttl: 3600
+      max_connections: 100
+      retry_attempts: 3
+      retry_delay: 1000
+      timeout: 5000
+    offline_store:
+      type: "s3"
+      bucket: "ml-feature-store"
+      region: "us-west-2"
+      prefix: "offline/"
+      format: "parquet"
+      compression: "snappy"
+    registry:
+      type: "s3"
+      bucket: "ml-feature-store"
+      region: "us-west-2"
+      prefix: "registry/"
+      
+  feature_reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    recipients: ["ml_team", "data_team", "management"]
+    include_metrics:
+      - "feature_summary"
+      - "feature_quality"
+      - "feature_drift"
+      - "feature_usage"
+      - "trend_analysis"
+    dashboard:
+      enabled: true
+      url: "http://feast-dashboard:3000"
+      refresh_interval: "5_minutes"
+      
+  feature_integration:
+    mlflow:
+      enabled: true
+      tracking_uri: "http://mlflow:5000"
+      experiment_name: "feature-engineering"
+    kubernetes:
+      enabled: true
+      namespace: "ml-production"
+      service_account: "feast-feature-store"
+    monitoring:
+      enabled: true
+      prometheus_endpoint: "http://prometheus:9090"
+      grafana_endpoint: "http://grafana:3000"

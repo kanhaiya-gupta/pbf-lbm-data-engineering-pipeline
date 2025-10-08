@@ -1,0 +1,461 @@
+# Multi-Model Configuration
+# PBF-LB/M Data Pipeline - Multi-Model Data Routing and Consistency
+
+# Multi-Model Data Routing Configuration
+data_routing:
+  enabled: true
+  
+  # Data Model Routing Rules
+  routing_rules:
+    # PBF Process Data Routing
+    pbf_process_data:
+      primary_model: "document"  # MongoDB
+      secondary_models:
+        - "key_value"    # Redis cache
+        - "columnar"     # Cassandra time-series
+        - "search"       # Elasticsearch analytics
+        - "graph"        # Neo4j relationships
+      
+      routing_strategy: "parallel"
+      consistency_level: "eventual"
+      
+      model_priorities:
+        document: 1      # Primary storage
+        key_value: 2     # Caching layer
+        columnar: 3      # Time-series analytics
+        search: 4        # Search and analytics
+        graph: 5         # Relationship analysis
+    
+    # ISPM Monitoring Data Routing
+    ispm_monitoring_data:
+      primary_model: "columnar"  # Cassandra for time-series
+      secondary_models:
+        - "key_value"    # Redis real-time cache
+        - "document"     # MongoDB for complex queries
+        - "search"       # Elasticsearch for analytics
+      
+      routing_strategy: "sequential"
+      consistency_level: "strong"
+      
+      model_priorities:
+        columnar: 1      # Primary time-series storage
+        key_value: 2     # Real-time cache
+        document: 3      # Complex query storage
+        search: 4        # Analytics and search
+    
+    # CT Scan Data Routing
+    ct_scan_data:
+      primary_model: "document"  # MongoDB for complex data
+      secondary_models:
+        - "search"       # Elasticsearch for image analysis
+        - "graph"        # Neo4j for defect relationships
+        - "key_value"    # Redis for metadata cache
+      
+      routing_strategy: "conditional"
+      consistency_level: "eventual"
+      
+      model_priorities:
+        document: 1      # Primary storage
+        search: 2        # Image analysis
+        graph: 3         # Defect relationships
+        key_value: 4     # Metadata cache
+    
+    # Powder Bed Data Routing
+    powder_bed_data:
+      primary_model: "document"  # MongoDB
+      secondary_models:
+        - "columnar"     # Cassandra for metrics
+        - "search"       # Elasticsearch for analysis
+        - "key_value"    # Redis for real-time updates
+      
+      routing_strategy: "parallel"
+      consistency_level: "eventual"
+      
+      model_priorities:
+        document: 1      # Primary storage
+        columnar: 2      # Metrics storage
+        search: 3        # Analysis storage
+        key_value: 4     # Real-time cache
+
+  # Cross-Model Data Synchronization
+  synchronization:
+    enabled: true
+    
+    sync_strategies:
+      real_time_sync:
+        enabled: true
+        models: ["document", "key_value", "search"]
+        sync_interval: 1  # seconds
+        batch_size: 100
+        retry_attempts: 3
+      
+      batch_sync:
+        enabled: true
+        models: ["document", "columnar", "graph"]
+        sync_interval: 300  # 5 minutes
+        batch_size: 1000
+        retry_attempts: 3
+      
+      event_driven_sync:
+        enabled: true
+        models: ["key_value", "search", "graph"]
+        trigger_events: ["data_insert", "data_update", "data_delete"]
+        batch_size: 50
+        retry_attempts: 3
+    
+    conflict_resolution:
+      strategy: "last_write_wins"
+      timestamp_field: "updated_at"
+      version_field: "version"
+      merge_strategy: "field_level"
+      
+      field_priorities:
+        document: 1
+        columnar: 2
+        search: 3
+        key_value: 4
+        graph: 5
+
+# Data Consistency Configuration
+consistency:
+  enabled: true
+  
+  # Consistency Levels
+  consistency_levels:
+    strong:
+      description: "Immediate consistency across all models"
+      models: ["document", "columnar"]
+      use_cases: ["critical_process_data", "quality_metrics"]
+      performance_impact: "high"
+    
+    eventual:
+      description: "Consistency achieved within defined time window"
+      models: ["key_value", "search", "graph"]
+      use_cases: ["caching", "analytics", "relationships"]
+      performance_impact: "low"
+      max_inconsistency_window: 300  # 5 minutes
+    
+    session:
+      description: "Consistency within user session"
+      models: ["key_value", "search"]
+      use_cases: ["user_interfaces", "real_time_dashboards"]
+      performance_impact: "medium"
+      session_timeout: 1800  # 30 minutes
+  
+  # Consistency Validation
+  validation:
+    enabled: true
+    validation_interval: 3600  # 1 hour
+    validation_batch_size: 1000
+    
+    validation_rules:
+      data_integrity:
+        enabled: true
+        checks:
+          - "required_fields_present"
+          - "data_type_consistency"
+          - "value_range_validation"
+          - "referential_integrity"
+      
+      cross_model_consistency:
+        enabled: true
+        checks:
+          - "record_count_consistency"
+          - "key_value_consistency"
+          - "timestamp_consistency"
+          - "quality_metric_consistency"
+      
+      business_rule_consistency:
+        enabled: true
+        checks:
+          - "process_quality_thresholds"
+          - "material_type_validation"
+          - "sensor_data_ranges"
+          - "defect_severity_levels"
+    
+    error_handling:
+      inconsistency_detection: "log_and_alert"
+      auto_correction: false
+      manual_review_required: true
+      quarantine_inconsistent_data: true
+
+# Data Replication Configuration
+replication:
+  enabled: true
+  
+  # Replication Strategies
+  replication_strategies:
+    # Document Model Replication (MongoDB)
+    document_replication:
+      enabled: true
+      source_model: "document"
+      target_models: ["key_value", "search", "graph"]
+      
+      replication_rules:
+        real_time_replication:
+          enabled: true
+          trigger: "data_change"
+          batch_size: 100
+          retry_attempts: 3
+          retry_delay: 5
+        
+        batch_replication:
+          enabled: true
+          schedule: "0 */6 * * *"  # Every 6 hours
+          batch_size: 1000
+          retry_attempts: 3
+          retry_delay: 10
+      
+      transformation_rules:
+        document_to_key_value:
+          enabled: true
+          key_generation: "process_id:timestamp"
+          value_compression: true
+          ttl: 3600
+        
+        document_to_search:
+          enabled: true
+          text_processing: true
+          field_mapping: true
+          indexing_optimization: true
+        
+        document_to_graph:
+          enabled: true
+          relationship_extraction: true
+          node_creation: true
+          property_mapping: true
+    
+    # Columnar Model Replication (Cassandra)
+    columnar_replication:
+      enabled: true
+      source_model: "columnar"
+      target_models: ["document", "search"]
+      
+      replication_rules:
+        time_based_replication:
+          enabled: true
+          time_window: "1h"
+          batch_size: 500
+          retry_attempts: 3
+          retry_delay: 5
+        
+        aggregation_replication:
+          enabled: true
+          schedule: "0 0 * * *"  # Daily
+          aggregation_levels: ["hourly", "daily"]
+          batch_size: 1000
+          retry_attempts: 3
+          retry_delay: 10
+      
+      transformation_rules:
+        columnar_to_document:
+          enabled: true
+          aggregation: true
+          field_mapping: true
+          data_enrichment: true
+        
+        columnar_to_search:
+          enabled: true
+          time_series_indexing: true
+          metric_aggregation: true
+          trend_analysis: true
+    
+    # Key-Value Model Replication (Redis)
+    key_value_replication:
+      enabled: true
+      source_model: "key_value"
+      target_models: ["document", "columnar"]
+      
+      replication_rules:
+        ttl_based_replication:
+          enabled: true
+          ttl_threshold: 3600  # 1 hour
+          batch_size: 200
+          retry_attempts: 3
+          retry_delay: 2
+        
+        pattern_based_replication:
+          enabled: true
+          patterns: ["process:*", "sensor:*", "analytics:*"]
+          batch_size: 100
+          retry_attempts: 3
+          retry_delay: 2
+      
+      transformation_rules:
+        key_value_to_document:
+          enabled: true
+          key_parsing: true
+          value_deserialization: true
+          metadata_extraction: true
+        
+        key_value_to_columnar:
+          enabled: true
+          time_series_conversion: true
+          metric_extraction: true
+          aggregation: true
+
+# Performance Optimization
+performance:
+  enabled: true
+  
+  # Caching Strategy
+  caching:
+    enabled: true
+    cache_layers:
+      l1_cache:
+        type: "in_memory"
+        size: "512MB"
+        ttl: 300  # 5 minutes
+        eviction_policy: "LRU"
+      
+      l2_cache:
+        type: "redis"
+        size: "2GB"
+        ttl: 3600  # 1 hour
+        eviction_policy: "LRU"
+      
+      l3_cache:
+        type: "database"
+        size: "10GB"
+        ttl: 86400  # 24 hours
+        eviction_policy: "TTL"
+    
+    cache_invalidation:
+      strategy: "event_driven"
+      invalidation_events: ["data_update", "data_delete"]
+      cascade_invalidation: true
+      invalidation_timeout: 30  # seconds
+  
+  # Load Balancing
+  load_balancing:
+    enabled: true
+    strategy: "round_robin"
+    health_check_interval: 30  # seconds
+    failover_timeout: 60  # seconds
+    
+    model_priorities:
+      document: 1
+      columnar: 2
+      search: 3
+      key_value: 4
+      graph: 5
+  
+  # Connection Pooling
+  connection_pooling:
+    enabled: true
+    pool_configurations:
+      mongodb:
+        max_connections: 100
+        min_connections: 10
+        max_idle_time: 30000
+        connection_timeout: 10000
+      
+      redis:
+        max_connections: 50
+        min_connections: 5
+        max_idle_time: 300
+        connection_timeout: 5000
+      
+      cassandra:
+        max_connections: 20
+        min_connections: 2
+        max_idle_time: 300
+        connection_timeout: 10000
+      
+      elasticsearch:
+        max_connections: 20
+        min_connections: 2
+        max_idle_time: 300
+        connection_timeout: 30000
+      
+      neo4j:
+        max_connections: 20
+        min_connections: 2
+        max_idle_time: 300
+        connection_timeout: 30000
+
+# Monitoring and Metrics
+monitoring:
+  enabled: true
+  
+  # Multi-Model Metrics
+  metrics:
+    data_routing_metrics:
+      enabled: true
+      metrics_interval: 60  # seconds
+      metrics_to_collect:
+        - "routing_success_rate"
+        - "routing_latency"
+        - "routing_throughput"
+        - "routing_error_rate"
+    
+    consistency_metrics:
+      enabled: true
+      metrics_interval: 300  # 5 minutes
+      metrics_to_collect:
+        - "consistency_violations"
+        - "consistency_check_duration"
+        - "auto_correction_rate"
+        - "manual_review_count"
+    
+    replication_metrics:
+      enabled: true
+      metrics_interval: 60  # seconds
+      metrics_to_collect:
+        - "replication_lag"
+        - "replication_success_rate"
+        - "replication_throughput"
+        - "replication_error_rate"
+    
+    performance_metrics:
+      enabled: true
+      metrics_interval: 30  # seconds
+      metrics_to_collect:
+        - "cache_hit_rate"
+        - "connection_pool_utilization"
+        - "query_response_time"
+        - "throughput_per_model"
+  
+  # Alerting
+  alerting:
+    enabled: true
+    alert_rules:
+      high_routing_error_rate:
+        condition: "routing_error_rate > 0.05"
+        severity: "warning"
+        action: "notify"
+      
+      consistency_violations:
+        condition: "consistency_violations > 10"
+        severity: "warning"
+        action: "notify"
+      
+      replication_lag:
+        condition: "replication_lag > 300"  # 5 minutes
+        severity: "warning"
+        action: "notify"
+      
+      cache_hit_rate_low:
+        condition: "cache_hit_rate < 0.8"
+        severity: "info"
+        action: "log"
+      
+      connection_pool_exhaustion:
+        condition: "connection_pool_utilization > 0.9"
+        severity: "critical"
+        action: "page"
+  
+  # Dashboards
+  dashboards:
+    enabled: true
+    dashboard_url: "${GRAFANA_URL}"
+    refresh_interval: 30  # seconds
+    
+    panels:
+      - "multi_model_overview"
+      - "data_routing_performance"
+      - "consistency_monitoring"
+      - "replication_status"
+      - "performance_metrics"
+      - "error_rates"
+      - "throughput_analysis"

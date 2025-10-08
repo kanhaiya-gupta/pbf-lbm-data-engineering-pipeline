@@ -1,0 +1,292 @@
+# NoSQL Storage Configuration
+# PBF-LB/M Data Pipeline - NoSQL Database Storage Settings
+
+# MongoDB Configuration (Data Lake Layer)
+mongodb:
+  enabled: true
+  connection:
+    connection_string: "${MONGODB_CONNECTION_STRING}"
+    database_name: "${MONGODB_DATABASE_NAME}"
+    max_pool_size: 100
+    min_pool_size: 10
+    connect_timeout: 30000
+    socket_timeout: 30000
+    server_selection_timeout: 5000
+    heartbeat_frequency: 10000
+  
+  collections:
+    pbf_process_data:
+      indexes:
+        - keys: {process_id: 1}
+          options: {unique: true}
+        - keys: {timestamp: 1}
+        - keys: {material_info.material_type: 1}
+        - keys: {quality_metrics.density: 1}
+      
+    ispm_monitoring_data:
+      indexes:
+        - keys: {sensor_id: 1, timestamp: 1}
+        - keys: {process_id: 1}
+        - keys: {sensor_info.sensor_type: 1}
+        - keys: {anomaly_detection.is_anomaly: 1}
+      
+    ct_scan_data:
+      indexes:
+        - keys: {scan_id: 1}
+          options: {unique: true}
+        - keys: {process_id: 1}
+        - keys: {scan_parameters.scan_date: 1}
+        - keys: {defect_analysis.defect_count: 1}
+      
+    powder_bed_data:
+      indexes:
+        - keys: {bed_id: 1}
+          options: {unique: true}
+        - keys: {process_id: 1}
+        - keys: {powder_characteristics.material_type: 1}
+        - keys: {bed_quality_metrics.uniformity_score: 1}
+  
+  performance:
+    read_preference: "secondaryPreferred"
+    write_concern: "majority"
+    read_concern: "majority"
+    retry_writes: true
+    retry_reads: true
+
+# Redis Configuration (Operational Layer - Caching)
+redis:
+  enabled: true
+  connection:
+    host: "${REDIS_HOST}"
+    port: "${REDIS_PORT}"
+    password: "${REDIS_PASSWORD}"
+    db: 0
+    max_connections: 50
+    socket_timeout: 5
+    socket_connect_timeout: 5
+    retry_on_timeout: true
+  
+  cache_patterns:
+    process_cache:
+      pattern: "process:{process_id}:*"
+      ttl: 3600
+      max_memory: "100mb"
+    
+    sensor_cache:
+      pattern: "sensor:{sensor_id}:*"
+      ttl: 300
+      max_memory: "50mb"
+    
+    session_cache:
+      pattern: "session:{session_id}:*"
+      ttl: 1800
+      max_memory: "20mb"
+    
+    analytics_cache:
+      pattern: "analytics:{type}:*"
+      ttl: 7200
+      max_memory: "200mb"
+  
+  performance:
+    connection_pool_size: 20
+    socket_keepalive: true
+    socket_keepalive_options: {}
+
+# Cassandra Configuration (Operational Layer - Time Series)
+cassandra:
+  enabled: true
+  connection:
+    hosts: ["${CASSANDRA_HOST}"]
+    port: 9042
+    keyspace: "${CASSANDRA_KEYSPACE}"
+    username: "${CASSANDRA_USERNAME}"
+    password: "${CASSANDRA_PASSWORD}"
+    consistency_level: "LOCAL_ONE"
+    max_connections: 20
+    connect_timeout: 10000
+    read_timeout: 12000
+  
+  tables:
+    process_metrics:
+      replication_factor: 3
+      compression: "LZ4Compressor"
+      compaction: "TimeWindowCompactionStrategy"
+      gc_grace_seconds: 864000
+      
+    sensor_data:
+      replication_factor: 3
+      compression: "LZ4Compressor"
+      compaction: "TimeWindowCompactionStrategy"
+      gc_grace_seconds: 864000
+      
+    quality_metrics:
+      replication_factor: 3
+      compression: "LZ4Compressor"
+      compaction: "SizeTieredCompactionStrategy"
+      gc_grace_seconds: 864000
+  
+  performance:
+    prepared_statements: true
+    default_fetch_size: 5000
+    max_schema_agreement_wait: 10000
+
+# Elasticsearch Configuration (Data Warehouse Layer - Search)
+elasticsearch:
+  enabled: true
+  connection:
+    hosts: ["${ELASTICSEARCH_HOST}"]
+    username: "${ELASTICSEARCH_USERNAME}"
+    password: "${ELASTICSEARCH_PASSWORD}"
+    max_retries: 3
+    timeout: 30
+    max_connections: 20
+    retry_on_timeout: true
+  
+  indices:
+    pbf_process_data:
+      shards: 3
+      replicas: 1
+      refresh_interval: "30s"
+      max_result_window: 100000
+      
+    ispm_monitoring_data:
+      shards: 2
+      replicas: 1
+      refresh_interval: "10s"
+      max_result_window: 50000
+      
+    ct_scan_data:
+      shards: 2
+      replicas: 1
+      refresh_interval: "60s"
+      max_result_window: 25000
+      
+    powder_bed_data:
+      shards: 2
+      replicas: 1
+      refresh_interval: "30s"
+      max_result_window: 25000
+  
+  performance:
+    bulk_size: 1000
+    bulk_timeout: "30s"
+    max_retries: 3
+    retry_delay: 1
+
+# Neo4j Configuration (Operational Layer - Graph)
+neo4j:
+  enabled: true
+  connection:
+    uri: "${NEO4J_URI}"
+    username: "${NEO4J_USERNAME}"
+    password: "${NEO4J_PASSWORD}"
+    database: "${NEO4J_DATABASE}"
+    max_connections: 20
+    connection_timeout: 30
+    max_transaction_retry_time: 30
+  
+  constraints:
+    process_id_unique: "CREATE CONSTRAINT process_id_unique IF NOT EXISTS FOR (p:Process) REQUIRE p.process_id IS UNIQUE"
+    material_type_unique: "CREATE CONSTRAINT material_type_unique IF NOT EXISTS FOR (m:Material) REQUIRE m.material_type IS UNIQUE"
+    machine_id_unique: "CREATE CONSTRAINT machine_id_unique IF NOT EXISTS FOR (m:Machine) REQUIRE m.machine_id IS UNIQUE"
+    sensor_id_unique: "CREATE CONSTRAINT sensor_id_unique IF NOT EXISTS FOR (s:Sensor) REQUIRE s.sensor_id IS UNIQUE"
+  
+  indexes:
+    process_timestamp: "CREATE INDEX process_timestamp_index IF NOT EXISTS FOR (p:Process) ON (p.timestamp)"
+    material_properties: "CREATE INDEX material_properties_index IF NOT EXISTS FOR (m:Material) ON (m.properties)"
+    machine_type: "CREATE INDEX machine_type_index IF NOT EXISTS FOR (m:Machine) ON (m.machine_type)"
+    sensor_type: "CREATE INDEX sensor_type_index IF NOT EXISTS FOR (s:Sensor) ON (s.sensor_type)"
+  
+  performance:
+    max_transaction_retry_time: 30
+    connection_liveness_check_timeout: 0
+    max_connection_lifetime: 3600
+
+# Connection Pooling Configuration
+connection_pooling:
+  mongodb:
+    max_pool_size: 100
+    min_pool_size: 10
+    max_idle_time: 30000
+    wait_queue_timeout: 10000
+  
+  redis:
+    max_connections: 50
+    min_connections: 5
+    max_idle_time: 300
+    connection_timeout: 5000
+  
+  cassandra:
+    max_connections: 20
+    min_connections: 2
+    max_idle_time: 300
+    connection_timeout: 10000
+  
+  elasticsearch:
+    max_connections: 20
+    min_connections: 2
+    max_idle_time: 300
+    connection_timeout: 30000
+  
+  neo4j:
+    max_connections: 20
+    min_connections: 2
+    max_idle_time: 300
+    connection_timeout: 30000
+
+# Health Check Configuration
+health_checks:
+  enabled: true
+  interval: 30
+  timeout: 10
+  retry_count: 3
+  
+  mongodb:
+    check_query: "db.runCommand('ping')"
+    expected_result: {"ok": 1}
+  
+  redis:
+    check_command: "PING"
+    expected_result: "PONG"
+  
+  cassandra:
+    check_query: "SELECT now() FROM system.local"
+    expected_result: "timestamp"
+  
+  elasticsearch:
+    check_endpoint: "/_cluster/health"
+    expected_status: 200
+  
+  neo4j:
+    check_query: "RETURN 1"
+    expected_result: 1
+
+# Backup and Recovery Configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 30
+  
+  mongodb:
+    backup_type: "mongodump"
+    compression: true
+    include_indexes: true
+  
+  redis:
+    backup_type: "rdb"
+    compression: true
+  
+  cassandra:
+    backup_type: "nodetool"
+    compression: true
+    incremental: true
+  
+  elasticsearch:
+    backup_type: "snapshot"
+    repository: "s3_backup"
+    compression: true
+  
+  neo4j:
+    backup_type: "neo4j-admin"
+    compression: true
+    include_indexes: true

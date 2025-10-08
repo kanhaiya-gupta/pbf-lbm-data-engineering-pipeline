@@ -1,0 +1,270 @@
+# Build Parameter Features Configuration
+# Feature engineering for build parameters in PBF-LBM processes
+
+features:
+  name: "build_parameter_features"
+  version: "1.0.0"
+  description: "Feature engineering for build parameters in PBF-LBM manufacturing"
+  
+  input_schema:
+    required_fields:
+      - "build_id"
+      - "timestamp"
+      - "equipment_id"
+      - "material_type"
+    optional_fields:
+      - "build_orientation_x"
+      - "build_orientation_y"
+      - "build_orientation_z"
+      - "support_density"
+      - "support_angle"
+      - "part_volume"
+      - "part_surface_area"
+      - "wall_thickness"
+      - "overhang_angle"
+      - "build_height"
+      - "layer_count"
+      - "build_time"
+      - "support_volume"
+      - "support_contact_area"
+      
+  feature_groups:
+    - name: "orientation_features"
+      description: "Features derived from build orientation"
+      features:
+        - name: "build_orientation_magnitude"
+          description: "Magnitude of build orientation vector"
+          formula: "sqrt(build_orientation_x^2 + build_orientation_y^2 + build_orientation_z^2)"
+          type: "numerical"
+          range: [0.0, 1.732]
+          
+        - name: "build_orientation_angle_xy"
+          description: "Angle of build orientation in XY plane"
+          formula: "atan2(build_orientation_y, build_orientation_x)"
+          type: "numerical"
+          range: [-3.14159, 3.14159]
+          
+        - name: "build_orientation_angle_xz"
+          description: "Angle of build orientation in XZ plane"
+          formula: "atan2(build_orientation_z, build_orientation_x)"
+          type: "numerical"
+          range: [-3.14159, 3.14159]
+          
+        - name: "build_orientation_angle_yz"
+          description: "Angle of build orientation in YZ plane"
+          formula: "atan2(build_orientation_z, build_orientation_y)"
+          type: "numerical"
+          range: [-3.14159, 3.14159]
+          
+        - name: "build_orientation_category"
+          description: "Categorical build orientation"
+          formula: "categorize_orientation(build_orientation_x, build_orientation_y, build_orientation_z)"
+          type: "categorical"
+          categories: ["horizontal", "vertical", "angled_30", "angled_45", "angled_60", "complex"]
+          
+    - name: "geometry_features"
+      description: "Features derived from part geometry"
+      features:
+        - name: "aspect_ratio"
+          description: "Part aspect ratio (max_dimension/min_dimension)"
+          formula: "max(part_dimensions) / min(part_dimensions)"
+          type: "numerical"
+          range: [1.0, 100.0]
+          
+        - name: "surface_to_volume_ratio"
+          description: "Surface area to volume ratio"
+          formula: "part_surface_area / part_volume"
+          type: "numerical"
+          range: [0.1, 100.0]
+          
+        - name: "complexity_index"
+          description: "Part complexity index"
+          formula: "surface_to_volume_ratio * overhang_angle / 90.0"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "wall_thickness_category"
+          description: "Wall thickness category"
+          formula: "categorize_thickness(wall_thickness)"
+          type: "categorical"
+          categories: ["thin", "medium", "thick", "very_thick"]
+          
+        - name: "overhang_complexity"
+          description: "Overhang complexity score"
+          formula: "overhang_angle * overhang_area_ratio"
+          type: "numerical"
+          range: [0.0, 90.0]
+          
+        - name: "build_height_category"
+          description: "Build height category"
+          formula: "categorize_height(build_height)"
+          type: "categorical"
+          categories: ["low", "medium", "high", "very_high"]
+          
+    - name: "support_features"
+      description: "Features derived from support structure parameters"
+      features:
+        - name: "support_volume_ratio"
+          description: "Ratio of support volume to part volume"
+          formula: "support_volume / part_volume"
+          type: "numerical"
+          range: [0.0, 2.0]
+          
+        - name: "support_density_category"
+          description: "Support density category"
+          formula: "categorize_density(support_density)"
+          type: "categorical"
+          categories: ["low", "medium", "high", "very_high"]
+          
+        - name: "support_angle_category"
+          description: "Support angle category"
+          formula: "categorize_angle(support_angle)"
+          type: "categorical"
+          categories: ["shallow", "medium", "steep", "vertical"]
+          
+        - name: "support_contact_ratio"
+          description: "Ratio of support contact area to part surface area"
+          formula: "support_contact_area / part_surface_area"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "support_efficiency"
+          description: "Support structure efficiency"
+          formula: "support_contact_ratio / support_volume_ratio"
+          type: "numerical"
+          range: [0.0, 10.0]
+          
+    - name: "build_process_features"
+      description: "Features derived from build process parameters"
+      features:
+        - name: "build_time_per_volume"
+          description: "Build time per unit volume"
+          formula: "build_time / part_volume"
+          type: "numerical"
+          range: [0.001, 10.0]
+          
+        - name: "layer_density"
+          description: "Layer density (layers per unit height)"
+          formula: "layer_count / build_height"
+          type: "numerical"
+          range: [10.0, 1000.0]
+          
+        - name: "build_efficiency"
+          description: "Build efficiency metric"
+          formula: "part_volume / (build_time * support_volume_ratio)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "material_utilization"
+          description: "Material utilization efficiency"
+          formula: "part_volume / (part_volume + support_volume)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "build_complexity_score"
+          description: "Overall build complexity score"
+          formula: "complexity_index * support_volume_ratio * overhang_complexity / 100"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+    - name: "interaction_features"
+      description: "Features derived from parameter interactions"
+      features:
+        - name: "orientation_geometry_interaction"
+          description: "Interaction between orientation and geometry"
+          formula: "build_orientation_magnitude * aspect_ratio"
+          type: "numerical"
+          range: [0.0, 173.2]
+          
+        - name: "support_orientation_interaction"
+          description: "Interaction between support and orientation"
+          formula: "support_volume_ratio * build_orientation_magnitude"
+          type: "numerical"
+          range: [0.0, 3.464]
+          
+        - name: "geometry_support_interaction"
+          description: "Interaction between geometry and support"
+          formula: "complexity_index * support_density / 100"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "build_time_complexity_interaction"
+          description: "Interaction between build time and complexity"
+          formula: "build_time_per_volume * build_complexity_score"
+          type: "numerical"
+          range: [0.0, 1000.0]
+          
+    - name: "statistical_features"
+      description: "Statistical features across build parameters"
+      features:
+        - name: "parameter_variance"
+          description: "Variance of build parameters"
+          formula: "var([build_orientation_x, build_orientation_y, build_orientation_z, support_density, support_angle])"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "parameter_range"
+          description: "Range of build parameters"
+          formula: "max(build_parameters) - min(build_parameters)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "parameter_mean"
+          description: "Mean of build parameters"
+          formula: "mean([build_orientation_x, build_orientation_y, build_orientation_z, support_density, support_angle])"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "parameter_std"
+          description: "Standard deviation of build parameters"
+          formula: "std([build_orientation_x, build_orientation_y, build_orientation_z, support_density, support_angle])"
+          type: "numerical"
+          range: [0.0, 50.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["build_orientation_magnitude", "build_orientation_angle_xy", "build_orientation_angle_xz", 
+                "build_orientation_angle_yz", "aspect_ratio", "surface_to_volume_ratio", "complexity_index",
+                "overhang_complexity", "support_volume_ratio", "support_contact_ratio", "support_efficiency",
+                "build_time_per_volume", "layer_density", "build_efficiency", "material_utilization",
+                "build_complexity_score", "orientation_geometry_interaction", "support_orientation_interaction",
+                "geometry_support_interaction", "build_time_complexity_interaction", "parameter_variance",
+                "parameter_range", "parameter_mean", "parameter_std"]
+    encoding:
+      method: "one_hot_encoding"
+      features: ["build_orientation_category", "wall_thickness_category", "build_height_category",
+                "support_density_category", "support_angle_category"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 30
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "orientation_magnitude_check"
+        condition: "build_orientation_magnitude <= 1.732"
+        action: "flag_invalid"
+      - name: "aspect_ratio_check"
+        condition: "aspect_ratio >= 1.0"
+        action: "flag_invalid"
+      - name: "support_volume_ratio_check"
+        condition: "support_volume_ratio >= 0.0 AND support_volume_ratio <= 2.0"
+        action: "flag_invalid"
+      - name: "build_complexity_check"
+        condition: "build_complexity_score >= 0.0 AND build_complexity_score <= 100.0"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["build_orientation_magnitude", "aspect_ratio", "support_volume_ratio", "build_complexity_score"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 10

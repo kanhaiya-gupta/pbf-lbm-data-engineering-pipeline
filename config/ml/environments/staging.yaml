@@ -1,0 +1,514 @@
+# Staging Environment Configuration
+# Configuration for staging environment ML services
+
+environment:
+  name: "staging"
+  description: "Staging environment for ML services testing and validation"
+  
+  infrastructure:
+    cluster:
+      type: "kubernetes"
+      namespace: "ml-staging"
+      node_pool: "ml-staging-nodes"
+      resources:
+        cpu_limit: "8"
+        memory_limit: "16Gi"
+        storage_limit: "100Gi"
+        
+    networking:
+      ingress:
+        enabled: true
+        host: "ml-staging.company.com"
+        tls:
+          enabled: true
+          cert_manager: "letsencrypt"
+      service_mesh:
+        enabled: true
+        type: "istio"
+        version: "1.19"
+        
+    storage:
+      persistent_volumes:
+        - name: "ml-models"
+          size: "50Gi"
+          storage_class: "fast-ssd"
+          access_mode: "ReadWriteMany"
+        - name: "ml-data"
+          size: "100Gi"
+          storage_class: "standard"
+          access_mode: "ReadWriteMany"
+        - name: "ml-logs"
+          size: "20Gi"
+          storage_class: "standard"
+          access_mode: "ReadWriteMany"
+          
+  services:
+    mlflow:
+      enabled: true
+      replicas: 2
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "2000m"
+          memory: "4Gi"
+      database:
+        type: "postgresql"
+        host: "postgres-staging"
+        port: 5432
+        database: "mlflow_staging"
+        username: "mlflow"
+        password_secret: "mlflow-postgres-password"
+      storage:
+        type: "s3"
+        bucket: "mlflow-staging"
+        region: "us-west-2"
+      tracking_uri: "http://mlflow-staging:5000"
+      
+    feast:
+      enabled: true
+      replicas: 2
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "2000m"
+          memory: "4Gi"
+      registry:
+        type: "s3"
+        bucket: "feast-staging"
+        path: "registry/"
+      online_store:
+        type: "redis"
+        host: "redis-staging"
+        port: 6379
+        db: 0
+      offline_store:
+        type: "bigquery"
+        project: "ml-staging-project"
+        dataset: "feast_staging"
+        
+    monitoring:
+      prometheus:
+        enabled: true
+        replicas: 1
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        retention: "15d"
+        scrape_interval: "30s"
+        
+      grafana:
+        enabled: true
+        replicas: 1
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        dashboards:
+          - name: "ml-models"
+            url: "http://grafana-staging:3000/d/ml-models"
+          - name: "ml-pipelines"
+            url: "http://grafana-staging:3000/d/ml-pipelines"
+          - name: "ml-serving"
+            url: "http://grafana-staging:3000/d/ml-serving"
+            
+      elasticsearch:
+        enabled: true
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "2Gi"
+          limits:
+            cpu: "2000m"
+            memory: "8Gi"
+        storage:
+          size: "50Gi"
+          storage_class: "fast-ssd"
+          
+      kibana:
+        enabled: true
+        replicas: 1
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+            
+    databases:
+      postgresql:
+        enabled: true
+        replicas: 1
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        storage:
+          size: "20Gi"
+          storage_class: "fast-ssd"
+        database: "ml_staging"
+        username: "ml_user"
+        password_secret: "postgres-ml-password"
+        
+      redis:
+        enabled: true
+        replicas: 2
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        storage:
+          size: "10Gi"
+          storage_class: "fast-ssd"
+        persistence:
+          enabled: true
+          snapshot_interval: "1h"
+          
+    message_queues:
+      kafka:
+        enabled: true
+        replicas: 3
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        storage:
+          size: "50Gi"
+          storage_class: "fast-ssd"
+        topics:
+          - name: "ml-predictions"
+            partitions: 3
+            replication_factor: 2
+          - name: "ml-events"
+            partitions: 3
+            replication_factor: 2
+          - name: "ml-monitoring"
+            partitions: 3
+            replication_factor: 2
+            
+  ml_services:
+    model_serving:
+      enabled: true
+      replicas: 2
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "2000m"
+          memory: "4Gi"
+      models:
+        - name: "quality_assessment"
+          version: "latest"
+          endpoint: "/api/v1/quality/predict"
+        - name: "maintenance"
+          version: "latest"
+          endpoint: "/api/v1/maintenance/predict"
+        - name: "process_optimization"
+          version: "latest"
+          endpoint: "/api/v1/process/optimize"
+          
+    feature_store:
+      enabled: true
+      replicas: 2
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "2000m"
+          memory: "4Gi"
+      features:
+        - name: "process_features"
+          ttl: "1h"
+        - name: "sensor_features"
+          ttl: "1h"
+        - name: "material_features"
+          ttl: "24h"
+        - name: "environmental_features"
+          ttl: "1h"
+          
+    model_training:
+      enabled: true
+      replicas: 1
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "4Gi"
+        limits:
+          cpu: "4000m"
+          memory: "16Gi"
+      gpu:
+        enabled: false
+        type: "nvidia-tesla-t4"
+        count: 0
+      training_data:
+        source: "s3://ml-training-data-staging/"
+        format: "parquet"
+        validation_split: 0.2
+        test_split: 0.1
+        
+    model_evaluation:
+      enabled: true
+      replicas: 1
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "2Gi"
+        limits:
+          cpu: "2000m"
+          memory: "8Gi"
+      evaluation_data:
+        source: "s3://ml-evaluation-data-staging/"
+        format: "parquet"
+        metrics:
+          - "accuracy"
+          - "precision"
+          - "recall"
+          - "f1_score"
+          - "mae"
+          - "rmse"
+          - "r2_score"
+          
+  data_sources:
+    training_data:
+      type: "s3"
+      bucket: "ml-training-data-staging"
+      region: "us-west-2"
+      prefix: "training/"
+      format: "parquet"
+      compression: "snappy"
+      
+    validation_data:
+      type: "s3"
+      bucket: "ml-validation-data-staging"
+      region: "us-west-2"
+      prefix: "validation/"
+      format: "parquet"
+      compression: "snappy"
+      
+    test_data:
+      type: "s3"
+      bucket: "ml-test-data-staging"
+      region: "us-west-2"
+      prefix: "test/"
+      format: "parquet"
+      compression: "snappy"
+      
+    production_data:
+      type: "s3"
+      bucket: "ml-production-data-staging"
+      region: "us-west-2"
+      prefix: "production/"
+      format: "parquet"
+      compression: "snappy"
+      
+  security:
+    authentication:
+      enabled: true
+      type: "oauth2"
+      provider: "auth0"
+      client_id: "ml-staging-client"
+      client_secret_secret: "auth0-client-secret"
+      audience: "ml-staging-api"
+      
+    authorization:
+      enabled: true
+      type: "rbac"
+      roles:
+        - name: "ml_engineer"
+          permissions: ["read", "write", "train", "deploy"]
+        - name: "data_scientist"
+          permissions: ["read", "write", "train"]
+        - name: "operator"
+          permissions: ["read", "predict"]
+        - name: "admin"
+          permissions: ["read", "write", "train", "deploy", "admin"]
+          
+    network_policies:
+      enabled: true
+      default_deny: true
+      allowed_ingress:
+        - from: "ml-staging-namespace"
+        - from: "monitoring-namespace"
+        - from: "ingress-namespace"
+      allowed_egress:
+        - to: "ml-staging-namespace"
+        - to: "monitoring-namespace"
+        - to: "external-s3"
+        - to: "external-auth0"
+        
+    secrets_management:
+      enabled: true
+      type: "vault"
+      vault_url: "https://vault-staging.company.com"
+      role: "ml-staging-role"
+      policies:
+        - "ml-staging-read"
+        - "ml-staging-write"
+        
+  monitoring:
+    logging:
+      level: "INFO"
+      format: "json"
+      fields:
+        - "timestamp"
+        - "level"
+        - "message"
+        - "service"
+        - "request_id"
+        - "user_id"
+      retention_days: 30
+      
+    metrics:
+      enabled: true
+      collection_interval: "30s"
+      retention_days: 15
+      custom_metrics:
+        - name: "model_accuracy"
+          type: "gauge"
+          labels: ["model_name", "version"]
+        - name: "prediction_latency"
+          type: "histogram"
+          labels: ["model_name", "endpoint"]
+        - name: "training_duration"
+          type: "histogram"
+          labels: ["model_name", "dataset_size"]
+        - name: "feature_quality"
+          type: "gauge"
+          labels: ["feature_name", "feature_type"]
+          
+    alerting:
+      enabled: true
+      channels: ["slack", "email"]
+      rules:
+        - name: "high_error_rate"
+          condition: "error_rate > 0.05"
+          severity: "warning"
+          duration: "5m"
+        - name: "high_latency"
+          condition: "prediction_latency_p95 > 1000"
+          severity: "warning"
+          duration: "5m"
+        - name: "low_accuracy"
+          condition: "model_accuracy < 0.8"
+          severity: "critical"
+          duration: "10m"
+        - name: "high_memory_usage"
+          condition: "memory_usage > 0.9"
+          severity: "warning"
+          duration: "5m"
+        - name: "high_cpu_usage"
+          condition: "cpu_usage > 0.9"
+          severity: "warning"
+          duration: "5m"
+          
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"
+    retention_days: 30
+    destinations:
+      - type: "s3"
+        bucket: "ml-backup-staging"
+        region: "us-west-2"
+        prefix: "backups/"
+    include:
+      - "databases"
+      - "models"
+      - "configurations"
+      - "logs"
+    exclude:
+      - "temp_files"
+      - "cache"
+      
+  disaster_recovery:
+    enabled: true
+    rto: "4_hours"
+    rpo: "1_hour"
+    backup_frequency: "daily"
+    test_frequency: "monthly"
+    recovery_procedures:
+      - name: "database_recovery"
+        estimated_time: "2_hours"
+        dependencies: ["postgresql", "redis"]
+      - name: "model_recovery"
+        estimated_time: "1_hour"
+        dependencies: ["mlflow", "s3"]
+      - name: "service_recovery"
+        estimated_time: "1_hour"
+        dependencies: ["kubernetes", "ingress"]
+        
+  testing:
+    enabled: true
+    test_types:
+      - "unit_tests"
+      - "integration_tests"
+      - "load_tests"
+      - "security_tests"
+    test_data:
+      source: "s3://ml-test-data-staging/"
+      format: "parquet"
+      size: "1GB"
+    test_models:
+      - name: "quality_assessment"
+        test_cases: 1000
+        expected_accuracy: 0.85
+      - name: "maintenance"
+        test_cases: 1000
+        expected_accuracy: 0.9
+      - name: "process_optimization"
+        test_cases: 1000
+        expected_accuracy: 0.8
+        
+  deployment:
+    strategy: "rolling_update"
+    max_unavailable: 1
+    max_surge: 1
+    health_check:
+      enabled: true
+      initial_delay: 30
+      period: 10
+      timeout: 5
+      failure_threshold: 3
+      success_threshold: 1
+    rollback:
+      enabled: true
+      automatic: false
+      threshold: 0.1
+      
+  scaling:
+    horizontal_pod_autoscaler:
+      enabled: true
+      min_replicas: 2
+      max_replicas: 10
+      target_cpu_utilization: 70
+      target_memory_utilization: 80
+      scale_up_stabilization: "1m"
+      scale_down_stabilization: "5m"
+    vertical_pod_autoscaler:
+      enabled: true
+      update_mode: "Auto"
+      resource_policy:
+        cpu: "100m-2000m"
+        memory: "128Mi-4Gi"

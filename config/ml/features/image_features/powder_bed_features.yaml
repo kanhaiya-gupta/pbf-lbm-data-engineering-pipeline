@@ -1,0 +1,552 @@
+# Powder Bed Features Configuration
+# Feature engineering for powder bed image analysis in PBF-LBM processes
+
+features:
+  name: "powder_bed_features"
+  version: "1.0.0"
+  description: "Feature engineering for powder bed image analysis in PBF-LBM manufacturing"
+  
+  input_schema:
+    required_fields:
+      - "timestamp"
+      - "camera_id"
+      - "image_data"
+    optional_fields:
+      - "image_width"
+      - "image_height"
+      - "image_channels"
+      - "image_format"
+      - "camera_position_x"
+      - "camera_position_y"
+      - "camera_position_z"
+      - "camera_angle_x"
+      - "camera_angle_y"
+      - "camera_angle_z"
+      - "lighting_conditions"
+      - "powder_type"
+      - "powder_particle_size"
+      - "powder_density"
+      - "powder_flowability"
+      - "powder_moisture_content"
+      - "powder_contamination_level"
+      - "bed_temperature"
+      - "bed_pressure"
+      - "bed_level"
+      - "bed_flatness"
+      - "bed_roughness"
+      - "bed_porosity"
+      - "bed_density"
+      - "bed_thickness"
+      - "bed_area"
+      - "bed_volume"
+      - "spread_speed"
+      - "spread_pressure"
+      - "spread_temperature"
+      - "spread_angle"
+      - "spread_distance"
+      - "spread_time"
+      - "spread_quality"
+      - "spread_consistency"
+      - "spread_uniformity"
+      - "spread_coverage"
+      - "spread_density"
+      - "spread_thickness"
+      - "spread_roughness"
+      - "spread_porosity"
+      - "spread_contamination"
+      - "spread_defects"
+      - "spread_anomalies"
+      - "spread_quality_score"
+      - "image_quality_score"
+      - "noise_level"
+      - "contrast_level"
+      - "brightness_level"
+      - "sharpness_level"
+      - "resolution_level"
+      - "focus_quality"
+      - "exposure_quality"
+      - "white_balance_quality"
+      - "color_accuracy"
+      - "geometric_distortion"
+      - "lens_aberration"
+      - "vignetting"
+      - "chromatic_aberration"
+      - "barrel_distortion"
+      - "pincushion_distortion"
+      - "tilt_shift"
+      - "perspective_distortion"
+      - "radial_distortion"
+      - "tangential_distortion"
+      
+  feature_groups:
+    - name: "basic_image_features"
+      description: "Basic image features from powder bed images"
+      features:
+        - name: "mean_intensity"
+          description: "Mean pixel intensity"
+          formula: "mean(image_data)"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "std_intensity"
+          description: "Standard deviation of pixel intensity"
+          formula: "std(image_data)"
+          type: "numerical"
+          range: [0.0, 128.0]
+          
+        - name: "min_intensity"
+          description: "Minimum pixel intensity"
+          formula: "min(image_data)"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "max_intensity"
+          description: "Maximum pixel intensity"
+          formula: "max(image_data)"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "intensity_range"
+          description: "Range of pixel intensities"
+          formula: "max_intensity - min_intensity"
+          type: "numerical"
+          range: [0.0, 255.0]
+          
+        - name: "intensity_variance"
+          description: "Variance of pixel intensities"
+          formula: "var(image_data)"
+          type: "numerical"
+          range: [0.0, 16384.0]
+          
+        - name: "intensity_skewness"
+          description: "Skewness of pixel intensity distribution"
+          formula: "skewness(image_data)"
+          type: "numerical"
+          range: [-3.0, 3.0]
+          
+        - name: "intensity_kurtosis"
+          description: "Kurtosis of pixel intensity distribution"
+          formula: "kurtosis(image_data)"
+          type: "numerical"
+          range: [0.0, 10.0]
+          
+    - name: "texture_features"
+      description: "Texture features from powder bed images"
+      features:
+        - name: "contrast"
+          description: "Image contrast"
+          formula: "std_intensity / mean_intensity"
+          type: "numerical"
+          range: [0.0, 2.0]
+          
+        - name: "homogeneity"
+          description: "Image homogeneity"
+          formula: "calculate_homogeneity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "energy"
+          description: "Image energy"
+          formula: "calculate_energy(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "entropy"
+          description: "Image entropy"
+          formula: "calculate_entropy(image_data)"
+          type: "numerical"
+          range: [0.0, 8.0]
+          
+        - name: "correlation"
+          description: "Image correlation"
+          formula: "calculate_correlation(image_data)"
+          type: "numerical"
+          range: [-1.0, 1.0]
+          
+        - name: "dissimilarity"
+          description: "Image dissimilarity"
+          formula: "calculate_dissimilarity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "angular_second_moment"
+          description: "Angular second moment"
+          formula: "calculate_asm(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "inverse_difference_moment"
+          description: "Inverse difference moment"
+          formula: "calculate_idm(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "powder_distribution_features"
+      description: "Features related to powder distribution"
+      features:
+        - name: "powder_coverage"
+          description: "Powder coverage percentage"
+          formula: "calculate_powder_coverage(image_data)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "powder_uniformity"
+          description: "Powder distribution uniformity"
+          formula: "calculate_powder_uniformity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "powder_density_variation"
+          description: "Powder density variation"
+          formula: "std(powder_density_map)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "powder_thickness_variation"
+          description: "Powder thickness variation"
+          formula: "std(powder_thickness_map)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "powder_roughness"
+          description: "Powder surface roughness"
+          formula: "calculate_powder_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "powder_porosity"
+          description: "Powder porosity percentage"
+          formula: "calculate_powder_porosity(image_data)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "powder_compaction"
+          description: "Powder compaction level"
+          formula: "calculate_powder_compaction(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "powder_flow_pattern"
+          description: "Powder flow pattern indicator"
+          formula: "calculate_powder_flow_pattern(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "defect_detection_features"
+      description: "Features for defect detection in powder bed"
+      features:
+        - name: "defect_count"
+          description: "Number of defects detected"
+          formula: "count_defects(image_data)"
+          type: "numerical"
+          range: [0, 1000]
+          
+        - name: "defect_density"
+          description: "Defect density per unit area"
+          formula: "defect_count / bed_area"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "defect_size_distribution"
+          description: "Distribution of defect sizes"
+          formula: "calculate_defect_size_distribution(image_data)"
+          type: "vector"
+          dimension: 10
+          
+        - name: "defect_severity"
+          description: "Average defect severity"
+          formula: "mean(defect_severities)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "defect_type_distribution"
+          description: "Distribution of defect types"
+          formula: "calculate_defect_type_distribution(image_data)"
+          type: "vector"
+          dimension: 5
+          
+        - name: "defect_clustering"
+          description: "Defect clustering index"
+          formula: "calculate_defect_clustering(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "defect_orientation"
+          description: "Dominant defect orientation"
+          formula: "calculate_defect_orientation(image_data)"
+          type: "numerical"
+          range: [0.0, 180.0]
+          
+        - name: "defect_regularity"
+          description: "Defect regularity index"
+          formula: "calculate_defect_regularity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "surface_quality_features"
+      description: "Features related to surface quality"
+      features:
+        - name: "surface_smoothness"
+          description: "Surface smoothness index"
+          formula: "calculate_surface_smoothness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "surface_flatness"
+          description: "Surface flatness index"
+          formula: "calculate_surface_flatness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "surface_levelness"
+          description: "Surface levelness index"
+          formula: "calculate_surface_levelness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "surface_consistency"
+          description: "Surface consistency index"
+          formula: "calculate_surface_consistency(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "surface_regularity"
+          description: "Surface regularity index"
+          formula: "calculate_surface_regularity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "surface_homogeneity"
+          description: "Surface homogeneity index"
+          formula: "calculate_surface_homogeneity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "surface_quality_score"
+          description: "Overall surface quality score"
+          formula: "(surface_smoothness + surface_flatness + surface_levelness + surface_consistency + surface_regularity + surface_homogeneity) / 6"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "geometric_features"
+      description: "Geometric features from powder bed images"
+      features:
+        - name: "bed_area"
+          description: "Powder bed area"
+          formula: "calculate_bed_area(image_data)"
+          type: "numerical"
+          range: [0.0, 1000000.0]
+          
+        - name: "bed_perimeter"
+          description: "Powder bed perimeter"
+          formula: "calculate_bed_perimeter(image_data)"
+          type: "numerical"
+          range: [0.0, 10000.0]
+          
+        - name: "bed_aspect_ratio"
+          description: "Powder bed aspect ratio"
+          formula: "calculate_bed_aspect_ratio(image_data)"
+          type: "numerical"
+          range: [0.1, 10.0]
+          
+        - name: "bed_compactness"
+          description: "Powder bed compactness"
+          formula: "calculate_bed_compactness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "bed_circularity"
+          description: "Powder bed circularity"
+          formula: "calculate_bed_circularity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "bed_elongation"
+          description: "Powder bed elongation"
+          formula: "calculate_bed_elongation(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "bed_rectangularity"
+          description: "Powder bed rectangularity"
+          formula: "calculate_bed_rectangularity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "bed_solidity"
+          description: "Powder bed solidity"
+          formula: "calculate_bed_solidity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "spread_quality_features"
+      description: "Features related to spread quality"
+      features:
+        - name: "spread_uniformity"
+          description: "Spread uniformity index"
+          formula: "calculate_spread_uniformity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spread_consistency"
+          description: "Spread consistency index"
+          formula: "calculate_spread_consistency(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spread_coverage"
+          description: "Spread coverage percentage"
+          formula: "calculate_spread_coverage(image_data)"
+          type: "numerical"
+          range: [0.0, 100.0]
+          
+        - name: "spread_density"
+          description: "Spread density index"
+          formula: "calculate_spread_density(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spread_thickness"
+          description: "Spread thickness"
+          formula: "calculate_spread_thickness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spread_roughness"
+          description: "Spread roughness"
+          formula: "calculate_spread_roughness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spread_porosity"
+          description: "Spread porosity"
+          formula: "calculate_spread_porosity(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "spread_quality_score"
+          description: "Overall spread quality score"
+          formula: "(spread_uniformity + spread_consistency + spread_coverage + spread_density) / 4"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+    - name: "image_quality_features"
+      description: "Features related to image quality"
+      features:
+        - name: "image_sharpness"
+          description: "Image sharpness"
+          formula: "calculate_image_sharpness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_contrast"
+          description: "Image contrast"
+          formula: "calculate_image_contrast(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_brightness"
+          description: "Image brightness"
+          formula: "calculate_image_brightness(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_noise_level"
+          description: "Image noise level"
+          formula: "calculate_image_noise(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_resolution"
+          description: "Image resolution"
+          formula: "calculate_image_resolution(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_focus_quality"
+          description: "Image focus quality"
+          formula: "calculate_focus_quality(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_exposure_quality"
+          description: "Image exposure quality"
+          formula: "calculate_exposure_quality(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_white_balance_quality"
+          description: "Image white balance quality"
+          formula: "calculate_white_balance_quality(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_color_accuracy"
+          description: "Image color accuracy"
+          formula: "calculate_color_accuracy(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_geometric_distortion"
+          description: "Image geometric distortion"
+          formula: "calculate_geometric_distortion(image_data)"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+        - name: "image_quality_score"
+          description: "Overall image quality score"
+          formula: "(image_sharpness + image_contrast + image_brightness + image_resolution + image_focus_quality + image_exposure_quality + image_white_balance_quality + image_color_accuracy) / 8"
+          type: "numerical"
+          range: [0.0, 1.0]
+          
+  preprocessing:
+    scaling:
+      method: "robust_scaler"
+      features: ["mean_intensity", "std_intensity", "min_intensity", "max_intensity", "intensity_range",
+                "intensity_variance", "intensity_skewness", "intensity_kurtosis", "contrast", "homogeneity",
+                "energy", "entropy", "correlation", "dissimilarity", "angular_second_moment",
+                "inverse_difference_moment", "powder_coverage", "powder_uniformity", "powder_density_variation",
+                "powder_thickness_variation", "powder_roughness", "powder_porosity", "powder_compaction",
+                "powder_flow_pattern", "defect_count", "defect_density", "defect_severity", "defect_clustering",
+                "defect_orientation", "defect_regularity", "surface_smoothness", "surface_flatness",
+                "surface_levelness", "surface_consistency", "surface_regularity", "surface_homogeneity",
+                "surface_quality_score", "bed_area", "bed_perimeter", "bed_aspect_ratio", "bed_compactness",
+                "bed_circularity", "bed_elongation", "bed_rectangularity", "bed_solidity", "spread_uniformity",
+                "spread_consistency", "spread_coverage", "spread_density", "spread_thickness", "spread_roughness",
+                "spread_porosity", "spread_quality_score", "image_sharpness", "image_contrast", "image_brightness",
+                "image_noise_level", "image_resolution", "image_focus_quality", "image_exposure_quality",
+                "image_white_balance_quality", "image_color_accuracy", "image_geometric_distortion",
+                "image_quality_score"]
+    feature_selection:
+      method: "mutual_info_regression"
+      k_best: 60
+      threshold: 0.01
+      
+  validation:
+    business_rules:
+      - name: "image_dimensions_check"
+        condition: "image_width > 0 AND image_height > 0"
+        action: "flag_invalid"
+      - name: "intensity_range_check"
+        condition: "min_intensity >= 0 AND max_intensity <= 255"
+        action: "flag_invalid"
+      - name: "powder_coverage_check"
+        condition: "powder_coverage >= 0 AND powder_coverage <= 100"
+        action: "flag_invalid"
+      - name: "quality_score_check"
+        condition: "surface_quality_score >= 0 AND surface_quality_score <= 1"
+        action: "flag_invalid"
+        
+  monitoring:
+    drift_detection:
+      enabled: true
+      method: "psi"
+      threshold: 0.1
+      features: ["mean_intensity", "contrast", "powder_coverage", "surface_quality_score"]
+    performance_monitoring:
+      enabled: true
+      metrics: ["feature_completeness", "feature_quality", "processing_time"]
+      alert_thresholds:
+        feature_completeness: 0.95
+        feature_quality: 0.9
+        processing_time_seconds: 35

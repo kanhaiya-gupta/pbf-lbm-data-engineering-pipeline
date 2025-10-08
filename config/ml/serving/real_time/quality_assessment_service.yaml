@@ -1,0 +1,401 @@
+# Quality Assessment Service Configuration
+# Real-time quality assessment service for PBF-LBM manufacturing
+
+service:
+  name: "quality_assessment_service"
+  version: "1.0.0"
+  description: "Real-time quality assessment service for PBF-LBM manufacturing"
+  
+  deployment:
+    type: "kubernetes"
+    namespace: "ml-services"
+    replicas: 3
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "2000m"
+        memory: "4Gi"
+    autoscaling:
+      enabled: true
+      min_replicas: 2
+      max_replicas: 10
+      target_cpu_utilization: 70
+      target_memory_utilization: 80
+      
+  models:
+    - name: "quality_score_predictor"
+      model_path: "/models/quality_assessment/quality_score_predictor/latest/"
+      model_type: "regression"
+      framework: "scikit-learn"
+      input_schema:
+        required_fields:
+          - "laser_power"
+          - "scan_speed"
+          - "hatch_spacing"
+          - "layer_thickness"
+          - "energy_density"
+        optional_fields:
+          - "build_temperature"
+          - "material_type"
+          - "build_orientation"
+      output_schema:
+        fields:
+          - name: "quality_score"
+            type: "float"
+            range: [0.0, 1.0]
+          - name: "confidence"
+            type: "float"
+            range: [0.0, 1.0]
+          - name: "prediction_time"
+            type: "float"
+            unit: "milliseconds"
+            
+    - name: "dimensional_accuracy_predictor"
+      model_path: "/models/quality_assessment/dimensional_accuracy_predictor/latest/"
+      model_type: "regression"
+      framework: "scikit-learn"
+      input_schema:
+        required_fields:
+          - "laser_power"
+          - "scan_speed"
+          - "hatch_spacing"
+          - "layer_thickness"
+          - "contour_speed"
+          - "contour_power"
+        optional_fields:
+          - "build_orientation"
+          - "material_type"
+          - "part_volume"
+      output_schema:
+        fields:
+          - name: "dimensional_accuracy_x"
+            type: "float"
+            unit: "micrometers"
+          - name: "dimensional_accuracy_y"
+            type: "float"
+            unit: "micrometers"
+          - name: "dimensional_accuracy_z"
+            type: "float"
+            unit: "micrometers"
+          - name: "surface_roughness_ra"
+            type: "float"
+            unit: "micrometers"
+          - name: "form_tolerance"
+            type: "float"
+            unit: "micrometers"
+            
+    - name: "surface_finish_predictor"
+      model_path: "/models/quality_assessment/surface_finish_predictor/latest/"
+      model_type: "regression"
+      framework: "scikit-learn"
+      input_schema:
+        required_fields:
+          - "laser_power"
+          - "scan_speed"
+          - "hatch_spacing"
+          - "layer_thickness"
+          - "contour_speed"
+          - "contour_power"
+        optional_fields:
+          - "surface_angle"
+          - "material_type"
+          - "build_orientation"
+      output_schema:
+        fields:
+          - name: "surface_roughness_ra"
+            type: "float"
+            unit: "micrometers"
+          - name: "surface_roughness_rz"
+            type: "float"
+            unit: "micrometers"
+          - name: "surface_roughness_rq"
+            type: "float"
+            unit: "micrometers"
+          - name: "waviness_wa"
+            type: "float"
+            unit: "micrometers"
+          - name: "surface_porosity"
+            type: "float"
+            unit: "percent"
+          - name: "surface_hardness"
+            type: "float"
+            unit: "HV"
+            
+    - name: "mechanical_property_predictor"
+      model_path: "/models/quality_assessment/mechanical_property_predictor/latest/"
+      model_type: "regression"
+      framework: "xgboost"
+      input_schema:
+        required_fields:
+          - "laser_power"
+          - "scan_speed"
+          - "hatch_spacing"
+          - "layer_thickness"
+          - "energy_density"
+        optional_fields:
+          - "build_temperature"
+          - "material_type"
+          - "heat_treatment_temperature"
+      output_schema:
+        fields:
+          - name: "tensile_strength"
+            type: "float"
+            unit: "MPa"
+          - name: "yield_strength"
+            type: "float"
+            unit: "MPa"
+          - name: "elongation"
+            type: "float"
+            unit: "percent"
+          - name: "hardness"
+            type: "float"
+            unit: "HV"
+          - name: "fatigue_strength"
+            type: "float"
+            unit: "MPa"
+          - name: "fracture_toughness"
+            type: "float"
+            unit: "MPa·m^0.5"
+          - name: "elastic_modulus"
+            type: "float"
+            unit: "GPa"
+          - name: "thermal_conductivity"
+            type: "float"
+            unit: "W/m·K"
+            
+  api:
+    endpoints:
+      - name: "predict_quality"
+        path: "/api/v1/quality/predict"
+        method: "POST"
+        description: "Predict quality metrics for given process parameters"
+        input_schema:
+          type: "object"
+          required: ["process_parameters"]
+          properties:
+            process_parameters:
+              type: "object"
+              properties:
+                laser_power:
+                  type: "number"
+                  minimum: 50
+                  maximum: 1000
+                scan_speed:
+                  type: "number"
+                  minimum: 100
+                  maximum: 2000
+                hatch_spacing:
+                  type: "number"
+                  minimum: 0.05
+                  maximum: 0.3
+                layer_thickness:
+                  type: "number"
+                  minimum: 0.02
+                  maximum: 0.1
+                energy_density:
+                  type: "number"
+                  minimum: 10
+                  maximum: 500
+                build_temperature:
+                  type: "number"
+                  minimum: 20
+                  maximum: 200
+                material_type:
+                  type: "string"
+                  enum: ["Ti6Al4V", "Inconel718", "AlSi10Mg", "316L", "CoCr", "MaragingSteel"]
+                build_orientation:
+                  type: "string"
+                  enum: ["horizontal", "vertical", "angled_30", "angled_45", "angled_60"]
+        output_schema:
+          type: "object"
+          properties:
+            quality_score:
+              type: "number"
+              minimum: 0
+              maximum: 1
+            dimensional_accuracy:
+              type: "object"
+              properties:
+                x: { type: "number" }
+                y: { type: "number" }
+                z: { type: "number" }
+            surface_finish:
+              type: "object"
+              properties:
+                roughness_ra: { type: "number" }
+                roughness_rz: { type: "number" }
+                roughness_rq: { type: "number" }
+            mechanical_properties:
+              type: "object"
+              properties:
+                tensile_strength: { type: "number" }
+                yield_strength: { type: "number" }
+                elongation: { type: "number" }
+                hardness: { type: "number" }
+            confidence:
+              type: "number"
+              minimum: 0
+              maximum: 1
+            prediction_time:
+              type: "number"
+              unit: "milliseconds"
+            timestamp:
+              type: "string"
+              format: "date-time"
+              
+      - name: "health_check"
+        path: "/api/v1/health"
+        method: "GET"
+        description: "Health check endpoint"
+        output_schema:
+          type: "object"
+          properties:
+            status:
+              type: "string"
+              enum: ["healthy", "unhealthy"]
+            timestamp:
+              type: "string"
+              format: "date-time"
+            version:
+              type: "string"
+            models_loaded:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  name: { type: "string" }
+                  status: { type: "string" }
+                  version: { type: "string" }
+                  
+  performance:
+    latency:
+      target_p95: 100
+      target_p99: 200
+      unit: "milliseconds"
+    throughput:
+      target_rps: 1000
+      unit: "requests_per_second"
+    availability:
+      target: 99.9
+      unit: "percent"
+      
+  monitoring:
+    metrics:
+      - name: "request_count"
+        type: "counter"
+        labels: ["endpoint", "status_code"]
+      - name: "request_duration"
+        type: "histogram"
+        labels: ["endpoint"]
+        buckets: [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0]
+      - name: "model_prediction_time"
+        type: "histogram"
+        labels: ["model_name"]
+        buckets: [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0]
+      - name: "model_accuracy"
+        type: "gauge"
+        labels: ["model_name"]
+      - name: "active_connections"
+        type: "gauge"
+      - name: "memory_usage"
+        type: "gauge"
+      - name: "cpu_usage"
+        type: "gauge"
+        
+    alerts:
+      - name: "high_latency"
+        condition: "request_duration_p95 > 200"
+        severity: "warning"
+        duration: "5m"
+      - name: "high_error_rate"
+        condition: "error_rate > 0.05"
+        severity: "critical"
+        duration: "2m"
+      - name: "model_accuracy_degradation"
+        condition: "model_accuracy < 0.85"
+        severity: "warning"
+        duration: "10m"
+      - name: "high_memory_usage"
+        condition: "memory_usage > 0.9"
+        severity: "warning"
+        duration: "5m"
+      - name: "high_cpu_usage"
+        condition: "cpu_usage > 0.9"
+        severity: "warning"
+        duration: "5m"
+        
+  security:
+    authentication:
+      enabled: true
+      type: "jwt"
+      issuer: "ml-services-auth"
+      audience: "quality-assessment-service"
+    authorization:
+      enabled: true
+      rbac:
+        roles:
+          - name: "quality_engineer"
+            permissions: ["read", "predict"]
+          - name: "operator"
+            permissions: ["predict"]
+          - name: "admin"
+            permissions: ["read", "write", "admin"]
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 1000
+      burst_size: 100
+    cors:
+      enabled: true
+      allowed_origins: ["*"]
+      allowed_methods: ["GET", "POST"]
+      allowed_headers: ["Content-Type", "Authorization"]
+      
+  logging:
+    level: "INFO"
+    format: "json"
+    fields:
+      - "timestamp"
+      - "level"
+      - "message"
+      - "request_id"
+      - "user_id"
+      - "endpoint"
+      - "duration"
+      - "status_code"
+    retention_days: 30
+    
+  feature_store:
+    enabled: true
+    type: "feast"
+    registry_path: "/data/feature_store/registry/"
+    online_store:
+      type: "redis"
+      host: "redis-feature-store"
+      port: 6379
+      db: 0
+    features:
+      - name: "process_features"
+        ttl: "1_hour"
+      - name: "material_features"
+        ttl: "24_hours"
+      - name: "environmental_features"
+        ttl: "1_hour"
+        
+  model_management:
+    auto_update:
+      enabled: true
+      check_interval: "1_hour"
+      staging_validation: true
+    a_b_testing:
+      enabled: true
+      traffic_split: 0.1
+      metrics:
+        - "accuracy"
+        - "latency"
+        - "throughput"
+    rollback:
+      enabled: true
+      automatic: false
+      threshold: 0.05

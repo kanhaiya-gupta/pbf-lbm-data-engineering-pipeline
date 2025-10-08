@@ -1,0 +1,275 @@
+# PBF-LB/M Data Pipeline - CT Scan Data Source Configuration
+# This file contains CT scan data source specific configurations
+
+ct_scan:
+  # Data source information
+  source_info:
+    name: "CT Scan Data"
+    description: "CT scan data from S3 storage"
+    type: "s3"
+    priority: "medium"
+    enabled: true
+    
+  # Connection configuration
+  connection:
+    bucket: "pbf-lbm-ct-scans"
+    region: "us-east-1"
+    endpoint: "${S3_ENDPOINT_URL}"
+    access_key: "${AWS_ACCESS_KEY_ID}"
+    secret_key: "${AWS_SECRET_ACCESS_KEY}"
+    prefix: "raw/"
+    file_format: "parquet"
+    
+  # Data extraction settings
+  extraction:
+    batch_size: 1000
+    timeout_minutes: 120
+    retry_attempts: 3
+    retry_delay_seconds: 10
+    
+    # Batch extraction
+    batch:
+      enabled: true
+      schedule: "0 2 * * *"  # Daily at 2 AM
+      
+    # Streaming extraction
+    streaming:
+      enabled: false
+      
+  # Data schema
+  schema:
+    columns:
+      - name: "scan_id"
+        type: "VARCHAR"
+        nullable: false
+        primary_key: true
+        
+      - name: "process_id"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "timestamp"
+        type: "TIMESTAMP"
+        nullable: false
+        
+      - name: "voxel_dimensions"
+        type: "ARRAY"
+        nullable: false
+        
+      - name: "resolution"
+        type: "DECIMAL"
+        nullable: false
+        
+      - name: "file_path"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "file_size"
+        type: "BIGINT"
+        nullable: false
+        
+      - name: "quality_score"
+        type: "DECIMAL"
+        nullable: true
+        
+      - name: "defect_count"
+        type: "INTEGER"
+        nullable: true
+        
+      - name: "defect_types"
+        type: "ARRAY"
+        nullable: true
+        
+      - name: "processing_status"
+        type: "VARCHAR"
+        nullable: false
+        
+      - name: "metadata"
+        type: "JSON"
+        nullable: true
+        
+  # Data quality rules
+  quality_rules:
+    - name: "scan_id_not_null"
+      type: "not_null"
+      column: "scan_id"
+      severity: "error"
+      
+    - name: "process_id_not_null"
+      type: "not_null"
+      column: "process_id"
+      severity: "error"
+      
+    - name: "timestamp_not_null"
+      type: "not_null"
+      column: "timestamp"
+      severity: "error"
+      
+    - name: "voxel_dimensions_not_null"
+      type: "not_null"
+      column: "voxel_dimensions"
+      severity: "error"
+      
+    - name: "resolution_positive"
+      type: "greater_than"
+      column: "resolution"
+      value: 0
+      severity: "error"
+      
+    - name: "file_path_not_null"
+      type: "not_null"
+      column: "file_path"
+      severity: "error"
+      
+    - name: "file_size_positive"
+      type: "greater_than"
+      column: "file_size"
+      value: 0
+      severity: "error"
+      
+    - name: "quality_score_range"
+      type: "range"
+      column: "quality_score"
+      min_value: 0.0
+      max_value: 1.0
+      severity: "warning"
+      
+    - name: "defect_count_positive"
+      type: "greater_than_or_equal"
+      column: "defect_count"
+      value: 0
+      severity: "warning"
+      
+    - name: "processing_status_valid"
+      type: "in_list"
+      column: "processing_status"
+      values: ["pending", "processing", "completed", "failed"]
+      severity: "error"
+      
+  # Data transformation rules
+  transformations:
+    - name: "extract_ct_metadata"
+      type: "sql"
+      query: |
+        SELECT 
+          scan_id,
+          process_id,
+          timestamp,
+          voxel_dimensions,
+          resolution,
+          file_path,
+          file_size,
+          quality_score,
+          defect_count,
+          defect_types,
+          processing_status,
+          metadata
+        FROM source_data
+        WHERE scan_id IS NOT NULL
+          AND process_id IS NOT NULL
+          AND timestamp IS NOT NULL
+          AND voxel_dimensions IS NOT NULL
+          AND resolution > 0
+          AND file_path IS NOT NULL
+          AND file_size > 0
+          
+    - name: "calculate_scan_metrics"
+      type: "sql"
+      query: |
+        SELECT *,
+          voxel_dimensions[0] * voxel_dimensions[1] * voxel_dimensions[2] as total_voxels,
+          file_size / 1024 / 1024 as file_size_mb,
+          CASE 
+            WHEN quality_score >= 0.9 THEN 'excellent'
+            WHEN quality_score >= 0.7 THEN 'good'
+            WHEN quality_score >= 0.5 THEN 'fair'
+            WHEN quality_score >= 0.3 THEN 'poor'
+            ELSE 'unacceptable'
+          END as quality_tier,
+          CASE 
+            WHEN defect_count = 0 THEN 'no_defects'
+            WHEN defect_count <= 5 THEN 'few_defects'
+            WHEN defect_count <= 20 THEN 'moderate_defects'
+            ELSE 'many_defects'
+          END as defect_severity
+        FROM extracted_data
+        
+    - name: "validate_defect_types"
+      type: "sql"
+      query: |
+        SELECT *,
+          CASE 
+            WHEN 'porosity' = ANY(defect_types) THEN true
+            ELSE false
+          END as has_porosity,
+          CASE 
+            WHEN 'crack' = ANY(defect_types) THEN true
+            ELSE false
+          END as has_cracks,
+          CASE 
+            WHEN 'delamination' = ANY(defect_types) THEN true
+            ELSE false
+          END as has_delamination,
+          CASE 
+            WHEN 'warpage' = ANY(defect_types) THEN true
+            ELSE false
+          END as has_warpage
+        FROM calculated_data
+        
+  # Data target configuration
+  target:
+    database: "PBF_LBM_DW"
+    schema: "PUBLIC"
+    table: "fct_ct_scan"
+    write_mode: "append"
+    
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    health_check_interval: 3600  # 1 hour
+    metrics_collection: true
+    alert_thresholds:
+      file_processing_timeout: 180  # 3 minutes
+      quality_score_threshold: 0.7
+      defect_count_threshold: 50
+      
+  # Security configuration
+  security:
+    encryption_enabled: true
+    authentication_required: true
+    ssl_enabled: true
+    audit_logging: true
+    
+  # File processing configuration
+  file_processing:
+    supported_formats: ["parquet", "json", "csv"]
+    max_file_size_mb: 1000
+    compression: "snappy"
+    partitioning:
+      enabled: true
+      columns: ["process_id", "year", "month", "day"]
+      
+  # Defect analysis configuration
+  defect_analysis:
+    enabled: true
+    algorithms:
+      - name: "porosity_detection"
+        enabled: true
+        threshold: 0.1
+        
+      - name: "crack_detection"
+        enabled: true
+        threshold: 0.05
+        
+      - name: "delamination_detection"
+        enabled: true
+        threshold: 0.02
+        
+      - name: "warpage_detection"
+        enabled: true
+        threshold: 0.1
+        
+    alerting:
+      enabled: true
+      channels: ["email", "slack"]
+      severity_threshold: 0.8

@@ -1,0 +1,107 @@
+# Global ML Configuration
+# Main configuration file for ML system
+
+ml_system:
+  name: "pbf_lbm_ml_system"
+  version: "1.0.0"
+  description: "Global ML configuration for PBF-LBM manufacturing system"
+  
+  system_info:
+    environment: "production"
+    cluster: "kubernetes"
+    namespace: "ml-production"
+    region: "us-west-2"
+    timezone: "UTC"
+    
+  models:
+    quality_assessment:
+      enabled: true
+      version: "latest"
+      endpoint: "/api/v1/quality"
+      replicas: 3
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+        
+    maintenance:
+      enabled: true
+      version: "latest"
+      endpoint: "/api/v1/maintenance"
+      replicas: 2
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+        
+    process_optimization:
+      enabled: true
+      version: "latest"
+      endpoint: "/api/v1/process"
+      replicas: 2
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+        
+    defect_detection:
+      enabled: true
+      version: "latest"
+      endpoint: "/api/v1/defect"
+      replicas: 2
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+        
+    material_analysis:
+      enabled: true
+      version: "latest"
+      endpoint: "/api/v1/material"
+      replicas: 2
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+        
+  feature_store:
+    enabled: true
+    type: "feast"
+    registry_path: "/data/feature_store/registry/"
+    online_store: "redis://redis-feature-store:6379"
+    offline_store: "s3://ml-feature-store/"
+    
+  model_registry:
+    enabled: true
+    type: "mlflow"
+    tracking_uri: "http://mlflow:5000"
+    registry_uri: "s3://mlflow-registry/"
+    
+  monitoring:
+    enabled: true
+    prometheus_endpoint: "http://prometheus:9090"
+    grafana_endpoint: "http://grafana:3000"
+    elasticsearch_endpoint: "http://elasticsearch:9200"
+    
+  security:
+    authentication:
+      enabled: true
+      type: "oauth2"
+      provider: "auth0"
+      
+    authorization:
+      enabled: true
+      type: "rbac"
+      
+    network_policies:
+      enabled: true
+      default_deny: true
+      
+  backup:
+    enabled: true
+    schedule: "0 1 * * *"
+    retention_days: 90
+    destinations:
+      - "s3://ml-backup-production/"
+      
+  disaster_recovery:
+    enabled: true
+    rto: "2_hours"
+    rpo: "30_minutes"
+    backup_frequency: "daily"
+    test_frequency: "weekly"

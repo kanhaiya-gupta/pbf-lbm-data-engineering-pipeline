@@ -1,0 +1,63 @@
+# Feast Feature Definitions Configuration
+# Feature definitions for PBF-LBM manufacturing
+
+features:
+  - name: "process_features"
+    description: "Process parameter features"
+    entities:
+      - "build_id"
+      - "timestamp"
+    features:
+      - name: "laser_power"
+        dtype: "float32"
+        description: "Laser power setting"
+      - name: "scan_speed"
+        dtype: "float32"
+        description: "Scan speed"
+      - name: "hatch_spacing"
+        dtype: "float32"
+        description: "Hatch spacing"
+      - name: "layer_thickness"
+        dtype: "float32"
+        description: "Layer thickness"
+      - name: "energy_density"
+        dtype: "float32"
+        description: "Energy density"
+        
+  - name: "sensor_features"
+    description: "Sensor data features"
+    entities:
+      - "sensor_id"
+      - "timestamp"
+    features:
+      - name: "temperature"
+        dtype: "float32"
+        description: "Temperature reading"
+      - name: "vibration"
+        dtype: "float32"
+        description: "Vibration level"
+      - name: "pressure"
+        dtype: "float32"
+        description: "Pressure reading"
+      - name: "humidity"
+        dtype: "float32"
+        description: "Humidity level"
+        
+  - name: "material_features"
+    description: "Material property features"
+    entities:
+      - "material_id"
+      - "batch_id"
+    features:
+      - name: "material_type"
+        dtype: "string"
+        description: "Material type"
+      - name: "powder_size"
+        dtype: "float32"
+        description: "Powder particle size"
+      - name: "flowability"
+        dtype: "float32"
+        description: "Powder flowability"
+      - name: "density"
+        dtype: "float32"
+        description: "Material density"

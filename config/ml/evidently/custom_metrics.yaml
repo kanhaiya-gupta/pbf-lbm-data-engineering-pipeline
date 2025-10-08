@@ -1,0 +1,75 @@
+# Evidently Custom Metrics Configuration
+# Configuration for custom metrics monitoring
+
+custom_metrics:
+  name: "evidently_custom_metrics"
+  version: "1.0.0"
+  description: "Custom metrics monitoring configuration for PBF-LBM models"
+  
+  metrics:
+    - name: "prediction_confidence"
+      type: "numerical"
+      description: "Model prediction confidence"
+      threshold: 0.8
+      aggregation: "mean"
+      
+    - name: "prediction_latency"
+      type: "numerical"
+      description: "Model prediction latency"
+      threshold: 1000
+      aggregation: "p95"
+      unit: "milliseconds"
+      
+    - name: "feature_importance_stability"
+      type: "numerical"
+      description: "Feature importance stability"
+      threshold: 0.1
+      aggregation: "mean"
+      
+    - name: "model_uncertainty"
+      type: "numerical"
+      description: "Model uncertainty measure"
+      threshold: 0.2
+      aggregation: "mean"
+      
+    - name: "prediction_distribution_shift"
+      type: "numerical"
+      description: "Prediction distribution shift"
+      threshold: 0.1
+      aggregation: "mean"
+      
+    - name: "data_quality_score"
+      type: "numerical"
+      description: "Overall data quality score"
+      threshold: 0.9
+      aggregation: "mean"
+      
+    - name: "model_explainability_score"
+      type: "numerical"
+      description: "Model explainability score"
+      threshold: 0.8
+      aggregation: "mean"
+      
+    - name: "prediction_consistency"
+      type: "numerical"
+      description: "Prediction consistency across time"
+      threshold: 0.9
+      aggregation: "mean"
+      
+  monitoring:
+    frequency: "hourly"
+    window_size: "24_hours"
+    min_samples: 100
+    
+  alerting:
+    enabled: true
+    channels: ["slack", "email"]
+    thresholds:
+      warning: 0.05
+      critical: 0.1
+      
+  reporting:
+    enabled: true
+    frequency: "daily"
+    format: "html"
+    dashboard_url: "http://evidently-dashboard:3000"
