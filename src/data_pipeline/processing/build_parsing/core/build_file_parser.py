@@ -23,12 +23,32 @@ from ..format_parsers.realizer_parser import RealizerParser
 from ..format_parsers.slm_parser import SLMParser
 from ..format_parsers.generic_parser import GenericParser
 
-# Import data extractors
-from ..data_extractors.power_extractor import PowerExtractor
-from ..data_extractors.velocity_extractor import VelocityExtractor
-from ..data_extractors.path_extractor import PathExtractor
-from ..data_extractors.energy_extractor import EnergyExtractor
-from ..data_extractors.layer_extractor import LayerExtractor
+# Import format-specific data extractors
+from ..data_extractors.slm.power_extractor import PowerExtractor as SLMPowerExtractor
+from ..data_extractors.slm.velocity_extractor import VelocityExtractor as SLMVelocityExtractor
+from ..data_extractors.slm.path_extractor import PathExtractor as SLMPathExtractor
+from ..data_extractors.slm.energy_extractor import EnergyExtractor as SLMEnergyExtractor
+from ..data_extractors.slm.layer_extractor import LayerExtractor as SLMLayerExtractor
+
+from ..data_extractors.sli.power_extractor import PowerExtractor as SLIPowerExtractor
+from ..data_extractors.sli.velocity_extractor import VelocityExtractor as SLIVelocityExtractor
+from ..data_extractors.sli.path_extractor import PathExtractor as SLIPathExtractor
+from ..data_extractors.sli.energy_extractor import EnergyExtractor as SLIEnergyExtractor
+from ..data_extractors.sli.layer_extractor import LayerExtractor as SLILayerExtractor
+
+from ..data_extractors.mtt.power_extractor import PowerExtractor as MTTPowerExtractor
+from ..data_extractors.mtt.velocity_extractor import VelocityExtractor as MTTVelocityExtractor
+from ..data_extractors.mtt.path_extractor import PathExtractor as MTTPathExtractor
+from ..data_extractors.mtt.energy_extractor import EnergyExtractor as MTTEnergyExtractor
+from ..data_extractors.mtt.layer_extractor import LayerExtractor as MTTLayerExtractor
+
+# CLI extractors not needed - CLI is not supported by libSLM
+
+from ..data_extractors.realizer.power_extractor import PowerExtractor as RealizerPowerExtractor
+from ..data_extractors.realizer.velocity_extractor import VelocityExtractor as RealizerVelocityExtractor
+from ..data_extractors.realizer.path_extractor import PathExtractor as RealizerPathExtractor
+from ..data_extractors.realizer.energy_extractor import EnergyExtractor as RealizerEnergyExtractor
+from ..data_extractors.realizer.layer_extractor import LayerExtractor as RealizerLayerExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -53,19 +73,44 @@ class BuildFileParser(BaseBuildParser):
         # Initialize format parsers
         self.format_parsers = {
             '.sli': EOSParser(),
-            '.cli': EOSParser(),
             '.mtt': MTTParser(),
             '.rea': RealizerParser(),
             '.slm': SLMParser(),
         }
         
-        # Initialize data extractors
+        # CLI is not supported by libSLM - will be handled as unsupported format
+        
+        # Initialize format-specific data extractors
         self.data_extractors = {
-            'power': PowerExtractor(),
-            'velocity': VelocityExtractor(),
-            'path': PathExtractor(),
-            'energy': EnergyExtractor(),
-            'layer': LayerExtractor(),
+            'slm': {
+                'power': SLMPowerExtractor(),
+                'velocity': SLMVelocityExtractor(),
+                'path': SLMPathExtractor(),
+                'energy': SLMEnergyExtractor(),
+                'layer': SLMLayerExtractor(),
+            },
+            'sli': {
+                'power': SLIPowerExtractor(),
+                'velocity': SLIVelocityExtractor(),
+                'path': SLIPathExtractor(),
+                'energy': SLIEnergyExtractor(),
+                'layer': SLILayerExtractor(),
+            },
+            # CLI is not supported by libSLM - no extractors needed
+            'mtt': {
+                'power': MTTPowerExtractor(),
+                'velocity': MTTVelocityExtractor(),
+                'path': MTTPathExtractor(),
+                'energy': MTTEnergyExtractor(),
+                'layer': MTTLayerExtractor(),
+            },
+            'rea': {
+                'power': RealizerPowerExtractor(),
+                'velocity': RealizerVelocityExtractor(),
+                'path': RealizerPathExtractor(),
+                'energy': RealizerEnergyExtractor(),
+                'layer': RealizerLayerExtractor(),
+            }
         }
         
         # Fallback parser for unsupported formats
@@ -96,6 +141,17 @@ class BuildFileParser(BaseBuildParser):
         
         # Detect format
         file_extension = file_path.suffix.lower()
+        
+        # Handle CLI files specifically (not supported by libSLM)
+        if file_extension == '.cli':
+            error_msg = (
+                f"CLI (.cli) files are not supported by libSLM library. "
+                f"CLI is an older format primarily for SLA systems and lacks PBF-LB/M process parameters. "
+                f"Supported formats: {', '.join(self.get_supported_formats())}"
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
         if not self.is_format_supported(file_extension):
             logger.warning(f"Format {file_extension} not directly supported, using generic parser")
             return self.generic_parser.parse_file(file_path)
@@ -109,13 +165,31 @@ class BuildFileParser(BaseBuildParser):
             # Parse the file
             build_data = parser.parse_file(file_path)
             
-            # Extract additional metadata
-            metadata = self.metadata_extractor.extract_metadata(file_path, build_data)
-            build_data['metadata'] = metadata
+            # Store the reader object for data extractors (if available)
+            # This works for any format parser that has a reader object
+            reader_attr_names = ['reader', 'slm_reader', 'mtt_reader', 'eos_reader', 'realizer_reader']
+            for attr_name in reader_attr_names:
+                if hasattr(parser, attr_name):
+                    reader_obj = getattr(parser, attr_name)
+                    if reader_obj:
+                        build_data['reader_object'] = reader_obj
+                        break
+            
+            # Extract additional metadata and merge with parser metadata
+            additional_metadata = self.metadata_extractor.extract_metadata(file_path, build_data)
+            
+            # Merge metadata instead of overwriting
+            if 'metadata' in build_data:
+                # Merge parser metadata with additional metadata
+                parser_metadata = build_data['metadata']
+                merged_metadata = {**parser_metadata, **additional_metadata}
+                build_data['metadata'] = merged_metadata
+            else:
+                build_data['metadata'] = additional_metadata
             
             # Perform data extraction if PySLM is available
             if self.PYSLM_AVAILABLE:
-                build_data = self._extract_additional_data(build_data)
+                build_data = self._extract_additional_data(build_data, file_extension)
             
             logger.info(f"Successfully parsed {file_path}")
             return build_data
@@ -124,43 +198,56 @@ class BuildFileParser(BaseBuildParser):
             logger.error(f"Error parsing {file_path}: {e}")
             raise
     
-    def _extract_additional_data(self, build_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_additional_data(self, build_data: Dict[str, Any], file_extension: str) -> Dict[str, Any]:
         """
-        Extract additional data using PySLM-based extractors.
+        Extract additional data using format-specific extractors.
         
         Args:
             build_data: Basic parsed build data
+            file_extension: File extension to determine format-specific extractors
             
         Returns:
             Enhanced build data with additional analysis
         """
         try:
+            # Determine format for extractor selection
+            format_key = file_extension.lstrip('.').lower()
+            if format_key in ['sli', 'cli']:
+                format_key = 'sli'  # Both use SLI extractors
+            elif format_key == 'rea':
+                format_key = 'rea'  # Realizer format
+            elif format_key not in self.data_extractors:
+                format_key = 'slm'  # Default to SLM for unsupported formats
+            
+            # Get format-specific extractors
+            extractors = self.data_extractors.get(format_key, {})
+            
             # Extract power analysis
-            if 'power' in self.data_extractors:
-                power_data = self.data_extractors['power'].extract_power_data(build_data)
+            if 'power' in extractors:
+                power_data = extractors['power'].extract_power_data(build_data)
                 build_data['power_analysis'] = power_data
             
             # Extract velocity analysis
-            if 'velocity' in self.data_extractors:
-                velocity_data = self.data_extractors['velocity'].extract_velocity_data(build_data)
+            if 'velocity' in extractors:
+                velocity_data = extractors['velocity'].extract_velocity_data(build_data)
                 build_data['velocity_analysis'] = velocity_data
             
             # Extract path analysis
-            if 'path' in self.data_extractors:
-                path_data = self.data_extractors['path'].extract_path_data(build_data)
+            if 'path' in extractors:
+                path_data = extractors['path'].extract_path_data(build_data)
                 build_data['path_analysis'] = path_data
             
             # Extract energy analysis
-            if 'energy' in self.data_extractors:
-                energy_data = self.data_extractors['energy'].extract_energy_data(build_data)
+            if 'energy' in extractors:
+                energy_data = extractors['energy'].extract_energy_data(build_data)
                 build_data['energy_analysis'] = energy_data
             
             # Extract layer analysis
-            if 'layer' in self.data_extractors:
-                layer_data = self.data_extractors['layer'].extract_layer_data(build_data)
+            if 'layer' in extractors:
+                layer_data = extractors['layer'].extract_layer_data(build_data)
                 build_data['layer_analysis'] = layer_data
             
-            logger.info("Additional data extraction completed using PySLM")
+            logger.info(f"Additional data extraction completed using {format_key.upper()} extractors")
             return build_data
             
         except Exception as e:
@@ -246,11 +333,24 @@ class BuildFileParser(BaseBuildParser):
             'build_data': build_data
         }
         
+        # Determine format for extractor selection
+        file_extension = Path(file_path).suffix.lower()
+        format_key = file_extension.lstrip('.').lower()
+        if format_key in ['sli', 'cli']:
+            format_key = 'sli'  # Both use SLI extractors
+        elif format_key == 'rea':
+            format_key = 'rea'  # Realizer format
+        elif format_key not in self.data_extractors:
+            format_key = 'slm'  # Default to SLM for unsupported formats
+        
+        # Get format-specific extractors
+        extractors = self.data_extractors.get(format_key, {})
+        
         # Perform requested analyses
         for analysis_type in analysis_types:
-            if analysis_type in self.data_extractors:
+            if analysis_type in extractors:
                 try:
-                    extractor = self.data_extractors[analysis_type]
+                    extractor = extractors[analysis_type]
                     if hasattr(extractor, 'analyze'):
                         result = extractor.analyze(build_data)
                         analysis_results[f'{analysis_type}_analysis'] = result

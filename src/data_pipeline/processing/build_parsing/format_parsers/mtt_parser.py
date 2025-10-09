@@ -32,8 +32,8 @@ class MTTParser(BaseBuildParser):
         # Check libSLM availability
         if LIBSLM_AVAILABLE:
             try:
-                from libSLM import mtt
-                self.mtt_reader = mtt.Reader()
+                import translators
+                self.mtt_reader = translators.mtt.Reader()
                 self.libslm_available = True
                 logger.info("MTT parser initialized with libSLM support")
             except ImportError as e:

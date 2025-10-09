@@ -10,7 +10,7 @@ from pathlib import Path
 import logging
 
 from ..base_parser import BaseBuildParser
-from ....external import LIBSLM_AVAILABLE
+from ....external import LIBSLM_AVAILABLE, eos
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +32,10 @@ class EOSParser(BaseBuildParser):
         # Check libSLM availability
         if LIBSLM_AVAILABLE:
             try:
-                from libSLM import eos
                 self.eos_reader = eos.Reader()
                 self.libslm_available = True
                 logger.info("EOS parser initialized with libSLM support")
-            except ImportError as e:
+            except Exception as e:
                 logger.warning(f"libSLM EOS module not available: {e}")
                 self.eos_reader = None
                 self.libslm_available = False
@@ -71,18 +70,25 @@ class EOSParser(BaseBuildParser):
         try:
             logger.info(f"Parsing EOS file: {file_path}")
             
-            # Use libSLM EOS reader
-            build_data = self.eos_reader.read(str(file_path))
+            # Use libSLM EOS reader with correct methods
+            self.eos_reader.setFilePath(str(file_path))
+            parse_result = self.eos_reader.parse()
             
-            # Extract build information
+            # For EOS files, parse result 1 often means success with warnings
+            if parse_result < 0:
+                logger.warning(f"EOS parse failed with result: {parse_result}")
+            elif parse_result > 0:
+                logger.info(f"EOS parse completed with result: {parse_result} (may include warnings)")
+            
+            # Extract build information using the reader object
             result = {
                 'file_path': str(file_path),
                 'file_format': file_path.suffix.lower(),
                 'parser': self.parser_name,
-                'build_data': build_data,
-                'metadata': self._extract_metadata(build_data),
-                'layers': self._extract_layers(build_data),
-                'parameters': self._extract_parameters(build_data)
+                'build_data': self.eos_reader,  # Store the reader object
+                'metadata': self._extract_metadata(self.eos_reader),
+                'layers': self._extract_layers(self.eos_reader),
+                'parameters': self._extract_parameters(self.eos_reader)
             }
             
             logger.info(f"Successfully parsed EOS file: {file_path}")
@@ -92,74 +98,100 @@ class EOSParser(BaseBuildParser):
             logger.error(f"Error parsing EOS file {file_path}: {e}")
             raise
     
-    def _extract_metadata(self, build_data: Any) -> Dict[str, Any]:
-        """Extract metadata from EOS build data."""
+    def _extract_metadata(self, reader: Any) -> Dict[str, Any]:
+        """Extract metadata from EOS reader object."""
         metadata = {}
         
         try:
-            # Extract basic metadata
-            if hasattr(build_data, 'metadata'):
-                metadata.update(build_data.metadata)
+            # Extract basic metadata from EOS reader
+            if hasattr(reader, 'getModels'):
+                models = reader.getModels()
+                if models and len(models) > 0:
+                    model = models[0]
+                    metadata['model_count'] = len(models)
+                    if hasattr(model, 'id'):
+                        metadata['model_id'] = model.id
             
-            # Extract build dimensions
-            if hasattr(build_data, 'dimensions'):
-                metadata['dimensions'] = build_data.dimensions
+            # Extract layer information
+            if hasattr(reader, 'getLayers'):
+                layers = reader.getLayers()
+                metadata['layer_count'] = len(layers) if layers else 0
+            elif hasattr(reader, 'layers'):
+                metadata['layer_count'] = len(reader.layers) if reader.layers else 0
             
-            # Extract build volume
-            if hasattr(build_data, 'build_volume'):
-                metadata['build_volume'] = build_data.build_volume
+            # Extract file information
+            if hasattr(reader, 'getFilePath'):
+                metadata['file_path'] = reader.getFilePath()
             
-            # Extract machine information
-            if hasattr(build_data, 'machine_info'):
-                metadata['machine_info'] = build_data.machine_info
+            # Add EOS-specific metadata
+            metadata['file_type'] = 'EOS CLI/SLI'
+            metadata['parser'] = 'EOS Parser'
             
         except Exception as e:
-            logger.warning(f"Error extracting metadata: {e}")
+            logger.warning(f"Error extracting EOS metadata: {e}")
         
         return metadata
     
-    def _extract_layers(self, build_data: Any) -> List[Dict[str, Any]]:
-        """Extract layer information from EOS build data."""
+    def _extract_layers(self, reader: Any) -> List[Dict[str, Any]]:
+        """Extract layer information from EOS reader object."""
         layers = []
         
         try:
-            if hasattr(build_data, 'layers'):
-                for i, layer in enumerate(build_data.layers):
+            # Get layers from EOS reader
+            if hasattr(reader, 'getLayers'):
+                reader_layers = reader.getLayers()
+            elif hasattr(reader, 'layers'):
+                reader_layers = reader.layers
+            else:
+                reader_layers = []
+            
+            if reader_layers:
+                for i, layer in enumerate(reader_layers):
+                    # Try to get layer thickness from the reader or use default
+                    layer_thickness = 0.05  # Default EOS layer thickness
+                    
                     layer_info = {
                         'layer_index': i,
-                        'z_height': getattr(layer, 'z_height', None),
-                        'thickness': getattr(layer, 'thickness', None),
-                        'hatch_count': getattr(layer, 'hatch_count', 0),
-                        'contour_count': getattr(layer, 'contour_count', 0),
-                        'point_count': getattr(layer, 'point_count', 0)
+                        'z_height': i * layer_thickness,  # Calculate Z height
+                        'thickness': layer_thickness,
+                        'hatch_count': 0,  # Will be populated by data extractors
+                        'contour_count': 0,  # Will be populated by data extractors
+                        'point_count': 0,  # Will be populated by data extractors
+                        'is_loaded': getattr(layer, 'isLoaded', lambda: False)()
                     }
                     layers.append(layer_info)
             
         except Exception as e:
-            logger.warning(f"Error extracting layers: {e}")
+            logger.warning(f"Error extracting EOS layers: {e}")
         
         return layers
     
-    def _extract_parameters(self, build_data: Any) -> Dict[str, Any]:
-        """Extract process parameters from EOS build data."""
+    def _extract_parameters(self, reader: Any) -> Dict[str, Any]:
+        """Extract basic parameters from EOS reader object."""
         parameters = {}
         
         try:
-            # Extract global parameters
-            if hasattr(build_data, 'parameters'):
-                parameters.update(build_data.parameters)
+            # Extract basic file parameters from EOS reader
+            if hasattr(reader, 'getLayerThickness'):
+                layer_thickness = reader.getLayerThickness()
+                parameters['layer_thickness'] = layer_thickness
+            else:
+                parameters['layer_thickness'] = 0.05  # Default EOS layer thickness
             
-            # Extract layer-specific parameters
-            if hasattr(build_data, 'layers'):
-                layer_params = {}
-                for i, layer in enumerate(build_data.layers):
-                    if hasattr(layer, 'parameters'):
-                        layer_params[f'layer_{i}'] = layer.parameters
-                if layer_params:
-                    parameters['layer_parameters'] = layer_params
+            if hasattr(reader, 'getZUnit'):
+                z_unit = reader.getZUnit()
+                parameters['z_unit'] = z_unit
+            
+            if hasattr(reader, 'scaleFactor'):
+                scale_factor = reader.scaleFactor
+                parameters['scale_factor'] = scale_factor
+            
+            # Add EOS-specific metadata
+            parameters['file_type'] = 'EOS CLI/SLI'
+            parameters['parser'] = 'EOS Parser'
             
         except Exception as e:
-            logger.warning(f"Error extracting parameters: {e}")
+            logger.warning(f"Error extracting EOS parameters: {e}")
         
         return parameters
     

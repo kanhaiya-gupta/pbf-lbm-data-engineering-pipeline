@@ -30,7 +30,13 @@ PYSLM_PACKAGE_DIR = PYSLM_DIR / "pyslm"
 LIBSLM_AVAILABLE = False
 PYSLM_AVAILABLE = False
 
-# Check libSLM availability
+# Initialize libSLM modules as None
+slmsol = None
+mtt = None
+eos = None
+realizer = None
+
+# Check libSLM availability and import modules
 try:
     if LIBSLM_PYTHON_DIR.exists():
         # Add libSLM to Python path if not already there
@@ -45,6 +51,11 @@ try:
             # Check if translators has the expected modules
             if hasattr(translators, 'mtt') and hasattr(translators, 'eos') and hasattr(translators, 'realizer') and hasattr(translators, 'slmsol'):
                 LIBSLM_AVAILABLE = True
+                # Import specific modules for direct use (use translators.* not libSLM.*)
+                slmsol = translators.slmsol
+                mtt = translators.mtt
+                eos = translators.eos
+                realizer = translators.realizer
         except ImportError:
             # libSLM Python bindings not available
             pass
@@ -74,7 +85,7 @@ __version__ = "1.0.0"
 __author__ = "PBF-LB/M Research Team"
 __description__ = "External software dependencies for PBF-LB/M data pipeline"
 
-# Export availability flags
+# Export availability flags and modules
 __all__ = [
     "LIBSLM_AVAILABLE",
     "PYSLM_AVAILABLE", 
@@ -82,6 +93,10 @@ __all__ = [
     "PYSLM_DIR",
     "EXTERNAL_DIR"
 ]
+
+# Export libSLM modules if available
+if LIBSLM_AVAILABLE:
+    __all__.extend(["slmsol", "mtt", "eos", "realizer"])
 
 # Log availability status
 import logging

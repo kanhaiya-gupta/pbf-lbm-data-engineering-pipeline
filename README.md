@@ -82,6 +82,7 @@ graph TB
 - **10 Specialized Extractors**: Power, velocity, path, energy, layer, timestamp, focus, jump, style, geometry
 - **Per-Geometry Parameters**: Laser parameters defined for individual scan paths
 - **CT-Build Correlation**: Temporal correlation for defect analysis
+- **🚀 Build File Editor**: Revolutionary tool for modifying build files and generating artificial artifacts
 
 ### **3. Voxel Visualization**
 - **3D Voxel Grid**: Spatially-resolved representation of PBF-LB/M components
@@ -110,6 +111,7 @@ graph TB
 - **10 Specialized Extractors**: Power, velocity, path, energy, layer, timestamp, focus, jump, style, geometry
 - **Per-Geometry Parameters**: Laser parameters defined for individual scan paths
 - **CT-Build Correlation**: Temporal correlation for defect analysis
+- **🚀 Build File Editor**: Revolutionary tool for modifying build files and generating artificial artifacts
 
 ### **3D Voxel Visualization**
 - **Spatial Resolution**: Voxel-level analysis and process control
@@ -313,6 +315,13 @@ sequenceDiagram
 
 ## 🔬 **Research Applications**
 
+### **🚀 Build File Editor - Game Changer**
+- **Artificial Artifact Generation**: Create controlled defects and features at any location
+- **Process Parameter Optimization**: Modify parameters for specific regions or entire builds
+- **Research Specimen Generation**: Create standardized test specimens for material research
+- **10x Faster Iteration**: Virtual parameter testing without expensive physical builds
+- **100x Cost Reduction**: Minimize material waste and machine time
+
 ### **Process Optimization**
 - Parameter sensitivity analysis and optimization
 - Quality prediction modeling
@@ -331,13 +340,14 @@ sequenceDiagram
 ## 🎯 **Key Benefits**
 
 1. **World-Class Build File Processing**: Leverages libSLM/PySLM for maximum reliability
-2. **Spatial Resolution**: Voxel-level analysis and process control
-3. **Multi-Modal Integration**: Unified representation of diverse data sources
-4. **Advanced Analytics**: Sophisticated sensitivity analysis and ML capabilities
-5. **Virtual Testing**: Controlled experiments without physical resources
-6. **Real-Time Processing**: Low-latency data processing and analysis
-7. **Scalable Architecture**: Horizontal scaling for growing data volumes
-8. **Research-Ready**: Built specifically for additive manufacturing research
+2. **🚀 Revolutionary Build File Editor**: Modify build files and generate artificial artifacts for research
+3. **Spatial Resolution**: Voxel-level analysis and process control
+4. **Multi-Modal Integration**: Unified representation of diverse data sources
+5. **Advanced Analytics**: Sophisticated sensitivity analysis and ML capabilities
+6. **Virtual Testing**: Controlled experiments without physical resources
+7. **Real-Time Processing**: Low-latency data processing and analysis
+8. **Scalable Architecture**: Horizontal scaling for growing data volumes
+9. **Research-Ready**: Built specifically for additive manufacturing research
 
 ## 🤝 **Contributing**
 
@@ -354,7 +364,8 @@ We welcome contributions from the research community! Please see our [Contributi
 Comprehensive documentation is available in the `docs/` directory:
 
 - **[System Architecture](docs/architecture/system-overview.md)**: Complete system architecture and design principles
-- **[Build File Parser](docs/build-parsing/build-file-parser.md)**: Advanced build file processing with libSLM/PySLM
+- **[Build File Parser](docs/build-parsing/build-parser-readme.md)**: Advanced build file processing with libSLM/PySLM
+- **[🚀 Build File Editor](docs/build-parsing/build-file-editor-readme.md)**: Revolutionary tool for modifying build files and generating artificial artifacts
 - **[Sensitivity Analysis](docs/analytics/sensitivity-analysis.md)**: Comprehensive analytics and statistical analysis
 - **[Voxel Visualization](docs/visualization/voxel-visualization.md)**: 3D voxel-based visualization and analysis
 - **[Virtual Environment](docs/virtual-environment/virtual-environment.md)**: Virtual testing and simulation capabilities

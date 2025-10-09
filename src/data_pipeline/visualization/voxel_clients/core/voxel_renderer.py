@@ -12,6 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
+import pyvista as pv
 from typing import Dict, List, Tuple, Optional, Union, Any
 from dataclasses import dataclass
 import logging
@@ -30,7 +31,7 @@ class RenderConfig:
     """Configuration for voxel rendering."""
     
     # Rendering parameters
-    render_engine: str = "plotly"  # "plotly", "matplotlib", "pyvista"
+    render_engine: str = "pyvista"  # "plotly", "matplotlib", "pyvista"
     voxel_size: float = 0.1  # mm
     color_scheme: str = "viridis"  # "viridis", "plasma", "inferno", "magma", "custom"
     opacity: float = 0.8
@@ -103,6 +104,9 @@ class VoxelRenderer:
         voxel_grid: VoxelGrid,
         render_type: str = "3d",
         color_by: str = "quality",
+        granularity: str = "per_hatch",  # NEW: per_hatch, per_layer, per_build, custom
+        parameters: List[str] = None,    # NEW: List of parameters to visualize
+        visualization_mode: str = "interactive",  # NEW: interactive, static, comparison
         **kwargs
     ) -> RenderResult:
         """
@@ -134,6 +138,9 @@ class VoxelRenderer:
             
             # Apply level of detail
             processed_grid = self._apply_level_of_detail(voxel_grid)
+            
+            # Apply granularity processing
+            processed_grid = self._apply_granularity_processing(processed_grid, granularity, parameters)
             
             # Prepare color data
             color_data = self._prepare_color_data(processed_grid, color_by)
@@ -308,7 +315,9 @@ class VoxelRenderer:
     
     def _render_3d(self, voxel_grid: VoxelGrid, color_data: np.ndarray, **kwargs) -> Any:
         """Render 3D voxel visualization."""
-        if self.config.render_engine == "plotly":
+        if self.config.render_engine == "pyvista":
+            return self._render_3d_pyvista(voxel_grid, color_data, **kwargs)
+        elif self.config.render_engine == "plotly":
             return self._render_3d_plotly(voxel_grid, color_data, **kwargs)
         elif self.config.render_engine == "matplotlib":
             return self._render_3d_matplotlib(voxel_grid, color_data, **kwargs)
@@ -406,6 +415,91 @@ class VoxelRenderer:
         ax.set_title("3D Voxel Visualization")
         
         return fig
+    
+    def _render_3d_pyvista(self, voxel_grid: VoxelGrid, color_data: np.ndarray, **kwargs) -> pv.Plotter:
+        """Render 3D visualization using PyVista's voxel model for superior performance."""
+        # Create PyVista plotter with off_screen rendering for screenshots
+        plotter = pv.Plotter(off_screen=True)
+        
+        # Check if we have a PyVista voxel model (preferred)
+        if hasattr(voxel_grid, 'pyvista_voxel_model') and voxel_grid.pyvista_voxel_model is not None:
+            logger.info("Using PyVista voxel model for rendering")
+            
+            # Use the PyVista voxel model directly (like legos!)
+            voxel_model = voxel_grid.pyvista_voxel_model
+            
+            # Add color data if available
+            if color_data is not None and len(color_data.shape) == 3:
+                # Map color data to voxel model
+                # This is more complex - we'd need to map our grid colors to PyVista cells
+                # For now, use a simple approach
+                plotter.add_mesh(voxel_model, 
+                               color='lightblue',
+                               opacity=self.config.opacity,
+                               show_edges=False)
+            else:
+                # Add voxel model without color mapping
+                plotter.add_mesh(voxel_model, 
+                               color='lightblue',
+                               opacity=self.config.opacity,
+                               show_edges=False)
+        
+        else:
+            # Fallback to point cloud rendering
+            logger.info("Using point cloud fallback for rendering")
+            
+            # Get solid voxel positions
+            solid_voxels = np.where(voxel_grid.voxels > 0)
+            
+            if len(solid_voxels[0]) == 0:
+                plotter.add_text("No voxels to display", position='upper_left')
+                return plotter
+            
+            # Convert voxel coordinates to world coordinates
+            world_coords = np.array([
+                voxel_grid.origin[0] + solid_voxels[0] * voxel_grid.voxel_size,
+                voxel_grid.origin[1] + solid_voxels[1] * voxel_grid.voxel_size,
+                voxel_grid.origin[2] + solid_voxels[2] * voxel_grid.voxel_size
+            ]).T
+            
+            # Create point cloud
+            points = pv.PolyData(world_coords)
+            
+            # Add color data if available
+            if color_data is not None and len(color_data.shape) == 3:
+                # Extract color values for solid voxels
+                color_values = color_data[solid_voxels]
+                points['color_data'] = color_values
+                
+                # Add voxel grid with color mapping
+                plotter.add_mesh(points, scalars='color_data', 
+                               point_size=voxel_grid.voxel_size * 10,
+                               render_points_as_spheres=True,
+                               cmap=self.config.color_scheme,
+                               opacity=self.config.opacity)
+            else:
+                # Add voxel grid without color mapping
+                plotter.add_mesh(points, 
+                               point_size=voxel_grid.voxel_size * 10,
+                               render_points_as_spheres=True,
+                               color='lightblue',
+                               opacity=self.config.opacity)
+        
+        # Add axes
+        if self.config.show_axes:
+            plotter.add_axes()
+        
+        # Add grid
+        if self.config.show_grid:
+            plotter.show_grid()
+        
+        # Set camera position for better view
+        plotter.camera_position = 'iso'  # Use 'iso' instead of 'isometric'
+        
+        # Add title
+        plotter.add_text("3D Voxel Visualization (PyVista)", position='upper_left')
+        
+        return plotter
     
     def _render_2d(self, voxel_grid: VoxelGrid, color_data: np.ndarray, **kwargs) -> Any:
         """Render 2D slice visualization."""
@@ -554,3 +648,109 @@ class VoxelRenderer:
             'level_of_detail': self.config.level_of_detail,
             'color_maps': self.color_maps
         }
+    
+    def _apply_granularity_processing(
+        self, 
+        voxel_grid: VoxelGrid, 
+        granularity: str, 
+        parameters: List[str] = None
+    ) -> VoxelGrid:
+        """
+        Apply granularity processing to voxel grid based on user selection.
+        
+        Args:
+            voxel_grid: Input voxel grid
+            granularity: Granularity level (per_hatch, per_layer, per_build, custom)
+            parameters: List of parameters to include
+            
+        Returns:
+            Processed voxel grid with appropriate granularity
+        """
+        try:
+            if granularity == "per_hatch":
+                return self._process_per_hatch_granularity(voxel_grid, parameters)
+            elif granularity == "per_layer":
+                return self._process_per_layer_granularity(voxel_grid, parameters)
+            elif granularity == "per_build":
+                return self._process_per_build_granularity(voxel_grid, parameters)
+            elif granularity == "custom":
+                return self._process_custom_granularity(voxel_grid, parameters)
+            else:
+                logger.warning(f"Unknown granularity: {granularity}, using per_hatch")
+                return self._process_per_hatch_granularity(voxel_grid, parameters)
+                
+        except Exception as e:
+            logger.error(f"Error applying granularity processing: {e}")
+            return voxel_grid
+    
+    def _process_per_hatch_granularity(self, voxel_grid: VoxelGrid, parameters: List[str] = None) -> VoxelGrid:
+        """Process voxel grid with per-hatch granularity (most detailed)."""
+        # Per-hatch granularity uses the raw extracted data as-is
+        # This is the most detailed level with exact process parameters
+        logger.info("Processing voxel grid with per-hatch granularity")
+        return voxel_grid
+    
+    def _process_per_layer_granularity(self, voxel_grid: VoxelGrid, parameters: List[str] = None) -> VoxelGrid:
+        """Process voxel grid with per-layer granularity (averaged by layer)."""
+        logger.info("Processing voxel grid with per-layer granularity")
+        
+        # Group voxels by layer and average process parameters
+        if hasattr(voxel_grid, 'process_map') and voxel_grid.process_map:
+            layer_averaged_map = {}
+            
+            for param_name, param_data in voxel_grid.process_map.items():
+                if parameters and param_name not in parameters:
+                    continue
+                    
+                # Average parameters by layer
+                layer_averaged_map[param_name] = self._average_parameters_by_layer(param_data, voxel_grid)
+            
+            # Update the process map with layer-averaged data
+            voxel_grid.process_map = layer_averaged_map
+        
+        return voxel_grid
+    
+    def _process_per_build_granularity(self, voxel_grid: VoxelGrid, parameters: List[str] = None) -> VoxelGrid:
+        """Process voxel grid with per-build granularity (global averages)."""
+        logger.info("Processing voxel grid with per-build granularity")
+        
+        # Calculate global averages for all process parameters
+        if hasattr(voxel_grid, 'process_map') and voxel_grid.process_map:
+            global_averaged_map = {}
+            
+            for param_name, param_data in voxel_grid.process_map.items():
+                if parameters and param_name not in parameters:
+                    continue
+                    
+                # Calculate global average
+                global_avg = np.mean(param_data) if param_data.size > 0 else 0.0
+                global_averaged_map[param_name] = np.full_like(param_data, global_avg)
+            
+            # Update the process map with global-averaged data
+            voxel_grid.process_map = global_averaged_map
+        
+        return voxel_grid
+    
+    def _process_custom_granularity(self, voxel_grid: VoxelGrid, parameters: List[str] = None) -> VoxelGrid:
+        """Process voxel grid with custom granularity (user-defined regions)."""
+        logger.info("Processing voxel grid with custom granularity")
+        
+        # Custom granularity allows user to define spatial regions
+        # For now, implement as per-layer but this can be extended
+        # to support user-defined spatial regions
+        return self._process_per_layer_granularity(voxel_grid, parameters)
+    
+    def _average_parameters_by_layer(self, param_data: np.ndarray, voxel_grid: VoxelGrid) -> np.ndarray:
+        """Average process parameters by layer."""
+        try:
+            # Assuming Z-axis represents layers
+            if len(param_data.shape) >= 3:
+                # Average along Z-axis (layers)
+                layer_averaged = np.mean(param_data, axis=2, keepdims=True)
+                # Broadcast back to original shape
+                return np.broadcast_to(layer_averaged, param_data.shape)
+            else:
+                return param_data
+        except Exception as e:
+            logger.warning(f"Error averaging parameters by layer: {e}")
+            return param_data

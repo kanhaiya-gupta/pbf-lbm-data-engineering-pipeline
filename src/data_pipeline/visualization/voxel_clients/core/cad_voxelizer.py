@@ -10,7 +10,7 @@ ISPM data, and CT scan data for spatially-resolved analysis.
 import numpy as np
 import trimesh
 import pyvista as pv
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional, Union, Any
 from dataclasses import dataclass
 from pathlib import Path
 import logging
@@ -44,6 +44,9 @@ class VoxelGrid:
     total_voxels: int = 0
     solid_voxels: int = 0
     void_voxels: int = 0
+    
+    # PyVista voxel model for visualization
+    pyvista_voxel_model: Optional[Any] = None
 
 
 @dataclass
@@ -126,7 +129,7 @@ class CADVoxelizer:
             raise
     
     def _load_cad_model(self, file_path: Union[str, Path]) -> trimesh.Trimesh:
-        """Load CAD model from file."""
+        """Load CAD model from file using PyVista for better format support."""
         file_path = Path(file_path)
         
         if not file_path.exists():
@@ -136,19 +139,49 @@ class CADVoxelizer:
             raise ValueError(f"Unsupported file format: {file_path.suffix}")
         
         try:
-            # Load mesh using trimesh
-            mesh = trimesh.load(str(file_path))
+            # Try PyVista first for better STEP/IGES support
+            if file_path.suffix.lower() in ['.step', '.stp', '.iges', '.igs']:
+                try:
+                    logger.info(f"Loading {file_path.suffix} file using PyVista...")
+                    pv_mesh = pv.read(str(file_path))
+                    
+                    # Convert PyVista mesh to trimesh
+                    if pv_mesh.faces.shape[1] == 4:  # Quad faces
+                        # Convert quads to triangles
+                        faces = pv_mesh.faces.reshape(-1, 4)[:, 1:4]
+                    else:  # Already triangles
+                        faces = pv_mesh.faces
+                    
+                    mesh = trimesh.Trimesh(vertices=pv_mesh.points, faces=faces)
+                except Exception as pv_error:
+                    logger.warning(f"PyVista loading failed: {pv_error}")
+                    logger.info(f"Falling back to trimesh for {file_path.suffix}...")
+                    mesh = trimesh.load(str(file_path))
+            else:
+                # Use trimesh for STL, OBJ, PLY, 3MF
+                logger.info(f"Loading {file_path.suffix} file using trimesh...")
+                mesh = trimesh.load(str(file_path))
+            
+            # Handle different mesh types (Trimesh vs Scene)
+            if hasattr(mesh, 'geometry'):  # Scene object
+                logger.info("Loaded Scene object, extracting first geometry...")
+                if len(mesh.geometry) == 0:
+                    raise ValueError("Scene contains no geometries")
+                mesh = list(mesh.geometry.values())[0]  # Get first geometry
+                logger.info(f"Extracted geometry: {type(mesh)}")
             
             # Ensure mesh is watertight for proper voxelization
-            if not mesh.is_watertight:
+            if hasattr(mesh, 'is_watertight') and not mesh.is_watertight:
                 logger.warning(f"Mesh is not watertight, attempting repair...")
                 mesh.fill_holes()
                 mesh.remove_duplicate_faces()
                 mesh.remove_degenerate_faces()
             
-            # Validate mesh
-            if not mesh.is_valid:
+            # Validate mesh (check if is_valid method exists)
+            if hasattr(mesh, 'is_valid') and not mesh.is_valid:
                 raise ValueError("Invalid mesh geometry")
+            elif hasattr(mesh, 'is_watertight') and not mesh.is_watertight:
+                logger.warning("Mesh is not watertight, but continuing...")
             
             logger.info(f"Loaded CAD model: {len(mesh.vertices)} vertices, "
                        f"{len(mesh.faces)} faces")
@@ -161,12 +194,28 @@ class CADVoxelizer:
     
     def _calculate_voxel_grid(self, mesh: trimesh.Trimesh) -> Tuple[Tuple, Tuple]:
         """Calculate voxel grid bounds and dimensions."""
-        # Get mesh bounds
-        bounds = mesh.bounds  # ((x_min, x_max), (y_min, y_max), (z_min, z_max))
+        # Get mesh bounds - trimesh returns [[x_min, y_min, z_min], [x_max, y_max, z_max]]
+        bounds = mesh.bounds
+        
+        logger.info(f"Mesh bounds shape: {bounds.shape}")
+        logger.info(f"Mesh bounds: {bounds}")
+        
+        # Safety check: if bounds don't have the expected shape, calculate from vertices
+        if bounds.shape != (2, 3):
+            logger.warning(f"Unexpected bounds shape {bounds.shape}, calculating from vertices")
+            vertices = mesh.vertices
+            min_coords = vertices.min(axis=0)
+            max_coords = vertices.max(axis=0)
+            bounds = np.array([min_coords, max_coords])
+            logger.info(f"Calculated bounds from vertices: {bounds}")
+        
+        # Extract min and max coordinates
+        min_coords = bounds[0]  # [x_min, y_min, z_min]
+        max_coords = bounds[1]  # [x_max, y_max, z_max]
         
         # Calculate dimensions in voxels
         dimensions = tuple(
-            int(np.ceil((bounds[i][1] - bounds[i][0]) / self.config.voxel_size))
+            int(np.ceil((max_coords[i] - min_coords[i]) / self.config.voxel_size))
             for i in range(3)
         )
         
@@ -190,8 +239,8 @@ class CADVoxelizer:
         cad_file_path: str
     ) -> VoxelGrid:
         """Create voxel grid structure."""
-        # Calculate origin (minimum bounds)
-        origin = (bounds[0][0], bounds[1][0], bounds[2][0])
+        # Calculate origin (minimum bounds) - bounds is [[x_min, y_min, z_min], [x_max, y_max, z_max]]
+        origin = (bounds[0][0], bounds[0][1], bounds[0][2])  # [x_min, y_min, z_min]
         
         # Initialize voxel arrays
         voxels = np.zeros(dimensions, dtype=np.float32)
@@ -207,11 +256,18 @@ class CADVoxelizer:
             'quality_score': np.zeros(dimensions, dtype=np.float32)
         }
         
+        # Convert bounds to VoxelGrid format: ((x_min, x_max), (y_min, y_max), (z_min, z_max))
+        bounds_tuple = (
+            (bounds[0][0], bounds[1][0]),  # X bounds (x_min, x_max)
+            (bounds[0][1], bounds[1][1]),  # Y bounds (y_min, y_max)
+            (bounds[0][2], bounds[1][2])   # Z bounds (z_min, z_max)
+        )
+        
         voxel_grid = VoxelGrid(
             origin=origin,
             dimensions=dimensions,
             voxel_size=self.config.voxel_size,
-            bounds=bounds,
+            bounds=bounds_tuple,
             voxels=voxels,
             material_map=material_map,
             process_map=process_map,
@@ -222,27 +278,67 @@ class CADVoxelizer:
         return voxel_grid
     
     def _rasterize_geometry(self, mesh: trimesh.Trimesh, voxel_grid: VoxelGrid):
-        """Rasterize mesh geometry into voxel grid."""
-        logger.info("Starting geometry rasterization...")
+        """Rasterize mesh geometry into voxel grid using PyVista's superior voxelization."""
+        logger.info("Starting geometry rasterization with PyVista...")
         
-        # Create voxel grid using trimesh voxelization
-        voxelized = mesh.voxelized(pitch=self.config.voxel_size)
-        
-        # Get voxel coordinates
-        voxel_coords = voxelized.points
-        
-        # Convert to grid indices
-        grid_indices = self._world_to_grid_coordinates(
-            voxel_coords, voxel_grid.origin, voxel_grid.voxel_size
-        )
-        
-        # Set solid voxels
-        for idx in grid_indices:
-            if self._is_valid_grid_index(idx, voxel_grid.dimensions):
-                voxel_grid.voxels[idx] = 1.0
-                voxel_grid.material_map[idx] = 1  # Default material ID
-        
-        logger.info(f"Rasterized {len(grid_indices)} solid voxels")
+        try:
+            # Convert trimesh to PyVista mesh
+            # Trimesh faces are just triangle indices, but PyVista expects faces with count prefixes
+            # Format: [n, i1, i2, i3, n, i4, i5, i6, ...] where n=3 for triangles
+            faces_pv = []
+            for face in mesh.faces:
+                faces_pv.extend([3, face[0], face[1], face[2]])
+            faces_pv = np.array(faces_pv, dtype=np.int32)
+            
+            pv_mesh = pv.PolyData(mesh.vertices, faces=faces_pv)
+            
+            # Create voxel model using PyVista's voxelize method
+            # This creates a uniform grid (like legos) of the surface mesh
+            # PyVista 0.46+ uses 'spacing' parameter
+            voxel_model = pv_mesh.voxelize(spacing=self.config.voxel_size)
+            
+            logger.info(f"PyVista voxelization created {voxel_model.n_cells} voxels")
+            
+            # Get voxel centers (world coordinates)
+            voxel_centers = voxel_model.cell_centers().points
+            
+            # Convert world coordinates to grid indices
+            grid_indices = self._world_to_grid_coordinates(
+                voxel_centers, voxel_grid.origin, voxel_grid.voxel_size
+            )
+            
+            # Set solid voxels in our grid
+            solid_count = 0
+            for idx in grid_indices:
+                if self._is_valid_grid_index(idx, voxel_grid.dimensions):
+                    voxel_grid.voxels[idx] = 1.0
+                    voxel_grid.material_map[idx] = 1  # Default material ID
+                    solid_count += 1
+            
+            logger.info(f"Rasterized {solid_count} solid voxels using PyVista voxelization")
+            
+            # Store PyVista voxel model for potential use in visualization
+            voxel_grid.pyvista_voxel_model = voxel_model
+            
+        except Exception as e:
+            logger.warning(f"PyVista voxelization failed, falling back to trimesh: {e}")
+            
+            # Fallback to trimesh voxelization
+            voxelized = mesh.voxelized(pitch=self.config.voxel_size)
+            voxel_coords = voxelized.points
+            
+            grid_indices = self._world_to_grid_coordinates(
+                voxel_coords, voxel_grid.origin, voxel_grid.voxel_size
+            )
+            
+            solid_count = 0
+            for idx in grid_indices:
+                if self._is_valid_grid_index(idx, voxel_grid.dimensions):
+                    voxel_grid.voxels[idx] = 1.0
+                    voxel_grid.material_map[idx] = 1
+                    solid_count += 1
+            
+            logger.info(f"Rasterized {solid_count} solid voxels using trimesh fallback")
     
     def _world_to_grid_coordinates(
         self, 

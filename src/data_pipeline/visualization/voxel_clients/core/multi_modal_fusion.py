@@ -7,7 +7,7 @@ process parameters for spatially-resolved analysis in PBF-LB/M research.
 """
 
 import numpy as np
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional, Union, Any
 from dataclasses import dataclass
 import logging
 from datetime import datetime
@@ -65,6 +65,11 @@ class FusedVoxelData:
     scan_speed: float
     layer_number: int
     build_time: datetime
+    
+    # Energy parameters (for cost analysis)
+    energy_density: Optional[float] = None
+    exposure_time: Optional[float] = None
+    total_energy_input: Optional[float] = None
     
     # ISPM data
     ispm_temperature: Optional[float] = None
@@ -132,21 +137,85 @@ class MultiModalFusion:
             'defect_detection_enabled': True
         }
     
+    def register_build_data(
+        self,
+        voxel_grid: VoxelGrid,
+        build_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Register build file data (SLM, CLI, etc.) with voxel grid.
+        
+        This method processes build file data and maps process parameters
+        to voxel coordinates for later fusion operations.
+        
+        Args:
+            voxel_grid: Voxelized CAD model
+            build_data: Dictionary containing build file data (SLM, CLI, etc.)
+            
+        Returns:
+            Dictionary containing registered build data mapped to voxel coordinates
+        """
+        logger.info("Registering build data with voxel grid...")
+        
+        registered_data = {
+            'voxel_grid': voxel_grid,
+            'build_files': {},
+            'process_parameters': {},
+            'layer_data': {},
+            'extracted_data': {},  # NEW: Store all extracted data from build parsers
+            'registration_metadata': {
+                'timestamp': datetime.now(),
+                'voxel_count': voxel_grid.total_voxels,
+                'solid_voxels': voxel_grid.solid_voxels
+            }
+        }
+        
+        # Process each build file type
+        for file_type, file_data in build_data.items():
+            if file_data is None:
+                continue
+                
+            logger.info(f"Processing {file_type.upper()} build data...")
+            
+            # Extract process parameters from build data
+            if 'layers' in file_data:
+                registered_data['layer_data'][file_type] = file_data['layers']
+            
+            if 'parameters' in file_data:
+                registered_data['process_parameters'][file_type] = file_data['parameters']
+            
+            # Store the REAL extracted data from our build parsers
+            if 'extracted_data' in file_data:
+                registered_data['extracted_data'][file_type] = file_data['extracted_data']
+                logger.info(f"Stored extracted data for {file_type.upper()}: {list(file_data['extracted_data'].keys())}")
+            
+            # Store the full build data
+            registered_data['build_files'][file_type] = file_data
+            
+            logger.info(f"Successfully registered {file_type.upper()} data")
+        
+        logger.info(f"Build data registration completed: {len(registered_data['build_files'])} files processed")
+        return registered_data
+    
     def fuse_voxel_data(
         self,
         voxel_grid: VoxelGrid,
         ispm_data: List[ISPMMonitoring],
         ct_data: List[CTScan],
-        quality_metrics: Optional[List[QualityMetrics]] = None
+        quality_metrics: Optional[List[QualityMetrics]] = None,
+        registered_build_data: Optional[Dict[str, Any]] = None,
+        layer_thickness: float = 0.05
     ) -> Dict[Tuple[int, int, int], FusedVoxelData]:
         """
-        Fuse CAD voxel data with ISPM and CT scan data.
+        Fuse CAD voxel data with ISPM, CT scan data, and build file data.
         
         Args:
             voxel_grid: Voxelized CAD model
             ispm_data: ISPM monitoring data
             ct_data: CT scan data
             quality_metrics: Quality metrics data
+            registered_build_data: Previously registered build file data
+            layer_thickness: Layer thickness in mm (from application layer)
             
         Returns:
             Dict mapping voxel indices to fused voxel data
@@ -157,8 +226,15 @@ class MultiModalFusion:
             # Initialize fused data dictionary
             fused_data = {}
             
-            # Get all solid voxels
-            solid_voxels = np.where(voxel_grid.voxels > 0)
+            # Get all solid voxels - handle both VoxelGrid object and dict
+            if hasattr(voxel_grid, 'voxels'):
+                voxels_array = voxel_grid.voxels
+            elif isinstance(voxel_grid, dict) and 'voxels' in voxel_grid:
+                voxels_array = voxel_grid.voxels
+            else:
+                raise ValueError("Invalid voxel_grid format")
+            
+            solid_voxels = np.where(voxels_array > 0)
             
             # Process each solid voxel
             for i in range(len(solid_voxels[0])):
@@ -166,6 +242,10 @@ class MultiModalFusion:
                 
                 # Create base voxel data from CAD model
                 base_data = self._create_base_voxel_data(voxel_grid, voxel_idx)
+                
+                # Fuse build data if available
+                if registered_build_data:
+                    base_data = self._fuse_build_data(base_data, registered_build_data, voxel_idx, layer_thickness)
                 
                 # Fuse ISPM data
                 ispm_fused = self._fuse_ispm_data(base_data, ispm_data)
@@ -190,17 +270,273 @@ class MultiModalFusion:
             logger.error(f"Error in multi-modal data fusion: {e}")
             raise
     
+    def _fuse_build_data(
+        self,
+        base_data: FusedVoxelData,
+        registered_build_data: Dict[str, Any],
+        voxel_idx: Tuple[int, int, int],
+        layer_thickness: float
+    ) -> FusedVoxelData:
+        """
+        Fuse build file data (SLM, CLI, etc.) with voxel data using REAL extracted data.
+        
+        Args:
+            base_data: Base voxel data from CAD model
+            registered_build_data: Registered build file data with extracted parameters
+            voxel_idx: Voxel coordinates
+            layer_thickness: Layer thickness in mm (from application layer)
+            
+        Returns:
+            Enhanced voxel data with REAL build file information
+        """
+        try:
+            # Convert voxel index to world coordinates
+            voxel_grid = registered_build_data.get('voxel_grid', {})
+            bounds = voxel_grid.bounds
+            voxel_size = voxel_grid.voxel_size
+            
+            if len(bounds) >= 3:
+                world_x = bounds[0][0] + voxel_idx[0] * voxel_size
+                world_y = bounds[1][0] + voxel_idx[1] * voxel_size
+                world_z = bounds[2][0] + voxel_idx[2] * voxel_size
+                
+                # Get REAL extracted data from our build parsers
+                extracted_data = registered_build_data.get('extracted_data', {})
+                process_params = registered_build_data.get('process_parameters', {})
+                layer_data = registered_build_data.get('layer_data', {})
+                
+                # Map voxel coordinates to process parameters using spatial lookup
+                voxel_process_data = self._map_voxel_to_process_parameters(
+                    (world_x, world_y, world_z), 
+                    extracted_data, 
+                    voxel_size,
+                    layer_thickness
+                )
+                
+                # Update base_data with REAL extracted parameters
+                if voxel_process_data:
+                    # Power data from power_extractor
+                    if 'power_data' in voxel_process_data:
+                        power_info = voxel_process_data['power_data']
+                        base_data.laser_power = power_info.get('power', 0.0)
+                    
+                    # Velocity data from velocity_extractor
+                    if 'velocity_data' in voxel_process_data:
+                        velocity_info = voxel_process_data['velocity_data']
+                        base_data.scan_speed = velocity_info.get('velocity', 0.0)
+                    
+                    # Layer data from layer_extractor
+                    if 'layer_data' in voxel_process_data:
+                        layer_info = voxel_process_data['layer_data']
+                        base_data.layer_number = layer_info.get('layer_number', 0)
+                    
+                    # Timestamp data from timestamp_extractor
+                    if 'timestamp_data' in voxel_process_data:
+                        timestamp_info = voxel_process_data['timestamp_data']
+                        base_data.build_time = timestamp_info.get('build_time', datetime.now())
+                    
+                    # Energy data from energy_extractor (for cost analysis)
+                    if 'energy_data' in voxel_process_data:
+                        energy_info = voxel_process_data['energy_data']
+                        base_data.energy_density = energy_info.get('energy_density', None)
+                        base_data.exposure_time = energy_info.get('exposure_time', None)
+                        base_data.total_energy_input = energy_info.get('total_energy_input', None)
+                    
+                    # Update material type if available
+                    if 'material_type' in voxel_process_data:
+                        base_data.material_type = voxel_process_data['material_type']
+                    
+                    # Store additional process parameters in build_file_data for granularity processing
+                    base_data.build_file_data = {
+                        'world_coordinates': (world_x, world_y, world_z),
+                        'voxel_coordinates': voxel_idx,
+                        'process_parameters': process_params,
+                        'layer_data': layer_data,
+                        'build_files': registered_build_data.get('build_files', {}),
+                        'extracted_data': extracted_data,
+                        'voxel_process_mapping': voxel_process_data
+                    }
+                
+                logger.debug(f"Fused REAL build data for voxel {voxel_idx}: {voxel_process_data}")
+            
+            return base_data
+            
+        except Exception as e:
+            logger.warning(f"Error fusing build data for voxel {voxel_idx}: {e}")
+            return base_data
+    
+    def _map_voxel_to_process_parameters(
+        self, 
+        world_coords: Tuple[float, float, float], 
+        extracted_data: Dict[str, Any], 
+        voxel_size: float,
+        layer_thickness: float = 0.05
+    ) -> Dict[str, Any]:
+        """
+        Map voxel world coordinates to process parameters using REAL data structures.
+        
+        Args:
+            world_coords: (x, y, z) world coordinates of the voxel
+            extracted_data: All extracted data from build parsers
+            voxel_size: Size of each voxel for spatial matching
+            layer_thickness: Layer thickness in mm (passed from application layer)
+            
+        Returns:
+            Process parameters mapped to this voxel
+        """
+        try:
+            voxel_x, voxel_y, voxel_z = world_coords
+            voxel_process_data = {}
+            
+            # Layer thickness should be passed as parameter from application layer
+            # This framework should not hardcode or assume specific values
+            
+            # Spatial tolerance for matching coordinates
+            tolerance = voxel_size * 0.5
+            
+            # Map power data using REAL data structure
+            if 'power_data' in extracted_data:
+                power_data = extracted_data['power_data']
+                
+                # Use hatch_power data (real structure from power_extractor)
+                if 'hatch_power' in power_data:
+                    for hatch in power_data['hatch_power']:
+                        if hatch.get('coordinates') and hatch.get('power'):
+                            coords = hatch['coordinates']
+                            # coords is a list of [x1, y1, x2, y2, ...] pairs
+                            for i in range(0, len(coords), 2):
+                                if i + 1 < len(coords):
+                                    hatch_x, hatch_y = coords[i], coords[i + 1]
+                                    hatch_z = hatch.get('layer_index', 0) * layer_thickness  # Convert layer to Z using real layer thickness
+                                    
+                                    if self._is_coordinate_match((voxel_x, voxel_y, voxel_z), 
+                                                               (hatch_x, hatch_y, hatch_z), tolerance):
+                                        voxel_process_data['power_data'] = {
+                                            'power': hatch.get('power'),
+                                            'velocity': hatch.get('velocity'),
+                                            'exposure_time': hatch.get('exposure_time'),
+                                            'point_distance': hatch.get('point_distance'),
+                                            'laser_focus': hatch.get('laser_focus'),
+                                            'coordinates': (hatch_x, hatch_y, hatch_z)
+                                        }
+                                        break
+                
+                # Use spatial_power_map data (real structure)
+                if 'spatial_power_map' in power_data and not voxel_process_data.get('power_data'):
+                    spatial_map = power_data['spatial_power_map']
+                    if 'power_voxels' in spatial_map:
+                        for power_point in spatial_map['power_voxels']:
+                            if self._is_coordinate_match((voxel_x, voxel_y, voxel_z),
+                                                       (power_point['x'], power_point['y'], power_point['z']), 
+                                                       tolerance):
+                                voxel_process_data['power_data'] = {
+                                    'power': power_point.get('power'),
+                                    'velocity': power_point.get('velocity'),
+                                    'geometry_type': power_point.get('geometry_type'),
+                                    'coordinates': (power_point['x'], power_point['y'], power_point['z'])
+                                }
+                                break
+            
+            # Map velocity data using REAL data structure
+            if 'velocity_data' in extracted_data:
+                velocity_data = extracted_data['velocity_data']
+                
+                # Use hatch_velocity data (real structure from velocity_extractor)
+                if 'hatch_velocity' in velocity_data:
+                    for hatch in velocity_data['hatch_velocity']:
+                        if hatch.get('coordinates') and hatch.get('velocity'):
+                            coords = hatch['coordinates']
+                            for i in range(0, len(coords), 2):
+                                if i + 1 < len(coords):
+                                    hatch_x, hatch_y = coords[i], coords[i + 1]
+                                    hatch_z = hatch.get('layer_index', 0) * layer_thickness  # Convert layer to Z using real layer thickness
+                                    
+                                    if self._is_coordinate_match((voxel_x, voxel_y, voxel_z),
+                                                               (hatch_x, hatch_y, hatch_z), tolerance):
+                                        voxel_process_data['velocity_data'] = {
+                                            'velocity': hatch.get('velocity'),
+                                            'power': hatch.get('power'),
+                                            'exposure_time': hatch.get('exposure_time'),
+                                            'coordinates': (hatch_x, hatch_y, hatch_z)
+                                        }
+                                        break
+            
+            # Map energy data using REAL data structure
+            if 'energy_data' in extracted_data:
+                energy_data = extracted_data['energy_data']
+                
+                # Use energy_density data (real structure from energy_extractor)
+                if 'energy_density' in energy_data:
+                    for energy_point in energy_data['energy_density']:
+                        if energy_point.get('coordinates') and energy_point.get('energy_density'):
+                            coords = energy_point['coordinates']
+                            for i in range(0, len(coords), 2):
+                                if i + 1 < len(coords):
+                                    energy_x, energy_y = coords[i], coords[i + 1]
+                                    energy_z = energy_point.get('layer_index', 0) * layer_thickness  # Convert layer to Z using real layer thickness
+                                    
+                                    if self._is_coordinate_match((voxel_x, voxel_y, voxel_z),
+                                                               (energy_x, energy_y, energy_z), tolerance):
+                                        voxel_process_data['energy_data'] = {
+                                            'energy_density': energy_point.get('energy_density'),
+                                            'power': energy_point.get('power'),
+                                            'velocity': energy_point.get('velocity'),
+                                            'exposure_time': energy_point.get('exposure_time'),
+                                            'coordinates': (energy_x, energy_y, energy_z)
+                                        }
+                                        break
+            
+            # Map other data using similar real structure approach
+            # (path_data, layer_data, etc. would follow similar pattern)
+            
+            return voxel_process_data
+            
+        except Exception as e:
+            logger.warning(f"Error mapping voxel to process parameters: {e}")
+            return {}
+    
+    def _is_coordinate_match(
+        self, 
+        voxel_coords: Tuple[float, float, float], 
+        process_coords: Tuple[float, float, float], 
+        tolerance: float
+    ) -> bool:
+        """Check if voxel coordinates match process coordinates within tolerance."""
+        if not process_coords or len(process_coords) < 3:
+            return False
+        
+        dx = abs(voxel_coords[0] - process_coords[0])
+        dy = abs(voxel_coords[1] - process_coords[1])
+        dz = abs(voxel_coords[2] - process_coords[2])
+        
+        return dx <= tolerance and dy <= tolerance and dz <= tolerance
+    
     def _create_base_voxel_data(
         self, 
         voxel_grid: VoxelGrid, 
         voxel_idx: Tuple[int, int, int]
     ) -> FusedVoxelData:
         """Create base voxel data from CAD model."""
+        # Handle both VoxelGrid object and dict
+        if hasattr(voxel_grid, 'origin'):
+            origin = voxel_grid.origin
+            voxel_size = voxel_grid.voxel_size
+        elif isinstance(voxel_grid, dict):
+            bounds = voxel_grid.bounds
+            voxel_size = voxel_grid.voxel_size
+            if len(bounds) >= 3:
+                origin = (bounds[0][0], bounds[1][0], bounds[2][0])
+            else:
+                origin = (0.0, 0.0, 0.0)
+        else:
+            origin = (0.0, 0.0, 0.0)
+            voxel_size = 1.0
+        
         # Convert grid index to world coordinates
         world_coords = (
-            voxel_grid.origin[0] + voxel_idx[0] * voxel_grid.voxel_size,
-            voxel_grid.origin[1] + voxel_idx[1] * voxel_grid.voxel_size,
-            voxel_grid.origin[2] + voxel_idx[2] * voxel_grid.voxel_size
+            origin[0] + voxel_idx[0] * voxel_size,
+            origin[1] + voxel_idx[1] * voxel_size,
+            origin[2] + voxel_idx[2] * voxel_size
         )
         
         # Create VoxelCoordinates object
@@ -208,21 +544,28 @@ class MultiModalFusion:
             x=world_coords[0],
             y=world_coords[1],
             z=world_coords[2],
-            voxel_size=voxel_grid.voxel_size,
+            voxel_size=voxel_size,
             is_solid=True,
-            layer_number=int(voxel_grid.process_map['layer_number'][voxel_idx]),
-            material_type="Ti-6Al-4V"  # Default material
+            layer_number=0,  # Default layer number
+            material_type="Ti-6Al-4V",  # Default material
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         
-        # Create base fused data
+        # Create base fused data with empty/default values
+        # Real values will be populated by _fuse_build_data() method using extracted data
         base_data = FusedVoxelData(
             voxel_coordinates=voxel_coords,
             is_solid=True,
-            material_type="Ti-6Al-4V",
-            laser_power=float(voxel_grid.process_map['laser_power'][voxel_idx]),
-            scan_speed=float(voxel_grid.process_map['scan_speed'][voxel_idx]),
-            layer_number=int(voxel_grid.process_map['layer_number'][voxel_idx]),
-            build_time=datetime.now(),  # Placeholder
+            material_type="Unknown",  # Will be determined from build data
+            laser_power=None,  # Will be filled with real data from build parsers
+            scan_speed=None,   # Will be filled with real data from build parsers
+            layer_number=None, # Will be filled with real layer data
+            build_time=None,   # Will be filled with real build time
+            # Energy parameters for cost analysis
+            energy_density=None,     # Will be filled with real energy density
+            exposure_time=None,      # Will be filled with real exposure time
+            total_energy_input=None, # Will be filled with real energy input
             last_updated=datetime.now()
         )
         

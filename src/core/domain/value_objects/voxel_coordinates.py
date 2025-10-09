@@ -60,9 +60,10 @@ class VoxelCoordinates(BaseValueObject):
     
     def validate(self) -> None:
         """Validate voxel coordinates."""
-        # Coordinate validation
-        if self.x < 0 or self.y < 0 or self.z < 0:
-            raise ValueError("Coordinates cannot be negative")
+        # Coordinate validation - coordinates can be negative in 3D space
+        # Only check for reasonable bounds (not infinite values)
+        if not all(-1e6 <= coord <= 1e6 for coord in [self.x, self.y, self.z]):
+            raise ValueError("Coordinates must be within reasonable bounds (-1e6 to 1e6)")
         
         # Voxel size validation
         if self.voxel_size <= 0:

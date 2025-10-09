@@ -67,13 +67,11 @@ from .format_parsers.realizer_parser import RealizerParser
 from .format_parsers.slm_parser import SLMParser
 from .format_parsers.generic_parser import GenericParser
 
-# Data extractors
-from .data_extractors.power_extractor import PowerExtractor
-from .data_extractors.velocity_extractor import VelocityExtractor
-from .data_extractors.path_extractor import PathExtractor
-from .data_extractors.energy_extractor import EnergyExtractor
-from .data_extractors.layer_extractor import LayerExtractor
-from .data_extractors.timestamp_extractor import TimestampExtractor
+# Data extractors - Format-specific extractors are available through BuildFileParser
+# Individual extractors can be imported from their format-specific directories:
+# from .data_extractors.slm.power_extractor import PowerExtractor as SLMPowerExtractor
+# from .data_extractors.sli.power_extractor import PowerExtractor as SLIPowerExtractor
+# etc.
 
 # Utilities
 from .utils.file_utils import FileUtils
@@ -98,13 +96,7 @@ __all__ = [
     "SLMParser",
     "GenericParser",
     
-    # Data extractors
-    "PowerExtractor",
-    "VelocityExtractor",
-    "PathExtractor", 
-    "EnergyExtractor",
-    "LayerExtractor",
-    "TimestampExtractor",
+    # Data extractors - Use BuildFileParser for format-specific extractors
     
     # Utilities
     "FileUtils",

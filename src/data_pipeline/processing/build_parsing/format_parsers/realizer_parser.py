@@ -32,8 +32,8 @@ class RealizerParser(BaseBuildParser):
         # Check libSLM availability
         if LIBSLM_AVAILABLE:
             try:
-                from libSLM import realizer
-                self.realizer_reader = realizer.Reader()
+                import translators
+                self.realizer_reader = translators.realizer.Reader()
                 self.libslm_available = True
                 logger.info("Realizer parser initialized with libSLM support")
             except ImportError as e:

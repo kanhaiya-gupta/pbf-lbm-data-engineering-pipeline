@@ -10,7 +10,7 @@ from pathlib import Path
 import logging
 
 from ..base_parser import BaseBuildParser
-from ....external import LIBSLM_AVAILABLE
+from ....external import LIBSLM_AVAILABLE, slmsol
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +32,11 @@ class SLMParser(BaseBuildParser):
         # Check libSLM availability
         if LIBSLM_AVAILABLE:
             try:
-                from libSLM import slm
-                self.slm_reader = slm.Reader()
+                self.slm_reader = slmsol.Reader()
                 self.libslm_available = True
                 logger.info("SLM parser initialized with libSLM support")
-            except ImportError as e:
-                logger.warning(f"libSLM SLM module not available: {e}")
+            except Exception as e:
+                logger.warning(f"libSLM slmsol module not available: {e}")
                 self.slm_reader = None
                 self.libslm_available = False
         else:
@@ -72,7 +71,8 @@ class SLMParser(BaseBuildParser):
             logger.info(f"Parsing SLM file: {file_path}")
             
             # Use libSLM SLM reader
-            build_data = self.slm_reader.read(str(file_path))
+            self.slm_reader.setFilePath(str(file_path))
+            build_data = self.slm_reader.parse()
             
             # Extract build information
             result = {
@@ -97,7 +97,21 @@ class SLMParser(BaseBuildParser):
         metadata = {}
         
         try:
-            # Extract basic metadata
+            # Extract basic metadata from reader
+            if hasattr(self.slm_reader, 'getLayerThickness'):
+                metadata['layer_thickness'] = self.slm_reader.getLayerThickness()
+            
+            if hasattr(self.slm_reader, 'getFileSize'):
+                metadata['file_size'] = self.slm_reader.getFileSize()
+            
+            if hasattr(self.slm_reader, 'getZUnit'):
+                metadata['z_unit'] = self.slm_reader.getZUnit()
+            
+            # Add layer count
+            if hasattr(self.slm_reader, 'layers'):
+                metadata['layer_count'] = len(self.slm_reader.layers)
+            
+            # Extract basic metadata from build_data
             if hasattr(build_data, 'metadata'):
                 metadata.update(build_data.metadata)
             
@@ -123,15 +137,18 @@ class SLMParser(BaseBuildParser):
         layers = []
         
         try:
-            if hasattr(build_data, 'layers'):
-                for i, layer in enumerate(build_data.layers):
+            # Extract from reader object (where the actual data is)
+            if hasattr(self.slm_reader, 'layers') and self.slm_reader.layers:
+                for i, layer in enumerate(self.slm_reader.layers):
                     layer_info = {
                         'layer_index': i,
-                        'z_height': getattr(layer, 'z_height', None),
+                        'z_height': getattr(layer, 'z', None),  # libSLM uses 'z' not 'z_height'
                         'thickness': getattr(layer, 'thickness', None),
-                        'hatch_count': getattr(layer, 'hatch_count', 0),
-                        'contour_count': getattr(layer, 'contour_count', 0),
-                        'point_count': getattr(layer, 'point_count', 0)
+                        'hatch_count': 0,  # Will be calculated from hatch geometry
+                        'contour_count': 0,  # Will be calculated from contour geometry
+                        'point_count': 0,  # Will be calculated from point geometry
+                        'layer_id': getattr(layer, 'layerId', i),
+                        'is_loaded': layer.isLoaded() if hasattr(layer, 'isLoaded') and callable(layer.isLoaded) else False
                     }
                     layers.append(layer_info)
             
@@ -145,16 +162,26 @@ class SLMParser(BaseBuildParser):
         parameters = {}
         
         try:
-            # Extract global parameters
-            if hasattr(build_data, 'parameters'):
-                parameters.update(build_data.parameters)
+            # Extract global parameters from reader
+            if hasattr(self.slm_reader, 'getLayerThickness'):
+                parameters['layer_thickness'] = self.slm_reader.getLayerThickness()
             
-            # Extract layer-specific parameters
-            if hasattr(build_data, 'layers'):
+            if hasattr(self.slm_reader, 'getFileSize'):
+                parameters['file_size'] = self.slm_reader.getFileSize()
+            
+            if hasattr(self.slm_reader, 'getZUnit'):
+                parameters['z_unit'] = self.slm_reader.getZUnit()
+            
+            # Extract layer-specific parameters from reader
+            if hasattr(self.slm_reader, 'layers') and self.slm_reader.layers:
                 layer_params = {}
-                for i, layer in enumerate(build_data.layers):
-                    if hasattr(layer, 'parameters'):
-                        layer_params[f'layer_{i}'] = layer.parameters
+                for i, layer in enumerate(self.slm_reader.layers):
+                    layer_info = {
+                        'layer_id': getattr(layer, 'layerId', i),
+                        'z_position': getattr(layer, 'z', None),
+                        'is_loaded': layer.isLoaded() if hasattr(layer, 'isLoaded') and callable(layer.isLoaded) else False
+                    }
+                    layer_params[f'layer_{i}'] = layer_info
                 if layer_params:
                     parameters['layer_parameters'] = layer_params
             
