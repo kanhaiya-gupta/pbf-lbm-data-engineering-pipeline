@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Job Queue Cache Schema",
+  "description": "Schema for caching job queue data in Redis",
+  "type": "object",
+  "properties": {
+    "cache_key": {
+      "type": "string",
+      "description": "Redis cache key",
+      "pattern": "^job:queue$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache last update timestamp"
+    },
+    "ttl": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Time to live in seconds"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "expired", "invalid", "pending"],
+      "description": "Cache status"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cache version"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^JOB_[0-9]{6}$",
+      "description": "Job identifier"
+    },
+    "job_type": {
+      "type": "string",
+      "enum": ["data_processing", "quality_analysis", "report_generation", "maintenance", "calibration", "backup"],
+      "description": "Type of job"
+    },
+    "job_status": {
+      "type": "string",
+      "enum": ["pending", "processing", "completed", "failed", "cancelled"],
+      "description": "Job status"
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Job priority (1=highest, 10=lowest)"
+    },
+    "process_id": {
+      "type": "string",
+      "pattern": "^PROC_[0-9]{8}$",
+      "description": "Associated process ID"
+    },
+    "build_id": {
+      "type": "string",
+      "pattern": "^BUILD_[0-9]{6}$",
+      "description": "Associated build ID"
+    },
+    "machine_id": {
+      "type": "string",
+      "pattern": "^MACHINE_[0-9]{3}$",
+      "description": "Target machine ID"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Job parameters",
+      "additionalProperties": true
+    },
+    "estimated_duration": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Estimated duration in minutes"
+    },
+    "required_resources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["cpu", "memory", "storage", "network", "gpu", "laser", "sensors"]
+      },
+      "description": "Required resources"
+    },
+    "scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Scheduled execution time"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Actual start time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Completion time"
+    },
+    "result_data": {
+      "type": "object",
+      "description": "Job result data",
+      "additionalProperties": true
+    },
+    "error_message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Error message if failed"
+    }
+  },
+  "required": [
+    "cache_key",
+    "job_id",
+    "job_type",
+    "job_status",
+    "priority"
+  ],
+  "additionalProperties": false
+}

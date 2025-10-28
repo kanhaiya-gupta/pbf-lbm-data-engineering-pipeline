@@ -1,0 +1,240 @@
+{
+  "collection_name": "build_instructions",
+  "description": "MongoDB collection for storing build instructions, procedures, checklists, and safety protocols",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["build_instruction"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "build_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL build ID"
+      },
+      "part_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL part ID"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "instruction_type": {
+        "type": "string",
+        "enum": ["setup", "pre_build", "build", "post_build", "quality_control", "safety", "maintenance"],
+        "description": "Type of build instruction"
+      },
+      "instruction_title": {
+        "type": "string",
+        "description": "Title of the instruction"
+      },
+      "instruction_content": {
+        "type": "string",
+        "description": "Main instruction content"
+      },
+      "instruction_steps": {
+        "type": "array",
+        "description": "Step-by-step instructions",
+        "items": {
+          "type": "object",
+          "properties": {
+            "step_number": {"type": "integer", "minimum": 1},
+            "step_title": {"type": "string"},
+            "step_description": {"type": "string"},
+            "step_requirements": {"type": "array", "items": {"type": "string"}},
+            "step_warnings": {"type": "array", "items": {"type": "string"}},
+            "step_verification": {"type": "string"},
+            "estimated_time": {"type": "number", "minimum": 0}
+          }
+        }
+      },
+      "safety_requirements": {
+        "type": "array",
+        "description": "Safety requirements and protocols",
+        "items": {
+          "type": "object",
+          "properties": {
+            "requirement_type": {"type": "string", "enum": ["PPE", "EQUIPMENT", "ENVIRONMENT", "PROCEDURE"]},
+            "description": {"type": "string"},
+            "mandatory": {"type": "boolean"},
+            "verification_required": {"type": "boolean"}
+          }
+        }
+      },
+      "quality_checkpoints": {
+        "type": "array",
+        "description": "Quality control checkpoints",
+        "items": {
+          "type": "object",
+          "properties": {
+            "checkpoint_name": {"type": "string"},
+            "checkpoint_description": {"type": "string"},
+            "measurement_requirements": {"type": "object"},
+            "acceptance_criteria": {"type": "string"},
+            "responsible_role": {"type": "string"}
+          }
+        }
+      },
+      "required_tools": {
+        "type": "array",
+        "description": "Required tools and equipment",
+        "items": {
+          "type": "object",
+          "properties": {
+            "tool_name": {"type": "string"},
+            "tool_type": {"type": "string"},
+            "quantity": {"type": "integer", "minimum": 1},
+            "specifications": {"type": "string"},
+            "calibration_required": {"type": "boolean"}
+          }
+        }
+      },
+      "material_requirements": {
+        "type": "array",
+        "description": "Material requirements",
+        "items": {
+          "type": "object",
+          "properties": {
+            "material_name": {"type": "string"},
+            "material_type": {"type": "string"},
+            "quantity": {"type": "number", "minimum": 0},
+            "unit": {"type": "string"},
+            "specifications": {"type": "string"},
+            "storage_requirements": {"type": "string"}
+          }
+        }
+      },
+      "approval_workflow": {
+        "type": "object",
+        "description": "Approval workflow information",
+        "properties": {
+          "approval_required": {"type": "boolean"},
+          "approval_roles": {"type": "array", "items": {"type": "string"}},
+          "approval_status": {"type": "string", "enum": ["pending", "approved", "rejected", "expired"]},
+          "approved_by": {"type": "string"},
+          "approved_at": {"type": "date"},
+          "expiry_date": {"type": "date"}
+        }
+      },
+      "version_control": {
+        "type": "object",
+        "description": "Version control information",
+        "properties": {
+          "version": {"type": "string"},
+          "revision": {"type": "integer", "minimum": 1},
+          "change_log": {"type": "string"},
+          "previous_version": {"type": "string"},
+          "superseded_by": {"type": "string"}
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "process_id", "instruction_type", "instruction_title", "instruction_content"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "process_id_index",
+      "keys": {"process_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "instruction_type_index",
+      "keys": {"instruction_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "approval_status_index",
+      "keys": {"approval_workflow.approval_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "approved_by_index",
+      "keys": {"approval_workflow.approved_by": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "version_index",
+      "keys": {"version_control.version": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_instruction_process_index",
+      "keys": {"instruction_type": 1, "process_id": 1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "process_id", "instruction_type", "instruction_title", "instruction_content"],
+        "properties": {
+          "document_type": {"enum": ["build_instruction"]},
+          "process_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "instruction_type": {"enum": ["setup", "pre_build", "build", "post_build", "quality_control", "safety", "maintenance"]},
+          "approval_workflow.approval_status": {"enum": ["pending", "approved", "rejected", "expired"]}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,249 @@
+{
+  "collection_name": "powder_bed_images",
+  "description": "MongoDB collection for storing powder bed images and related metadata",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["powder_bed_image"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "build_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL build ID"
+      },
+      "part_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL part ID"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Path to powder bed image file in GridFS"
+      },
+      "file_size": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "File size in bytes"
+      },
+      "file_hash": {
+        "type": "string",
+        "description": "File hash for integrity verification"
+      },
+      "file_status": {
+        "type": "string",
+        "enum": ["uploaded", "processing", "processed", "failed", "archived"],
+        "description": "File processing status"
+      },
+      "layer_number": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Layer number corresponding to the image"
+      },
+      "image_dimensions": {
+        "type": "object",
+        "description": "Image dimensions",
+        "properties": {
+          "width": {"type": "integer", "minimum": 1},
+          "height": {"type": "integer", "minimum": 1},
+          "resolution": {"type": "number", "minimum": 0}
+        }
+      },
+      "image_format": {
+        "type": "string",
+        "enum": ["JPEG", "PNG", "TIFF", "BMP", "WEBP", "DICOM", "RAW"],
+        "description": "Image format"
+      },
+      "camera_settings": {
+        "type": "object",
+        "description": "Camera settings when image was taken",
+        "properties": {
+          "exposure": {"type": "string"},
+          "iso": {"type": "string"},
+          "aperture": {"type": "string"},
+          "focal_length": {"type": "string"},
+          "white_balance": {"type": "string"},
+          "flash_used": {"type": "boolean"}
+        }
+      },
+      "powder_bed_conditions": {
+        "type": "object",
+        "description": "Powder bed conditions during imaging",
+        "properties": {
+          "bed_temperature": {"type": "number", "minimum": 0, "maximum": 3000},
+          "bed_pressure": {"type": "number", "minimum": 0},
+          "powder_thickness": {"type": "number", "minimum": 0.01, "maximum": 1.0},
+          "powder_density": {"type": "number", "minimum": 0, "maximum": 100},
+          "atmosphere": {"type": "string"},
+          "humidity": {"type": "number", "minimum": 0, "maximum": 100}
+        }
+      },
+      "processing_status": {
+        "type": "string",
+        "enum": ["pending", "processing", "processed", "failed"],
+        "description": "Image processing status"
+      },
+      "analysis_results": {
+        "type": "object",
+        "description": "Powder bed analysis results",
+        "properties": {
+          "bed_quality_score": {"type": "number", "minimum": 0, "maximum": 100},
+          "uniformity_score": {"type": "number", "minimum": 0, "maximum": 100},
+          "defects_detected": {"type": "boolean"},
+          "defect_count": {"type": "integer", "minimum": 0},
+          "defect_density": {"type": "number", "minimum": 0},
+          "defect_types": {"type": "array", "items": {"type": "string"}},
+          "powder_distribution": {"type": "object"},
+          "surface_roughness": {"type": "number", "minimum": 0}
+        }
+      },
+      "defect_analysis": {
+        "type": "array",
+        "description": "Detailed defect analysis",
+        "items": {
+          "type": "object",
+          "properties": {
+            "defect_id": {"type": "string"},
+            "defect_type": {"type": "string"},
+            "coordinates": {"type": "object"},
+            "severity": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+            "size": {"type": "number", "minimum": 0},
+            "description": {"type": "string"}
+          }
+        }
+      },
+      "image_metadata": {
+        "type": "object",
+        "description": "Additional image metadata",
+        "properties": {
+          "capture_date": {"type": "date"},
+          "operator": {"type": "string"},
+          "camera_id": {"type": "string"},
+          "lighting_conditions": {"type": "string"},
+          "image_notes": {"type": "string"}
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "process_id", "layer_number", "image_dimensions"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "process_id_index",
+      "keys": {"process_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "layer_number_index",
+      "keys": {"layer_number": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "image_format_index",
+      "keys": {"image_format": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "processing_status_index",
+      "keys": {"processing_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "file_status_index",
+      "keys": {"file_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "defects_detected_index",
+      "keys": {"analysis_results.defects_detected": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "capture_date_index",
+      "keys": {"image_metadata.capture_date": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_powder_process_layer_index",
+      "keys": {"process_id": 1, "layer_number": 1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "process_id", "layer_number", "image_dimensions"],
+        "properties": {
+          "document_type": {"enum": ["powder_bed_image"]},
+          "process_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "image_format": {"enum": ["JPEG", "PNG", "TIFF", "BMP", "RAW"]},
+          "file_status": {"enum": ["uploaded", "processing", "processed", "failed", "archived"]},
+          "processing_status": {"enum": ["pending", "processing", "processed", "failed"]}
+        }
+      }
+    }
+  }
+}

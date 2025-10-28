@@ -1,0 +1,214 @@
+{
+  "collection_name": "machine_build_files",
+  "description": "MongoDB collection for storing machine build files (.slm, .cli, .sli) and related metadata",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["build_file"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "build_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL build ID"
+      },
+      "part_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL part ID"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Path to build file in GridFS"
+      },
+      "file_size": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "File size in bytes"
+      },
+      "file_hash": {
+        "type": "string",
+        "description": "File hash for integrity verification"
+      },
+      "file_status": {
+        "type": "string",
+        "enum": ["uploaded", "processing", "processed", "failed", "archived"],
+        "description": "File processing status"
+      },
+      "file_type": {
+        "type": "string",
+        "enum": ["slm", "cli", "sli", "gcode", "nc"],
+        "description": "Build file type"
+      },
+      "machine_type": {
+        "type": "string",
+        "description": "Target machine type"
+      },
+      "build_parameters": {
+        "type": "object",
+        "description": "Build parameters extracted from file",
+        "properties": {
+          "layer_height": {"type": "number", "minimum": 0},
+          "laser_power": {"type": "number", "minimum": 0},
+          "scan_speed": {"type": "number", "minimum": 0},
+          "hatch_spacing": {"type": "number", "minimum": 0},
+          "exposure_time": {"type": "number", "minimum": 0},
+          "build_plate_temperature": {"type": "number"},
+          "atmosphere": {"type": "string"},
+          "powder_material": {"type": "string"}
+        }
+      },
+      "layer_count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Number of layers in build file"
+      },
+      "estimated_build_time": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Estimated build time in hours"
+      },
+      "validation_status": {
+        "type": "string",
+        "enum": ["pending", "validating", "valid", "invalid", "warning"],
+        "description": "File validation status"
+      },
+      "validation_errors": {
+        "type": "array",
+        "description": "Validation errors if any",
+        "items": {"type": "string"}
+      },
+      "processing_notes": {
+        "type": "string",
+        "description": "Processing notes and comments"
+      },
+      "file_metadata": {
+        "type": "object",
+        "description": "Additional file metadata",
+        "properties": {
+          "original_filename": {"type": "string"},
+          "upload_source": {"type": "string"},
+          "file_creator": {"type": "string"},
+          "creation_software": {"type": "string"},
+          "file_version": {"type": "string"}
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "process_id", "file_type"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "process_id_index",
+      "keys": {"process_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "build_id_index",
+      "keys": {"build_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "file_type_index",
+      "keys": {"file_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "machine_type_index",
+      "keys": {"machine_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "validation_status_index",
+      "keys": {"validation_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "file_status_index",
+      "keys": {"file_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_process_file_index",
+      "keys": {"process_id": 1, "file_type": 1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "process_id", "file_type"],
+        "properties": {
+          "document_type": {"enum": ["build_file"]},
+          "process_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "file_type": {"enum": ["slm", "cli", "sli", "gcode", "nc"]},
+          "file_status": {"enum": ["uploaded", "processing", "processed", "failed", "archived"]},
+          "validation_status": {"enum": ["pending", "validating", "valid", "invalid", "warning"]}
+        }
+      }
+    }
+  }
+}

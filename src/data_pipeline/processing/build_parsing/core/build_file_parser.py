@@ -21,6 +21,8 @@ from ..format_parsers.eos_parser import EOSParser
 from ..format_parsers.mtt_parser import MTTParser
 from ..format_parsers.realizer_parser import RealizerParser
 from ..format_parsers.slm_parser import SLMParser
+from ..format_parsers.cli_parser import CLIParser
+from ..format_parsers.ilt_parser import ILTParser
 from ..format_parsers.generic_parser import GenericParser
 
 # Import format-specific data extractors
@@ -42,7 +44,12 @@ from ..data_extractors.mtt.path_extractor import PathExtractor as MTTPathExtract
 from ..data_extractors.mtt.energy_extractor import EnergyExtractor as MTTEnergyExtractor
 from ..data_extractors.mtt.layer_extractor import LayerExtractor as MTTLayerExtractor
 
-# CLI extractors not needed - CLI is not supported by libSLM
+# Import CLI extractors
+from ..data_extractors.cli.power_extractor import PowerExtractor as CLIPowerExtractor
+from ..data_extractors.cli.velocity_extractor import VelocityExtractor as CLIVelocityExtractor
+from ..data_extractors.cli.path_extractor import PathExtractor as CLIPathExtractor
+from ..data_extractors.cli.energy_extractor import EnergyExtractor as CLIEnergyExtractor
+from ..data_extractors.cli.layer_extractor import LayerExtractor as CLILayerExtractor
 
 from ..data_extractors.realizer.power_extractor import PowerExtractor as RealizerPowerExtractor
 from ..data_extractors.realizer.velocity_extractor import VelocityExtractor as RealizerVelocityExtractor
@@ -73,12 +80,12 @@ class BuildFileParser(BaseBuildParser):
         # Initialize format parsers
         self.format_parsers = {
             '.sli': EOSParser(),
+            '.cli': CLIParser(),
+            '.ilt': ILTParser(),
             '.mtt': MTTParser(),
             '.rea': RealizerParser(),
             '.slm': SLMParser(),
         }
-        
-        # CLI is not supported by libSLM - will be handled as unsupported format
         
         # Initialize format-specific data extractors
         self.data_extractors = {
@@ -96,7 +103,20 @@ class BuildFileParser(BaseBuildParser):
                 'energy': SLIEnergyExtractor(),
                 'layer': SLILayerExtractor(),
             },
-            # CLI is not supported by libSLM - no extractors needed
+            'cli': {
+                'power': CLIPowerExtractor(),
+                'velocity': CLIVelocityExtractor(),
+                'path': CLIPathExtractor(),
+                'energy': CLIEnergyExtractor(),
+                'layer': CLILayerExtractor(),
+            },
+            'ilt': {
+                'power': CLIPowerExtractor(),  # ILT uses CLI extractors
+                'velocity': CLIVelocityExtractor(),
+                'path': CLIPathExtractor(),
+                'energy': CLIEnergyExtractor(),
+                'layer': CLILayerExtractor(),
+            },
             'mtt': {
                 'power': MTTPowerExtractor(),
                 'velocity': MTTVelocityExtractor(),
@@ -141,16 +161,6 @@ class BuildFileParser(BaseBuildParser):
         
         # Detect format
         file_extension = file_path.suffix.lower()
-        
-        # Handle CLI files specifically (not supported by libSLM)
-        if file_extension == '.cli':
-            error_msg = (
-                f"CLI (.cli) files are not supported by libSLM library. "
-                f"CLI is an older format primarily for SLA systems and lacks PBF-LB/M process parameters. "
-                f"Supported formats: {', '.join(self.get_supported_formats())}"
-            )
-            logger.error(error_msg)
-            raise ValueError(error_msg)
         
         if not self.is_format_supported(file_extension):
             logger.warning(f"Format {file_extension} not directly supported, using generic parser")
@@ -212,8 +222,10 @@ class BuildFileParser(BaseBuildParser):
         try:
             # Determine format for extractor selection
             format_key = file_extension.lstrip('.').lower()
-            if format_key in ['sli', 'cli']:
-                format_key = 'sli'  # Both use SLI extractors
+            if format_key == 'sli':
+                format_key = 'sli'  # SLI uses SLI extractors
+            elif format_key in ['cli', 'ilt']:
+                format_key = 'cli'  # CLI and ILT use CLI extractors
             elif format_key == 'rea':
                 format_key = 'rea'  # Realizer format
             elif format_key not in self.data_extractors:
@@ -336,8 +348,10 @@ class BuildFileParser(BaseBuildParser):
         # Determine format for extractor selection
         file_extension = Path(file_path).suffix.lower()
         format_key = file_extension.lstrip('.').lower()
-        if format_key in ['sli', 'cli']:
-            format_key = 'sli'  # Both use SLI extractors
+        if format_key == 'sli':
+            format_key = 'sli'  # SLI uses SLI extractors
+        elif format_key in ['cli', 'ilt']:
+            format_key = 'cli'  # CLI and ILT use CLI extractors
         elif format_key == 'rea':
             format_key = 'rea'  # Realizer format
         elif format_key not in self.data_extractors:

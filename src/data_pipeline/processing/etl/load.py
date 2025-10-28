@@ -379,34 +379,43 @@ def load_to_cassandra(
         raise
 
 
-def load_to_elasticsearch(
+def load_to_clickhouse(
     df: DataFrame,
-    elasticsearch_config: Dict[str, str],
-    index_name: str,
+    clickhouse_config: Dict[str, str],
+    table_name: str,
+    database: str = "default",
     mode: str = "append",
     options: Optional[Dict[str, str]] = None
 ) -> None:
     """
-    Load data to Elasticsearch using Spark
+    Load data to ClickHouse using Spark JDBC
     
     Args:
         df: DataFrame to load
-        elasticsearch_config: Elasticsearch configuration
-        index_name: Target index name
+        clickhouse_config: ClickHouse configuration
+        table_name: Target table name
+        database: Target database name
         mode: Write mode (append, overwrite, ignore, error)
-        options: Optional Elasticsearch options
+        options: Optional ClickHouse options
     """
     try:
-        logger.info(f"Loading data to Elasticsearch index: {index_name}")
+        logger.info(f"Loading data to ClickHouse table: {database}.{table_name}")
         
-        # Default options for Elasticsearch writing
+        # Build ClickHouse connection string
+        host = clickhouse_config.get("host", "localhost")
+        port = clickhouse_config.get("port", "8123")
+        username = clickhouse_config.get("username", "default")
+        password = clickhouse_config.get("password", "")
+        
+        connection_string = f"jdbc:clickhouse://{host}:{port}/{database}"
+        
+        # Default options for ClickHouse JDBC writing
         default_options = {
-            "es.nodes": elasticsearch_config.get("nodes", "localhost"),
-            "es.port": elasticsearch_config.get("port", "9200"),
-            "es.net.http.auth.user": elasticsearch_config.get("username", ""),
-            "es.net.http.auth.pass": elasticsearch_config.get("password", ""),
-            "es.resource": index_name,
-            "es.batch.size.entries": "1000"
+            "driver": "ru.yandex.clickhouse.ClickHouseDriver",
+            "batchsize": "1000",
+            "isolationLevel": "READ_COMMITTED",
+            "user": username,
+            "password": password
         }
         
         if options:
@@ -419,420 +428,98 @@ def load_to_elasticsearch(
             "load_mode", lit(mode)
         )
         
-        # Write to Elasticsearch
-        df_with_metadata.write.format("es").options(
+        # Write to ClickHouse
+        df_with_metadata.write.format("jdbc").options(
+            url=connection_string,
+            dbtable=table_name,
             **default_options
         ).mode(mode).save()
         
-        logger.info(f"Successfully loaded {df.count()} records to Elasticsearch index: {index_name}")
+        logger.info(f"Successfully loaded {df.count()} records to ClickHouse table: {database}.{table_name}")
         
     except Exception as e:
-        logger.error(f"Error loading data to Elasticsearch index {index_name}: {str(e)}")
+        logger.error(f"Error loading data to ClickHouse table {database}.{table_name}: {str(e)}")
         raise
 
 
-def load_pbf_process_data(
+def load_to_minio(
     df: DataFrame,
-    destination_config: Dict[str, Any]
+    minio_config: Dict[str, str],
+    bucket_name: str,
+    object_path: str,
+    format: str = "parquet",
+    mode: str = "append",
+    options: Optional[Dict[str, str]] = None
 ) -> None:
     """
-    Load PBF process data to specified destination
+    Load data to MinIO (S3-compatible) using Spark
     
     Args:
-        df: DataFrame containing PBF process data
-        destination_config: Destination configuration
+        df: DataFrame to load
+        minio_config: MinIO configuration
+        bucket_name: MinIO bucket name
+        object_path: Object path within bucket
+        format: File format (parquet, json, csv, delta)
+        mode: Write mode (append, overwrite, ignore, error)
+        options: Optional MinIO options
     """
     try:
-        logger.info("Loading PBF process data")
+        logger.info(f"Loading data to MinIO: s3a://{bucket_name}/{object_path}")
         
-        destination_type = destination_config.get("type", "postgresql")
+        # Build S3 path for MinIO
+        s3_path = f"s3a://{bucket_name}/{object_path}"
         
-        if destination_type == "postgresql":
-            load_to_postgresql(
-                df=df,
-                connection_string=destination_config.get("connection_string", ""),
-                table_name=destination_config.get("table_name", "pbf_process_data"),
-                mode=destination_config.get("mode", "append")
-            )
-        elif destination_type == "s3":
-            load_to_s3(
-                df=df,
-                s3_path=destination_config.get("s3_path", ""),
-                format=destination_config.get("format", "parquet"),
-                mode=destination_config.get("mode", "append")
-            )
-        elif destination_type == "snowflake":
-            load_to_snowflake(
-                df=df,
-                snowflake_config=destination_config.get("snowflake_config", {}),
-                table_name=destination_config.get("table_name", "pbf_process_data"),
-                mode=destination_config.get("mode", "append")
-            )
-        elif destination_type == "delta_lake":
-            load_to_delta_lake(
-                df=df,
-                delta_path=destination_config.get("delta_path", ""),
-                mode=destination_config.get("mode", "append")
-            )
-        elif destination_type == "mongodb":
-            load_to_mongodb(
-                df=df,
-                mongodb_config=destination_config.get("mongodb_config", {}),
-                collection_name=destination_config.get("collection_name", "pbf_process_data"),
-                mode=destination_config.get("mode", "append")
-            )
+        # Default options for MinIO writing
+        default_options = {
+            "fs.s3a.endpoint": minio_config.get("endpoint", "http://localhost:9000"),
+            "fs.s3a.access.key": minio_config.get("access_key", "minioadmin"),
+            "fs.s3a.secret.key": minio_config.get("secret_key", "minioadmin"),
+            "fs.s3a.path.style.access": "true",
+            "fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+            "compression": "snappy",
+            "parquet.enable.summary-metadata": "false"
+        }
+        
+        if options:
+            default_options.update(options)
+        
+        # Add metadata columns
+        df_with_metadata = df.withColumn(
+            "load_timestamp", current_timestamp()
+        ).withColumn(
+            "load_mode", lit(mode)
+        ).withColumn(
+            "file_format", lit(format)
+        )
+        
+        # Write to MinIO
+        writer = df_with_metadata.write.options(**default_options).mode(mode)
+        
+        if format == "parquet":
+            writer.parquet(s3_path)
+        elif format == "json":
+            writer.json(s3_path)
+        elif format == "csv":
+            writer.option("header", "true").csv(s3_path)
+        elif format == "delta":
+            writer.format("delta").save(s3_path)
         else:
-            raise ValueError(f"Unsupported destination type: {destination_type}")
-            
+            raise ValueError(f"Unsupported format: {format}")
+        
+        logger.info(f"Successfully loaded {df.count()} records to MinIO: s3a://{bucket_name}/{object_path}")
+        
     except Exception as e:
-        logger.error(f"Error loading PBF process data: {str(e)}")
+        logger.error(f"Error loading data to MinIO s3a://{bucket_name}/{object_path}: {str(e)}")
         raise
 
 
-def load_ispm_monitoring_data(
-    df: DataFrame,
-    destination_config: Dict[str, Any]
-) -> None:
-    """
-    Load ISPM monitoring data to specified destination
-    
-    Args:
-        df: DataFrame containing ISPM monitoring data
-        destination_config: Destination configuration
-    """
-    try:
-        logger.info("Loading ISPM monitoring data")
-        
-        destination_type = destination_config.get("type", "cassandra")
-        
-        if destination_type == "cassandra":
-            load_to_cassandra(
-                df=df,
-                cassandra_config=destination_config.get("cassandra_config", {}),
-                keyspace=destination_config.get("keyspace", "lpbf_research"),
-                table_name=destination_config.get("table_name", "ispm_monitoring_data"),
-                mode=destination_config.get("mode", "append")
-            )
-        elif destination_type == "redis":
-            load_to_redis(
-                df=df,
-                redis_config=destination_config.get("redis_config", {}),
-                key_prefix=destination_config.get("key_prefix", "ispm_monitoring"),
-                options=destination_config.get("options", {})
-            )
-        elif destination_type == "postgresql":
-            load_to_postgresql(
-                df=df,
-                connection_string=destination_config.get("connection_string", ""),
-                table_name=destination_config.get("table_name", "ispm_monitoring_data"),
-                mode=destination_config.get("mode", "append")
-            )
-        else:
-            raise ValueError(f"Unsupported destination type: {destination_type}")
-            
-    except Exception as e:
-        logger.error(f"Error loading ISPM monitoring data: {str(e)}")
-        raise
+
+
 
 
 # =============================================================================
-# NoSQL Data Loading Functions
+# Generic NoSQL Destination Loading Function
 # =============================================================================
-
-def load_to_mongodb(
-    df: DataFrame,
-    connection_string: str,
-    database_name: str,
-    collection_name: str,
-    mode: str = "append",
-    options: Optional[Dict[str, str]] = None
-) -> None:
-    """
-    Load data to MongoDB using Spark MongoDB connector
-    
-    Args:
-        df: DataFrame to load
-        connection_string: MongoDB connection string
-        database_name: MongoDB database name
-        collection_name: MongoDB collection name
-        mode: Write mode (append, overwrite, ignore, error)
-        options: Optional MongoDB connector options
-    """
-    try:
-        logger.info(f"Loading data to MongoDB collection: {collection_name}")
-        
-        # Build MongoDB URI
-        mongo_uri = f"{connection_string}/{database_name}.{collection_name}"
-        
-        # Default options for MongoDB writing
-        default_options = {
-            "uri": mongo_uri,
-            "partitioner": "MongoSamplePartitioner",
-            "partitionerOptions.partitionSizeMB": "64"
-        }
-        
-        if options:
-            default_options.update(options)
-        
-        # Add metadata columns
-        df_with_metadata = df.withColumn(
-            "load_timestamp", current_timestamp()
-        ).withColumn(
-            "load_mode", lit(mode)
-        )
-        
-        # Write to MongoDB
-        df_with_metadata.write \
-            .format("mongo") \
-            .options(**default_options) \
-            .mode(mode) \
-            .save()
-        
-        logger.info(f"Successfully loaded {df.count()} records to MongoDB")
-        
-    except Exception as e:
-        logger.error(f"Error loading data to MongoDB: {str(e)}")
-        raise
-
-
-def load_to_redis(
-    df: DataFrame,
-    host: str,
-    port: int = 6379,
-    password: Optional[str] = None,
-    db: int = 0,
-    key_column: str = "key",
-    value_column: str = "value",
-    mode: str = "append",
-    options: Optional[Dict[str, str]] = None
-) -> None:
-    """
-    Load data to Redis using Spark Redis connector
-    
-    Args:
-        df: DataFrame to load
-        host: Redis host
-        port: Redis port
-        password: Optional Redis password
-        db: Redis database number
-        key_column: Column name containing keys
-        value_column: Column name containing values
-        mode: Write mode (append, overwrite, ignore, error)
-        options: Optional Redis connector options
-    """
-    try:
-        logger.info(f"Loading data to Redis database: {db}")
-        
-        # Configure Redis connector options
-        default_options = {
-            "host": host,
-            "port": str(port),
-            "db": str(db),
-            "keyColumn": key_column,
-            "valueColumn": value_column
-        }
-        
-        if password:
-            default_options["auth"] = password
-        
-        if options:
-            default_options.update(options)
-        
-        # Add metadata columns
-        df_with_metadata = df.withColumn(
-            "load_timestamp", current_timestamp()
-        ).withColumn(
-            "load_mode", lit(mode)
-        )
-        
-        # Write to Redis
-        df_with_metadata.write \
-            .format("org.apache.spark.sql.redis") \
-            .options(**default_options) \
-            .mode(mode) \
-            .save()
-        
-        logger.info(f"Successfully loaded {df.count()} records to Redis")
-        
-    except Exception as e:
-        logger.error(f"Error loading data to Redis: {str(e)}")
-        raise
-
-
-def load_to_cassandra(
-    df: DataFrame,
-    hosts: List[str],
-    keyspace: str,
-    table_name: str,
-    mode: str = "append",
-    options: Optional[Dict[str, str]] = None
-) -> None:
-    """
-    Load data to Cassandra using Spark Cassandra connector
-    
-    Args:
-        df: DataFrame to load
-        hosts: List of Cassandra host addresses
-        keyspace: Cassandra keyspace name
-        table_name: Cassandra table name
-        mode: Write mode (append, overwrite, ignore, error)
-        options: Optional Cassandra connector options
-    """
-    try:
-        logger.info(f"Loading data to Cassandra table: {keyspace}.{table_name}")
-        
-        # Configure Cassandra connector options
-        default_options = {
-            "keyspace": keyspace,
-            "table": table_name,
-            "spark.cassandra.connection.host": ",".join(hosts),
-            "spark.cassandra.connection.port": "9042",
-            "spark.cassandra.output.batch.size.rows": "1000",
-            "spark.cassandra.output.concurrent.writes": "10"
-        }
-        
-        if options:
-            default_options.update(options)
-        
-        # Add metadata columns
-        df_with_metadata = df.withColumn(
-            "load_timestamp", current_timestamp()
-        ).withColumn(
-            "load_mode", lit(mode)
-        )
-        
-        # Write to Cassandra
-        df_with_metadata.write \
-            .format("org.apache.spark.sql.cassandra") \
-            .options(**default_options) \
-            .mode(mode) \
-            .save()
-        
-        logger.info(f"Successfully loaded {df.count()} records to Cassandra")
-        
-    except Exception as e:
-        logger.error(f"Error loading data to Cassandra: {str(e)}")
-        raise
-
-
-def load_to_elasticsearch(
-    df: DataFrame,
-    hosts: List[str],
-    index_name: str,
-    mode: str = "append",
-    options: Optional[Dict[str, str]] = None
-) -> None:
-    """
-    Load data to Elasticsearch using Spark Elasticsearch connector
-    
-    Args:
-        df: DataFrame to load
-        hosts: List of Elasticsearch host addresses
-        index_name: Elasticsearch index name
-        mode: Write mode (append, overwrite, ignore, error)
-        options: Optional Elasticsearch connector options
-    """
-    try:
-        logger.info(f"Loading data to Elasticsearch index: {index_name}")
-        
-        # Configure Elasticsearch connector options
-        default_options = {
-            "es.nodes": ",".join(hosts),
-            "es.port": "9200",
-            "es.resource": index_name,
-            "es.batch.size.entries": "1000",
-            "es.batch.size.bytes": "1mb"
-        }
-        
-        if options:
-            default_options.update(options)
-        
-        # Add metadata columns
-        df_with_metadata = df.withColumn(
-            "load_timestamp", current_timestamp()
-        ).withColumn(
-            "load_mode", lit(mode)
-        )
-        
-        # Write to Elasticsearch
-        df_with_metadata.write \
-            .format("org.elasticsearch.spark.sql") \
-            .options(**default_options) \
-            .mode(mode) \
-            .save()
-        
-        logger.info(f"Successfully loaded {df.count()} documents to Elasticsearch")
-        
-    except Exception as e:
-        logger.error(f"Error loading data to Elasticsearch: {str(e)}")
-        raise
-
-
-def load_to_neo4j(
-    df: DataFrame,
-    uri: str,
-    username: str,
-    password: str,
-    database: str = "neo4j",
-    node_label: Optional[str] = None,
-    relationship_type: Optional[str] = None,
-    mode: str = "append",
-    options: Optional[Dict[str, str]] = None
-) -> None:
-    """
-    Load data to Neo4j using Spark Neo4j connector
-    
-    Args:
-        df: DataFrame to load
-        uri: Neo4j server URI
-        username: Username for authentication
-        password: Password for authentication
-        database: Neo4j database name
-        node_label: Optional node label for node creation
-        relationship_type: Optional relationship type for relationship creation
-        mode: Write mode (append, overwrite, ignore, error)
-        options: Optional Neo4j connector options
-    """
-    try:
-        logger.info(f"Loading data to Neo4j database: {database}")
-        
-        # Configure Neo4j connector options
-        default_options = {
-            "url": uri,
-            "authentication.type": "basic",
-            "authentication.basic.username": username,
-            "authentication.basic.password": password,
-            "database": database
-        }
-        
-        if node_label:
-            default_options["labels"] = node_label
-        
-        if relationship_type:
-            default_options["relationship"] = relationship_type
-        
-        if options:
-            default_options.update(options)
-        
-        # Add metadata columns
-        df_with_metadata = df.withColumn(
-            "load_timestamp", current_timestamp()
-        ).withColumn(
-            "load_mode", lit(mode)
-        )
-        
-        # Write to Neo4j
-        df_with_metadata.write \
-            .format("org.neo4j.spark.DataSource") \
-            .options(**default_options) \
-            .mode(mode) \
-            .save()
-        
-        logger.info(f"Successfully loaded {df.count()} records to Neo4j")
-        
-    except Exception as e:
-        logger.error(f"Error loading data to Neo4j: {str(e)}")
-        raise
 
 
 def load_to_nosql_destination(

@@ -1,0 +1,243 @@
+{
+  "index_name": "sensor_readings",
+  "settings": {
+    "number_of_shards": 5,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "sensor_analyzer": {
+          "type": "custom",
+          "tokenizer": "keyword",
+          "filter": ["lowercase"]
+        }
+      }
+    },
+    "index": {
+      "max_result_window": 1000000,
+      "refresh_interval": "5s"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "sensor_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "sensor_type": {
+        "type": "keyword",
+        "index": true
+      },
+      "sensor_location": {
+        "type": "object",
+        "properties": {
+          "x_coordinate": {
+            "type": "float"
+          },
+          "y_coordinate": {
+            "type": "float"
+          },
+          "z_coordinate": {
+            "type": "float"
+          },
+          "zone": {
+            "type": "keyword"
+          }
+        }
+      },
+      "measurement_data": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "float",
+            "index": true
+          },
+          "unit": {
+            "type": "keyword"
+          },
+          "precision": {
+            "type": "float"
+          },
+          "accuracy": {
+            "type": "float"
+          },
+          "calibration_factor": {
+            "type": "float"
+          }
+        }
+      },
+      "environmental_conditions": {
+        "type": "object",
+        "properties": {
+          "temperature": {
+            "type": "float"
+          },
+          "humidity": {
+            "type": "float"
+          },
+          "pressure": {
+            "type": "float"
+          },
+          "vibration": {
+            "type": "float"
+          }
+        }
+      },
+      "quality_flags": {
+        "type": "object",
+        "properties": {
+          "is_valid": {
+            "type": "boolean"
+          },
+          "is_calibrated": {
+            "type": "boolean"
+          },
+          "is_outlier": {
+            "type": "boolean"
+          },
+          "confidence_score": {
+            "type": "float"
+          }
+        }
+      },
+      "process_context": {
+        "type": "object",
+        "properties": {
+          "process_id": {
+            "type": "keyword"
+          },
+          "build_id": {
+            "type": "keyword"
+          },
+          "layer_number": {
+            "type": "integer"
+          },
+          "scan_line": {
+            "type": "integer"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "sensor_model": {
+            "type": "keyword"
+          },
+          "firmware_version": {
+            "type": "keyword"
+          },
+          "sampling_rate": {
+            "type": "float"
+          },
+          "data_source": {
+            "type": "keyword"
+          },
+          "created_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          }
+        }
+      }
+    }
+  },
+  "aliases": {
+    "sensor_readings_current": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-1h"
+          }
+        }
+      }
+    },
+    "sensor_readings_recent": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-24h"
+          }
+        }
+      }
+    }
+  },
+  "index_templates": {
+    "sensor_readings_template": {
+      "index_patterns": ["sensor_readings_*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 3,
+          "number_of_replicas": 1
+        },
+        "mappings": {
+          "properties": {
+            "sensor_id": {
+              "type": "keyword"
+            },
+            "timestamp": {
+              "type": "date"
+            },
+            "measurement_data": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  },
+  "search_templates": {
+    "sensor_analytics": {
+      "source": {
+        "aggs": {
+          "sensor_types": {
+            "terms": {
+              "field": "sensor_type"
+            }
+          },
+          "measurement_stats": {
+            "stats": {
+              "field": "measurement_data.value"
+            }
+          },
+          "time_series": {
+            "date_histogram": {
+              "field": "timestamp",
+              "calendar_interval": "1m"
+            },
+            "aggs": {
+              "avg_value": {
+                "avg": {
+                  "field": "measurement_data.value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "outlier_detection": {
+      "source": {
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "quality_flags.is_outlier": true
+                }
+              }
+            ]
+          }
+        },
+        "sort": [
+          {
+            "timestamp": {
+              "order": "desc"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

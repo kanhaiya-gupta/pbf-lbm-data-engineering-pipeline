@@ -6,7 +6,7 @@ This module defines the Pydantic model for ISPM (In-Situ Process Monitoring) dat
 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import Field, validator, root_validator
+from pydantic import Field, field_validator, model_validator
 from enum import Enum
 
 from .base_model import BaseDataModel
@@ -56,11 +56,12 @@ class MeasurementRange(BaseDataModel):
     min_value: float = Field(..., description="Minimum expected value")
     max_value: float = Field(..., description="Maximum expected value")
     
-    @validator('max_value')
-    def validate_max_value(cls, v, values):
-        """Validate that max_value is greater than min_value."""
-        if 'min_value' in values and v <= values['min_value']:
-            raise ValueError("max_value must be greater than min_value")
+    @field_validator('max_value')
+    @classmethod
+    def validate_max_value(cls, v):
+        """Validate that max_value is reasonable."""
+        if v <= 0:
+            raise ValueError("max_value must be positive")
         return v
     
     def get_primary_key(self) -> str:
@@ -98,36 +99,42 @@ class ISPMMonitoringModel(BaseDataModel):
     # Monitoring timestamp
     timestamp: datetime = Field(..., description="Monitoring timestamp in ISO format")
     
-    # Sensor information
-    sensor_type: SensorType = Field(..., description="Type of sensor")
-    sensor_location: Optional[SensorLocation] = Field(None, description="Sensor location coordinates")
+    # Sensor information (flat fields matching SQL schema)
+    sensor_type: str = Field(..., description="Type of sensor")
+    sensor_location_x: Optional[float] = Field(None, description="Sensor X coordinate")
+    sensor_location_y: Optional[float] = Field(None, description="Sensor Y coordinate")
+    sensor_location_z: Optional[float] = Field(None, description="Sensor Z coordinate")
     
-    # Measurement data
+    # Measurement data (flat fields matching SQL schema)
     measurement_value: float = Field(..., description="Primary measurement value")
     unit: str = Field(..., min_length=1, max_length=20, description="Unit of measurement")
-    measurement_range: Optional[MeasurementRange] = Field(None, description="Expected measurement range")
+    measurement_range_min: Optional[float] = Field(None, description="Minimum measurement range")
+    measurement_range_max: Optional[float] = Field(None, description="Maximum measurement range")
     measurement_accuracy: Optional[float] = Field(None, ge=0, description="Measurement accuracy/precision")
-    sampling_rate: Optional[float] = Field(None, ge=0, le=1000000, description="Sampling rate in Hz")
+    sampling_rate: Optional[float] = Field(None, ge=0, description="Sampling rate in Hz")
     
-    # Signal quality
-    signal_quality: Optional[SignalQuality] = Field(None, description="Signal quality assessment")
+    # Signal quality (flat fields matching SQL schema)
+    signal_quality: Optional[str] = Field(None, description="Signal quality assessment")
     noise_level: Optional[float] = Field(None, ge=0, description="Noise level in the signal")
     
-    # Calibration information
+    # Calibration information (flat fields matching SQL schema)
     calibration_status: Optional[bool] = Field(None, description="Sensor calibration status")
     last_calibration_date: Optional[datetime] = Field(None, description="Last calibration date")
     
-    # Environmental conditions
-    environmental_conditions: Optional[EnvironmentalConditions] = Field(None, description="Environmental conditions during measurement")
+    # Environmental conditions (flat fields matching SQL schema)
+    ambient_temperature: Optional[float] = Field(None, description="Ambient temperature in Celsius")
+    relative_humidity: Optional[float] = Field(None, ge=0, le=100, description="Relative humidity percentage")
+    vibration_level: Optional[float] = Field(None, ge=0, description="Vibration level")
     
-    # Anomaly detection
+    # Anomaly detection (flat fields matching SQL schema)
     anomaly_detected: Optional[bool] = Field(None, description="Whether an anomaly was detected")
     anomaly_type: Optional[str] = Field(None, min_length=1, max_length=100, description="Type of detected anomaly")
-    anomaly_severity: Optional[AnomalySeverity] = Field(None, description="Severity of detected anomaly")
+    anomaly_severity: Optional[str] = Field(None, description="Severity of detected anomaly")
     
-    # Additional data
+    # Additional data (flat fields matching SQL schema)
     raw_data: Optional[bytes] = Field(None, description="Raw sensor data (if available)")
-    processed_data: Dict[str, str] = Field(default_factory=dict, description="Processed sensor data as key-value pairs")
+    processed_data: Optional[Dict[str, Any]] = Field(None, description="Processed sensor data as key-value pairs")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
     
     class Config:
         """Pydantic configuration."""
@@ -172,58 +179,53 @@ class ISPMMonitoringModel(BaseDataModel):
             }
         }
     
-    @validator('monitoring_id')
+    @field_validator('monitoring_id')
+    @classmethod
     def validate_monitoring_id(cls, v):
         """Validate monitoring ID format."""
         if not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Monitoring ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @validator('sensor_id')
+    @field_validator('sensor_id')
+    @classmethod
     def validate_sensor_id(cls, v):
         """Validate sensor ID format."""
         if not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Sensor ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @validator('measurement_value')
-    def validate_measurement_value(cls, v, values):
-        """Validate measurement value against expected range."""
-        measurement_range = values.get('measurement_range')
-        if measurement_range:
-            if v < measurement_range.min_value or v > measurement_range.max_value:
-                # This is a warning, not an error
-                pass  # Could add warning logic here
+    @field_validator('measurement_value')
+    @classmethod
+    def validate_measurement_value(cls, v):
+        """Validate measurement value is reasonable."""
+        if v is None:
+            raise ValueError("Measurement value cannot be None")
         return v
     
-    @validator('signal_quality')
-    def validate_signal_quality(cls, v, values):
-        """Validate signal quality consistency."""
-        noise_level = values.get('noise_level')
-        if v == SignalQuality.EXCELLENT and noise_level and noise_level > 0.1:
-            # High noise level with excellent signal quality is inconsistent
-            pass  # Could add warning logic here
+    @field_validator('signal_quality')
+    @classmethod
+    def validate_signal_quality(cls, v):
+        """Validate signal quality is valid."""
+        if v is None:
+            raise ValueError("Signal quality cannot be None")
         return v
     
-    @root_validator
-    def validate_anomaly_consistency(cls, values):
+    @model_validator(mode='after')
+    def validate_anomaly_consistency(self):
         """Validate anomaly detection consistency."""
-        anomaly_detected = values.get('anomaly_detected')
-        anomaly_type = values.get('anomaly_type')
-        anomaly_severity = values.get('anomaly_severity')
-        
-        if anomaly_detected:
-            if not anomaly_type:
+        if self.anomaly_detected:
+            if not self.anomaly_type:
                 raise ValueError("anomaly_type must be specified when anomaly_detected is True")
-            if not anomaly_severity:
+            if not self.anomaly_severity:
                 raise ValueError("anomaly_severity must be specified when anomaly_detected is True")
         else:
-            if anomaly_type or anomaly_severity:
+            if self.anomaly_type or self.anomaly_severity:
                 # Clear anomaly fields if no anomaly detected
-                values['anomaly_type'] = None
-                values['anomaly_severity'] = None
+                self.anomaly_type = None
+                self.anomaly_severity = None
         
-        return values
+        return self
     
     def get_primary_key(self) -> str:
         """Get the primary key field name."""

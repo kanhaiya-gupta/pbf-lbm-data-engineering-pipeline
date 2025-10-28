@@ -1,0 +1,248 @@
+{
+  "collection_name": "raw_sensor_data",
+  "description": "MongoDB collection for storing raw sensor data, binary measurements, and time-series data",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["raw_sensor_data"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "build_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL build ID"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Path to sensor data file in GridFS"
+      },
+      "file_size": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "File size in bytes"
+      },
+      "file_hash": {
+        "type": "string",
+        "description": "File hash for integrity verification"
+      },
+      "file_status": {
+        "type": "string",
+        "enum": ["uploaded", "processing", "processed", "failed", "archived"],
+        "description": "File processing status"
+      },
+      "sensor_type": {
+        "type": "string",
+        "enum": ["THERMAL", "OPTICAL", "ACOUSTIC", "VIBRATION", "PRESSURE", "GAS_ANALYSIS", "MELT_POOL", "LAYER_HEIGHT"],
+        "description": "Type of sensor"
+      },
+      "sensor_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Sensor identifier"
+      },
+      "data_format": {
+        "type": "string",
+        "enum": ["binary", "csv", "json", "hdf5", "parquet", "numpy"],
+        "description": "Data format"
+      },
+      "sampling_rate": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Sampling rate in Hz"
+      },
+      "data_duration": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Data duration in seconds"
+      },
+      "data_points": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Number of data points"
+      },
+      "processing_status": {
+        "type": "string",
+        "enum": ["pending", "processing", "processed", "failed"],
+        "description": "Data processing status"
+      },
+      "data_quality": {
+        "type": "string",
+        "enum": ["excellent", "good", "fair", "poor", "unknown"],
+        "description": "Data quality assessment"
+      },
+      "calibration_info": {
+        "type": "object",
+        "description": "Sensor calibration information",
+        "properties": {
+          "last_calibrated": {"type": "date"},
+          "calibration_factor": {"type": "number"},
+          "calibration_accuracy": {"type": "number"},
+          "calibration_notes": {"type": "string"}
+        }
+      },
+      "sensor_location": {
+        "type": "object",
+        "description": "3D coordinates of the sensor",
+        "properties": {
+          "x": {"type": "number"},
+          "y": {"type": "number"},
+          "z": {"type": "number"}
+        }
+      },
+      "measurement_range": {
+        "type": "object",
+        "description": "Expected min/max range of measurement",
+        "properties": {
+          "min_value": {"type": "number"},
+          "max_value": {"type": "number"},
+          "unit": {"type": "string"}
+        }
+      },
+      "data_statistics": {
+        "type": "object",
+        "description": "Statistical analysis of the data",
+        "properties": {
+          "mean": {"type": "number"},
+          "std_dev": {"type": "number"},
+          "min": {"type": "number"},
+          "max": {"type": "number"},
+          "median": {"type": "number"},
+          "percentile_95": {"type": "number"}
+        }
+      },
+      "anomaly_detection": {
+        "type": "object",
+        "description": "Anomaly detection results",
+        "properties": {
+          "anomalies_detected": {"type": "boolean"},
+          "anomaly_count": {"type": "integer", "minimum": 0},
+          "anomaly_severity": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+          "anomaly_timestamps": {"type": "array", "items": {"type": "date"}}
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "process_id", "sensor_type", "sensor_id", "data_format"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "process_id_index",
+      "keys": {"process_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "sensor_type_index",
+      "keys": {"sensor_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "sensor_id_index",
+      "keys": {"sensor_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "data_format_index",
+      "keys": {"data_format": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "processing_status_index",
+      "keys": {"processing_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "data_quality_index",
+      "keys": {"data_quality": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_sensor_process_index",
+      "keys": {"sensor_type": 1, "process_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_sensor_time_index",
+      "keys": {"sensor_id": 1, "created_at": -1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "process_id", "sensor_type", "sensor_id", "data_format"],
+        "properties": {
+          "document_type": {"enum": ["raw_sensor_data"]},
+          "process_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "sensor_type": {"enum": ["THERMAL", "OPTICAL", "ACOUSTIC", "VIBRATION", "PRESSURE", "GAS_ANALYSIS", "MELT_POOL", "LAYER_HEIGHT"]},
+          "data_format": {"enum": ["binary", "csv", "json", "hdf5", "parquet", "numpy"]},
+          "file_status": {"enum": ["uploaded", "processing", "processed", "failed", "archived"]},
+          "processing_status": {"enum": ["pending", "processing", "processed", "failed"]},
+          "data_quality": {"enum": ["excellent", "good", "fair", "poor", "unknown"]}
+        }
+      }
+    }
+  }
+}

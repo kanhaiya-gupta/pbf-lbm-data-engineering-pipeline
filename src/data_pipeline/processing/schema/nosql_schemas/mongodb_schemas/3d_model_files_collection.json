@@ -1,0 +1,221 @@
+{
+  "collection_name": "3d_model_files",
+  "description": "MongoDB collection for storing 3D model files (STL, STEP, PLY) and related metadata",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["3d_model"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "build_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL build ID"
+      },
+      "part_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL part ID"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Path to 3D model file in GridFS"
+      },
+      "file_size": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "File size in bytes"
+      },
+      "file_hash": {
+        "type": "string",
+        "description": "File hash for integrity verification"
+      },
+      "file_status": {
+        "type": "string",
+        "enum": ["uploaded", "processing", "processed", "failed", "archived"],
+        "description": "File processing status"
+      },
+      "model_format": {
+        "type": "string",
+        "enum": ["STL", "STEP", "PLY", "OBJ", "3MF", "AMF"],
+        "description": "3D model file format"
+      },
+      "model_type": {
+        "type": "string",
+        "enum": ["CAD", "SCAN", "SIMULATION", "REFERENCE", "TEMPLATE"],
+        "description": "Type of 3D model"
+      },
+      "model_dimensions": {
+        "type": "object",
+        "description": "3D model dimensions",
+        "properties": {
+          "length": {"type": "number", "minimum": 0},
+          "width": {"type": "number", "minimum": 0},
+          "height": {"type": "number", "minimum": 0},
+          "volume": {"type": "number", "minimum": 0},
+          "surface_area": {"type": "number", "minimum": 0}
+        }
+      },
+      "model_quality": {
+        "type": "object",
+        "description": "3D model quality metrics",
+        "properties": {
+          "triangle_count": {"type": "integer", "minimum": 0},
+          "vertex_count": {"type": "integer", "minimum": 0},
+          "resolution": {"type": "number", "minimum": 0},
+          "watertight": {"type": "boolean"},
+          "manifold": {"type": "boolean"}
+        }
+      },
+      "processing_status": {
+        "type": "string",
+        "enum": ["pending", "processing", "processed", "failed"],
+        "description": "Model processing status"
+      },
+      "processing_results": {
+        "type": "object",
+        "description": "Model processing results",
+        "properties": {
+          "mesh_repair": {"type": "boolean"},
+          "orientation_optimization": {"type": "boolean"},
+          "support_generation": {"type": "boolean"},
+          "slicing_complete": {"type": "boolean"}
+        }
+      },
+      "model_metadata": {
+        "type": "object",
+        "description": "Additional model metadata",
+        "properties": {
+          "original_filename": {"type": "string"},
+          "creation_software": {"type": "string"},
+          "creation_date": {"type": "date"},
+          "author": {"type": "string"},
+          "description": {"type": "string"},
+          "tags": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "build_requirements": {
+        "type": "object",
+        "description": "Build requirements for the model",
+        "properties": {
+          "supports_required": {"type": "boolean"},
+          "orientation_optimized": {"type": "boolean"},
+          "minimum_feature_size": {"type": "number", "minimum": 0},
+          "tolerance_requirements": {"type": "number", "minimum": 0}
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "process_id", "model_format"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "process_id_index",
+      "keys": {"process_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "model_format_index",
+      "keys": {"model_format": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "model_type_index",
+      "keys": {"model_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "processing_status_index",
+      "keys": {"processing_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "file_status_index",
+      "keys": {"file_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_model_process_index",
+      "keys": {"model_format": 1, "process_id": 1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "process_id", "model_format"],
+        "properties": {
+          "document_type": {"enum": ["3d_model"]},
+          "process_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "model_format": {"enum": ["STL", "STEP", "PLY", "OBJ", "3MF", "AMF"]},
+          "model_type": {"enum": ["CAD", "SCAN", "SIMULATION", "REFERENCE", "TEMPLATE"]},
+          "file_status": {"enum": ["uploaded", "processing", "processed", "failed", "archived"]},
+          "processing_status": {"enum": ["pending", "processing", "processed", "failed"]}
+        }
+      }
+    }
+  }
+}

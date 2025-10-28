@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS pbf_process_data (
     process_id VARCHAR(100) PRIMARY KEY,
     machine_id VARCHAR(50) NOT NULL,
     build_id VARCHAR(100),
+    part_id VARCHAR(100),
     
     -- Timestamps
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS pbf_process_data (
 CREATE INDEX IF NOT EXISTS idx_pbf_process_timestamp ON pbf_process_data (timestamp);
 CREATE INDEX IF NOT EXISTS idx_pbf_process_machine_id ON pbf_process_data (machine_id);
 CREATE INDEX IF NOT EXISTS idx_pbf_process_build_id ON pbf_process_data (build_id);
+CREATE INDEX IF NOT EXISTS idx_pbf_process_part_id ON pbf_process_data (part_id);
 CREATE INDEX IF NOT EXISTS idx_pbf_process_layer_number ON pbf_process_data (layer_number);
 CREATE INDEX IF NOT EXISTS idx_pbf_process_temperature ON pbf_process_data (temperature);
 CREATE INDEX IF NOT EXISTS idx_pbf_process_pressure ON pbf_process_data (pressure);

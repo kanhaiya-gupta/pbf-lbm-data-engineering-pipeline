@@ -6,7 +6,7 @@ This module defines the Pydantic model for CT scan data.
 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import Field, validator, root_validator
+from pydantic import Field, field_validator, model_validator
 from enum import Enum
 
 from .base_model import BaseDataModel
@@ -174,10 +174,10 @@ class DimensionalAnalysis(BaseDataModel):
 
 class CTScanModel(BaseDataModel):
     """
-    Pydantic model for CT scan data.
+    Pydantic model for CT scan data matching the SQL schema structure.
     
     This model represents CT scan data for PBF-LB/M additive manufacturing quality assessment,
-    including scan parameters, quality metrics, defect analysis, and dimensional measurements.
+    with flat fields that match the PostgreSQL schema exactly.
     """
     
     # Primary key and identifiers
@@ -189,26 +189,48 @@ class CTScanModel(BaseDataModel):
     scan_type: ScanType = Field(..., description="Type of CT scan")
     processing_status: ProcessingStatus = Field(..., description="CT scan processing status")
     
-    # Scan parameters
-    scan_parameters: ScanParameters = Field(..., description="CT scan acquisition parameters")
+    # Scan parameters (flat fields matching SQL schema)
+    voltage: float = Field(..., ge=10, le=500, description="X-ray tube voltage in kV")
+    current: float = Field(..., ge=0.1, le=1000, description="X-ray tube current in mA")
+    exposure_time: float = Field(..., ge=0.001, le=60, description="Exposure time per projection in seconds")
+    number_of_projections: int = Field(..., ge=100, le=10000, description="Number of X-ray projections")
+    detector_resolution: str = Field(..., description="Detector resolution")
+    voxel_size: float = Field(..., ge=0.1, le=1000, description="Voxel size in micrometers")
+    scan_duration: float = Field(..., ge=0.1, le=1440, description="Total scan duration in minutes")
     
-    # File metadata
-    file_metadata: FileMetadata = Field(..., description="CT scan file metadata")
+    # File metadata (flat fields matching SQL schema)
+    file_path: str = Field(..., min_length=1, max_length=500, description="Path to the CT scan file")
+    file_format: FileFormat = Field(..., description="File format of the CT scan")
+    file_size: int = Field(..., ge=0, description="File size in bytes")
+    compression: Optional[str] = Field(None, description="Compression type if applicable")
+    checksum: Optional[str] = Field(None, description="File checksum for integrity verification")
     
-    # Image dimensions
-    image_dimensions: ImageDimensions = Field(..., description="CT scan image dimensions")
+    # Image dimensions (flat fields matching SQL schema)
+    image_width: int = Field(..., ge=1, le=10000, description="Image width in pixels")
+    image_height: int = Field(..., ge=1, le=10000, description="Image height in pixels")
+    image_depth: int = Field(..., ge=1, le=10000, description="Image depth in pixels")
+    physical_width: float = Field(..., ge=0.1, le=1000, description="Physical width in mm")
+    physical_height: float = Field(..., ge=0.1, le=1000, description="Physical height in mm")
+    physical_depth: float = Field(..., ge=0.1, le=1000, description="Physical depth in mm")
     
-    # Quality metrics
-    quality_metrics: Optional[CTQualityMetrics] = Field(None, description="CT scan quality metrics")
+    # Quality metrics (flat fields matching SQL schema)
+    contrast_to_noise_ratio: Optional[float] = Field(None, description="Contrast to noise ratio")
+    signal_to_noise_ratio: Optional[float] = Field(None, description="Signal to noise ratio")
+    spatial_resolution: Optional[float] = Field(None, description="Spatial resolution in mm")
+    uniformity: Optional[float] = Field(None, ge=0, le=100, description="Image uniformity percentage")
+    artifacts_detected: Optional[bool] = Field(None, description="Whether artifacts were detected")
+    artifact_severity: Optional[ArtifactSeverity] = Field(None, description="Severity of detected artifacts")
     
-    # Defect analysis
-    defect_analysis: Optional[DefectAnalysis] = Field(None, description="Defect analysis results")
+    # Defect analysis (flat fields matching SQL schema)
+    total_defects: Optional[int] = Field(None, ge=0, description="Total number of detected defects")
+    overall_quality_score: Optional[float] = Field(None, ge=0, le=100, description="Overall quality score (0-100)")
+    acceptance_status: Optional[AcceptanceStatus] = Field(None, description="Part acceptance status")
     
-    # Dimensional analysis
-    dimensional_analysis: Optional[DimensionalAnalysis] = Field(None, description="Dimensional analysis results")
+    # Dimensional analysis (flat fields matching SQL schema)
+    dimensional_accuracy: Optional[float] = Field(None, ge=0, le=100, description="Dimensional accuracy percentage")
     
-    # Processing metadata
-    processing_metadata: Optional[Dict[str, str]] = Field(None, description="Processing metadata and parameters")
+    # Processing metadata (JSONB fields)
+    processing_metadata: Optional[Dict[str, Any]] = Field(None, description="Processing metadata and parameters")
     
     class Config:
         """Pydantic configuration."""
@@ -290,48 +312,33 @@ class CTScanModel(BaseDataModel):
             }
         }
     
-    @validator('scan_id')
+    @field_validator('scan_id')
+    @classmethod
     def validate_scan_id(cls, v):
         """Validate scan ID format."""
         if not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Scan ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @validator('part_id')
+    @field_validator('part_id')
+    @classmethod
     def validate_part_id(cls, v):
         """Validate part ID format."""
         if v is not None and not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Part ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @validator('scan_parameters')
-    def validate_scan_parameters(cls, v):
-        """Validate scan parameters consistency."""
-        if v.voltage < 50 and v.current > 500:
-            # Low voltage with high current might cause issues
-            pass  # Could add warning logic here
-        return v
     
-    @validator('file_metadata')
-    def validate_file_metadata(cls, v):
-        """Validate file metadata."""
-        if v.file_size == 0:
-            raise ValueError("File size cannot be zero")
-        return v
     
-    @root_validator
-    def validate_processing_status(cls, values):
+    @model_validator(mode='after')
+    def validate_processing_status(self):
         """Validate processing status consistency."""
-        processing_status = values.get('processing_status')
-        defect_analysis = values.get('defect_analysis')
-        dimensional_analysis = values.get('dimensional_analysis')
-        
-        if processing_status == ProcessingStatus.COMPLETED:
-            if not defect_analysis and not dimensional_analysis:
+        if self.processing_status == ProcessingStatus.COMPLETED:
+            if not self.total_defects and not self.overall_quality_score:
                 # Completed scans should have some analysis results
                 pass  # Could add warning logic here
         
-        return values
+        return self
     
     def get_primary_key(self) -> str:
         """Get the primary key field name."""
@@ -533,7 +540,7 @@ class CTScanModel(BaseDataModel):
         Returns:
             File size in MB
         """
-        return self.file_metadata.file_size / (1024 * 1024)
+        return self.file_size / (1024 * 1024)
     
     def get_voxel_volume_mm3(self) -> float:
         """
@@ -569,31 +576,30 @@ class CTScanModel(BaseDataModel):
         }
         
         # Check scan parameters
-        if self.scan_parameters.voltage < 50 or self.scan_parameters.voltage > 300:
+        if self.voltage < 50 or self.voltage > 300:
             validation_results['warnings'].append(
-                f"Voltage {self.scan_parameters.voltage} kV is outside typical range (50-300 kV)"
+                f"Voltage {self.voltage} kV is outside typical range (50-300 kV)"
             )
         
-        if self.scan_parameters.current < 10 or self.scan_parameters.current > 500:
+        if self.current < 10 or self.current > 500:
             validation_results['warnings'].append(
-                f"Current {self.scan_parameters.current} mA is outside typical range (10-500 mA)"
+                f"Current {self.current} mA is outside typical range (10-500 mA)"
             )
         
         # Check file size
-        if self.file_metadata.file_size < 1024:  # Less than 1KB
+        if self.file_size < 1024:  # Less than 1KB
             validation_results['errors'].append("File size is too small")
         
         # Check image dimensions
-        if (self.image_dimensions.width * self.image_dimensions.height * self.image_dimensions.depth) == 0:
+        if (self.image_width * self.image_height * self.image_depth) == 0:
             validation_results['errors'].append("Image dimensions cannot be zero")
         
         # Check quality metrics
-        if self.quality_metrics:
-            if self.quality_metrics.contrast_to_noise_ratio and self.quality_metrics.contrast_to_noise_ratio < 5:
-                validation_results['warnings'].append("Low contrast-to-noise ratio")
+        if self.contrast_to_noise_ratio and self.contrast_to_noise_ratio < 5:
+            validation_results['warnings'].append("Low contrast-to-noise ratio")
             
-            if self.quality_metrics.signal_to_noise_ratio and self.quality_metrics.signal_to_noise_ratio < 10:
-                validation_results['warnings'].append("Low signal-to-noise ratio")
+        if self.signal_to_noise_ratio and self.signal_to_noise_ratio < 10:
+            validation_results['warnings'].append("Low signal-to-noise ratio")
         
         if validation_results['warnings'] or validation_results['errors']:
             validation_results['valid'] = False
@@ -624,7 +630,7 @@ class CTScanModel(BaseDataModel):
         """Calculate data validity score (0-1)."""
         # Check if all required fields are present and valid
         required_fields = ['scan_id', 'process_id', 'scan_type', 'processing_status', 
-                          'scan_parameters', 'file_metadata', 'image_dimensions']
+                          'voltage', 'current', 'file_path', 'file_size', 'image_width', 'image_height', 'image_depth']
         valid_fields = 0
         
         for field in required_fields:

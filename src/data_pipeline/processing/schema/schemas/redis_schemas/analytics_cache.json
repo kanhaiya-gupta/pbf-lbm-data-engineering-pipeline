@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Analytics Cache Schema",
+  "description": "Schema for caching analytics data in Redis",
+  "type": "object",
+  "properties": {
+    "cache_key": {
+      "type": "string",
+      "description": "Redis cache key",
+      "pattern": "^analytics:[a-z]+:[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache last update timestamp"
+    },
+    "ttl": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Time to live in seconds"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "expired", "invalid", "pending"],
+      "description": "Cache status"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cache version"
+    },
+    "analytics_type": {
+      "type": "string",
+      "enum": ["daily", "weekly", "monthly", "quarterly", "yearly"],
+      "description": "Type of analytics"
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "Analytics date"
+    },
+    "total_processes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of processes"
+    },
+    "successful_processes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of successful processes"
+    },
+    "failed_processes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of failed processes"
+    },
+    "success_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Process success rate"
+    },
+    "average_temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 3000,
+      "description": "Average process temperature"
+    },
+    "average_laser_power": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "Average laser power"
+    },
+    "average_scan_speed": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10000,
+      "description": "Average scan speed"
+    },
+    "total_build_time": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total build time in hours"
+    },
+    "average_density": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Average part density"
+    },
+    "average_surface_roughness": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Average surface roughness"
+    },
+    "average_dimensional_accuracy": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Average dimensional accuracy"
+    },
+    "machine_utilization": {
+      "type": "object",
+      "patternProperties": {
+        "^MACHINE_[0-9]{3}$": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "description": "Machine utilization rates"
+    },
+    "operator_performance": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z0-9_]+$": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "description": "Operator performance metrics"
+    }
+  },
+  "required": [
+    "cache_key",
+    "analytics_type",
+    "date",
+    "total_processes",
+    "successful_processes",
+    "failed_processes",
+    "success_rate"
+  ],
+  "additionalProperties": false
+}

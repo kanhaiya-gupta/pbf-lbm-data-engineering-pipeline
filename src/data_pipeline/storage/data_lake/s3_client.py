@@ -25,12 +25,40 @@ class S3Client:
         Initialize S3 client.
         
         Args:
-            config: Optional S3 configuration dictionary
+            config: Optional S3 configuration dictionary or Pydantic model
         """
         self.config = config or get_s3_config()
+        self._initialize_connection()
         self.s3_client = None
-        self.bucket_name = self.config.get('bucket_name', 'pbf-lbm-data-lake')
         self._initialize_s3_client()
+    
+    def _initialize_connection(self) -> None:
+        """Initialize S3 connection parameters."""
+        try:
+            # Handle both dictionary and Pydantic model configurations
+            if isinstance(self.config, dict):
+                self.bucket_name = self.config.get('bucket_name', 'pbf-lbm-data-lake')
+                self.endpoint_url = self.config.get('endpoint_url', 'http://localhost:9000')
+                self.aws_access_key_id = self.config.get('aws_access_key_id', 'minioadmin')
+                self.aws_secret_access_key = self.config.get('aws_secret_access_key', 'minioadmin')
+                self.region_name = self.config.get('region_name', 'us-east-1')
+                self.use_ssl = self.config.get('use_ssl', True)
+                self.verify_ssl = self.config.get('verify_ssl', True)
+            else:
+                # Pydantic model
+                self.bucket_name = self.config.bucket_name
+                self.endpoint_url = self.config.endpoint_url
+                self.aws_access_key_id = self.config.aws_access_key_id
+                self.aws_secret_access_key = self.config.aws_secret_access_key
+                self.region_name = self.config.region_name
+                self.use_ssl = self.config.use_ssl
+                self.verify_ssl = self.config.verify_ssl
+            
+            logger.info("S3 connection parameters initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize S3 connection parameters: {e}")
+            raise
     
     def _initialize_s3_client(self) -> None:
         """Initialize S3 client."""

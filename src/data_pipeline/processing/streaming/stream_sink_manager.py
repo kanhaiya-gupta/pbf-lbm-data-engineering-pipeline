@@ -14,8 +14,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 
-from src.data_pipeline.storage.data_lake.mongodb_client import MongoDBClient
-from src.data_pipeline.storage.data_warehouse.elasticsearch_client import ElasticsearchClient
+from src.data_pipeline.storage.operational.mongodb_client import MongoDBClient
+from src.data_pipeline.storage.operational.elasticsearch_client import ElasticsearchClient
 from src.data_pipeline.storage.operational.redis_client import RedisClient
 from src.data_pipeline.storage.operational.cassandra_client import CassandraClient
 from src.data_pipeline.storage.operational.neo4j_client import Neo4jClient

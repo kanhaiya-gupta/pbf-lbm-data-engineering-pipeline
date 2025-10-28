@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Sensor Reading Cache Schema",
+  "description": "Schema for caching sensor reading data in Redis",
+  "type": "object",
+  "properties": {
+    "cache_key": {
+      "type": "string",
+      "description": "Redis cache key",
+      "pattern": "^sensor:[A-Z0-9_]+:latest$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache last update timestamp"
+    },
+    "ttl": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Time to live in seconds"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "expired", "invalid", "pending"],
+      "description": "Cache status"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cache version"
+    },
+    "sensor_id": {
+      "type": "string",
+      "pattern": "^SENSOR_[0-9]{3}$",
+      "description": "Sensor identifier"
+    },
+    "sensor_type": {
+      "type": "string",
+      "enum": ["THERMAL", "OPTICAL", "ACOUSTIC", "VIBRATION", "PRESSURE", "GAS_ANALYSIS", "MELT_POOL", "LAYER_HEIGHT"],
+      "description": "Sensor type"
+    },
+    "value": {
+      "type": "number",
+      "description": "Sensor reading value"
+    },
+    "unit": {
+      "type": "string",
+      "enum": ["celsius", "pixels", "db", "hz", "pa", "ppm", "mm", "volts", "amps"],
+      "description": "Measurement unit"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Reading timestamp"
+    },
+    "sensor_location": {
+      "type": "string",
+      "enum": ["build_chamber", "powder_bed", "laser_head", "environment", "gas_system"],
+      "description": "Sensor location"
+    },
+    "calibration_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last calibration date"
+    },
+    "accuracy": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Sensor accuracy"
+    },
+    "signal_quality": {
+      "type": "string",
+      "enum": ["excellent", "good", "fair", "poor", "unknown"],
+      "description": "Signal quality assessment"
+    },
+    "noise_level": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Noise level"
+    },
+    "data_quality": {
+      "type": "string",
+      "enum": ["excellent", "good", "fair", "poor", "unknown"],
+      "description": "Data quality rating"
+    }
+  },
+  "required": [
+    "cache_key",
+    "sensor_id",
+    "sensor_type",
+    "value",
+    "unit",
+    "timestamp"
+  ],
+  "additionalProperties": false
+}

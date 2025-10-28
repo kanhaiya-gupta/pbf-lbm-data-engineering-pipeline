@@ -1,0 +1,223 @@
+{
+  "collection_name": "ct_scan_images",
+  "description": "MongoDB collection for storing CT scan images and related metadata",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["ct_scan_image"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "build_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL build ID"
+      },
+      "part_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL part ID"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Path to CT scan image file in GridFS"
+      },
+      "file_size": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "File size in bytes"
+      },
+      "file_hash": {
+        "type": "string",
+        "description": "File hash for integrity verification"
+      },
+      "file_status": {
+        "type": "string",
+        "enum": ["uploaded", "processing", "processed", "failed", "archived"],
+        "description": "File processing status"
+      },
+      "scan_parameters": {
+        "type": "object",
+        "description": "CT scan parameters",
+        "properties": {
+          "voltage": {"type": "number", "minimum": 10, "maximum": 500},
+          "current": {"type": "number", "minimum": 0.1, "maximum": 1000},
+          "exposure_time": {"type": "number", "minimum": 0.001, "maximum": 60},
+          "number_of_projections": {"type": "integer", "minimum": 100, "maximum": 10000},
+          "detector_resolution": {"type": "string"},
+          "voxel_size": {"type": "number", "minimum": 0.1, "maximum": 1000},
+          "scan_duration": {"type": "number", "minimum": 0.1, "maximum": 1440}
+        }
+      },
+      "image_dimensions": {
+        "type": "object",
+        "description": "Image dimensions",
+        "properties": {
+          "width": {"type": "integer", "minimum": 1},
+          "height": {"type": "integer", "minimum": 1},
+          "depth": {"type": "integer", "minimum": 1},
+          "total_slices": {"type": "integer", "minimum": 1}
+        }
+      },
+      "image_format": {
+        "type": "string",
+        "enum": ["DICOM", "TIFF", "RAW", "TXM", "NIfTI", "Analyze", "MHA", "MHD"],
+        "description": "CT scan image format"
+      },
+      "image_quality": {
+        "type": "object",
+        "description": "Image quality metrics",
+        "properties": {
+          "contrast_to_noise_ratio": {"type": "number", "minimum": 0},
+          "signal_to_noise_ratio": {"type": "number", "minimum": 0},
+          "resolution": {"type": "number", "minimum": 0},
+          "artifacts_detected": {"type": "boolean"},
+          "artifacts_description": {"type": "string"}
+        }
+      },
+      "processing_status": {
+        "type": "string",
+        "enum": ["pending", "processing", "processed", "failed"],
+        "description": "Image processing status"
+      },
+      "analysis_results": {
+        "type": "object",
+        "description": "CT scan analysis results",
+        "properties": {
+          "defect_detection_accuracy": {"type": "number", "minimum": 0, "maximum": 100},
+          "porosity_percentage": {"type": "number", "minimum": 0, "maximum": 100},
+          "dimensional_accuracy": {"type": "number", "minimum": 0},
+          "density_analysis": {"type": "object"},
+          "defects_detected": {"type": "array", "items": {"type": "object"}}
+        }
+      },
+      "scan_metadata": {
+        "type": "object",
+        "description": "Additional scan metadata",
+        "properties": {
+          "scan_date": {"type": "date"},
+          "operator": {"type": "string"},
+          "scan_purpose": {"type": "string"},
+          "scan_notes": {"type": "string"},
+          "equipment_used": {"type": "string"},
+          "calibration_status": {"type": "string"}
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "process_id", "scan_parameters", "image_dimensions"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "process_id_index",
+      "keys": {"process_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "part_id_index",
+      "keys": {"part_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "image_format_index",
+      "keys": {"image_format": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "processing_status_index",
+      "keys": {"processing_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "file_status_index",
+      "keys": {"file_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "scan_date_index",
+      "keys": {"scan_metadata.scan_date": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_ct_process_index",
+      "keys": {"process_id": 1, "image_format": 1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "process_id", "scan_parameters", "image_dimensions"],
+        "properties": {
+          "document_type": {"enum": ["ct_scan_image"]},
+          "process_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "image_format": {"enum": ["DICOM", "TIFF", "RAW", "TXM", "NIfTI", "Analyze", "MHA", "MHD"]},
+          "file_status": {"enum": ["uploaded", "processing", "processed", "failed", "archived"]},
+          "processing_status": {"enum": ["pending", "processing", "processed", "failed"]}
+        }
+      }
+    }
+  }
+}

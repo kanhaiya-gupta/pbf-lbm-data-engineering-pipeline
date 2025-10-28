@@ -148,7 +148,16 @@
       "template": {
         "settings": {
           "number_of_shards": 2,
-          "number_of_replicas": 1
+          "number_of_replicas": 1,
+          "analysis": {
+            "analyzer": {
+              "pbf_analyzer": {
+                "type": "custom",
+                "tokenizer": "standard",
+                "filter": ["lowercase", "stop", "snowball"]
+              }
+            }
+          }
         },
         "mappings": {
           "properties": {
@@ -157,6 +166,18 @@
             },
             "timestamp": {
               "type": "date"
+            },
+            "process_parameters": {
+              "type": "object"
+            },
+            "material_info": {
+              "type": "object"
+            },
+            "quality_metrics": {
+              "type": "object"
+            },
+            "metadata": {
+              "type": "object"
             }
           }
         }

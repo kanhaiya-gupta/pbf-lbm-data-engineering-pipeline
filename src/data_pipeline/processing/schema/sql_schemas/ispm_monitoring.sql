@@ -255,7 +255,7 @@ CREATE OR REPLACE FUNCTION detect_ispm_anomalies(
 )
 RETURNS TABLE (
     monitoring_id VARCHAR(100),
-    timestamp TIMESTAMP WITH TIME ZONE,
+    "timestamp" TIMESTAMP WITH TIME ZONE,
     measurement_value DECIMAL(15,6),
     anomaly_type VARCHAR(100),
     anomaly_severity VARCHAR(10)

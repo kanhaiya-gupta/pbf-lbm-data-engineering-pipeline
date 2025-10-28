@@ -10,6 +10,7 @@ from pathlib import Path
 import logging
 import struct
 import json
+from src.data_pipeline.processing.knowledge_graph.utils.json_parser import safe_json_loads_with_fallback
 
 from ..base_parser import BaseBuildParser
 
@@ -115,7 +116,7 @@ class GenericParser(BaseBuildParser):
         
         try:
             if file_extension == '.json':
-                content_info['parsed_data'] = json.loads(text_content)
+                content_info['parsed_data'] = safe_json_loads_with_fallback(text_content, 'text_content', 5000, {})
             elif file_extension == '.xml':
                 # Basic XML structure detection
                 content_info['parsed_data'] = self._parse_xml_basic(text_content)

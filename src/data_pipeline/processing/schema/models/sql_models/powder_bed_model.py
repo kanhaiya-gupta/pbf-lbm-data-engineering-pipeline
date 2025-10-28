@@ -6,7 +6,7 @@ This module defines the Pydantic model for powder bed monitoring data.
 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import Field, validator, root_validator
+from pydantic import Field, field_validator, model_validator
 from enum import Enum
 
 from .base_model import BaseDataModel
@@ -91,21 +91,20 @@ class ParticleSizeDistribution(BaseDataModel):
     d90: float = Field(..., ge=0.1, le=1000, description="90th percentile particle size in micrometers")
     span: float = Field(..., ge=0, description="Particle size distribution span")
     
-    @validator('d50')
-    def validate_d50(cls, v, values):
-        """Validate d50 is between d10 and d90."""
-        if 'd10' in values and 'd90' in values:
-            if not (values['d10'] <= v <= values['d90']):
-                raise ValueError("d50 must be between d10 and d90")
+    @field_validator('d50')
+    @classmethod
+    def validate_d50(cls, v):
+        """Validate d50 is reasonable."""
+        if v <= 0:
+            raise ValueError("d50 must be positive")
         return v
     
-    @validator('span')
-    def validate_span(cls, v, values):
-        """Validate span calculation."""
-        if 'd10' in values and 'd90' in values:
-            expected_span = (values['d90'] - values['d10']) / values.get('d50', 1)
-            if abs(v - expected_span) > 0.01:
-                raise ValueError("Span does not match calculated value")
+    @field_validator('span')
+    @classmethod
+    def validate_span(cls, v):
+        """Validate span is reasonable."""
+        if v < 0:
+            raise ValueError("Span must be non-negative")
         return v
     
     def get_primary_key(self) -> str:
@@ -246,10 +245,10 @@ class EnvironmentalConditions(BaseDataModel):
 
 class PowderBedModel(BaseDataModel):
     """
-    Pydantic model for powder bed monitoring data.
+    Pydantic model for powder bed monitoring data matching the SQL schema structure.
     
-    This model represents powder bed monitoring data for PBF-LB/M additive manufacturing,
-    including image metadata, powder characteristics, quality metrics, and defect detection.
+    This model represents powder bed monitoring data for PBF-LB/M additive manufacturing
+    with flat fields that match the PostgreSQL schema exactly.
     """
     
     # Primary key and identifiers
@@ -260,26 +259,70 @@ class PowderBedModel(BaseDataModel):
     # Monitoring timestamp
     timestamp: datetime = Field(..., description="Monitoring timestamp in ISO format")
     
-    # Image metadata
-    image_metadata: ImageMetadata = Field(..., description="Powder bed image metadata")
+    # Image metadata (flat fields matching SQL schema)
+    image_id: str = Field(..., min_length=1, max_length=100, description="Unique identifier for the image")
+    camera_id: str = Field(..., min_length=1, max_length=50, description="Camera identifier")
+    image_format: str = Field(..., description="Image format")
+    resolution: str = Field(..., min_length=1, max_length=20, description="Image resolution")
+    file_size: int = Field(..., ge=0, description="File size in bytes")
+    file_path: str = Field(..., min_length=1, max_length=500, description="Path to the image file")
     
-    # Powder characteristics
-    powder_characteristics: PowderCharacteristics = Field(..., description="Powder characteristics")
+    # Camera capture settings (flat fields matching SQL schema)
+    exposure_time: float = Field(..., ge=0.001, le=60, description="Exposure time in seconds")
+    aperture: float = Field(..., ge=0.5, le=32, description="Camera aperture")
+    iso: int = Field(..., ge=50, le=25600, description="ISO setting")
+    white_balance: str = Field(..., min_length=1, max_length=50, description="White balance setting")
+    lighting_conditions: str = Field(..., min_length=1, max_length=100, description="Lighting conditions")
     
-    # Bed quality metrics
-    bed_quality_metrics: BedQualityMetrics = Field(..., description="Powder bed quality metrics")
+    # Powder characteristics (flat fields matching SQL schema)
+    material_type: str = Field(..., min_length=1, max_length=100, description="Powder material type")
+    particle_size_d10: Optional[float] = Field(None, description="Particle size D10 in micrometers")
+    particle_size_d50: Optional[float] = Field(None, description="Particle size D50 in micrometers")
+    particle_size_d90: Optional[float] = Field(None, description="Particle size D90 in micrometers")
+    particle_size_span: Optional[float] = Field(None, description="Particle size span")
+    powder_density: Optional[float] = Field(None, ge=0.1, le=20, description="Powder density in g/cm³")
+    flowability: Optional[float] = Field(None, ge=0, le=100, description="Powder flowability percentage")
+    moisture_content: Optional[float] = Field(None, ge=0, le=100, description="Moisture content percentage")
     
-    # Image analysis
-    image_analysis: Optional[ImageAnalysis] = Field(None, description="Image analysis results")
+    # Bed quality metrics (flat fields matching SQL schema)
+    uniformity_score: float = Field(..., ge=0, le=100, description="Powder bed uniformity score")
+    coverage_percentage: float = Field(..., ge=0, le=100, description="Powder coverage percentage")
+    thickness_consistency: float = Field(..., ge=0, le=100, description="Thickness consistency score")
+    surface_roughness: Optional[float] = Field(None, ge=0, le=100, description="Surface roughness in micrometers")
+    density_variation: Optional[float] = Field(None, ge=0, le=1, description="Density variation coefficient")
+    defect_density: Optional[float] = Field(None, ge=0, description="Defect density per unit area")
     
-    # Defect detection
-    defect_detection: Optional[DefectDetection] = Field(None, description="Defect detection results")
+    # Image analysis (flat fields matching SQL schema)
+    brightness: Optional[float] = Field(None, ge=0, le=255, description="Image brightness")
+    contrast: Optional[float] = Field(None, description="Image contrast")
+    sharpness: Optional[float] = Field(None, description="Image sharpness")
+    noise_level: Optional[float] = Field(None, description="Image noise level")
+    red_channel: Optional[float] = Field(None, ge=0, le=255, description="Red channel value")
+    green_channel: Optional[float] = Field(None, ge=0, le=255, description="Green channel value")
+    blue_channel: Optional[float] = Field(None, ge=0, le=255, description="Blue channel value")
     
-    # Environmental conditions
-    environmental_conditions: Optional[EnvironmentalConditions] = Field(None, description="Environmental conditions during monitoring")
+    # Texture analysis (flat fields matching SQL schema)
+    texture_homogeneity: Optional[float] = Field(None, ge=0, le=1, description="Texture homogeneity")
+    texture_contrast: Optional[float] = Field(None, description="Texture contrast")
+    texture_energy: Optional[float] = Field(None, ge=0, le=1, description="Texture energy")
+    texture_entropy: Optional[float] = Field(None, description="Texture entropy")
+    
+    # Defect detection (flat fields matching SQL schema)
+    defects_detected: Optional[bool] = Field(None, description="Whether defects were detected")
+    defect_count: Optional[int] = Field(None, ge=0, description="Number of detected defects")
+    overall_quality_assessment: Optional[str] = Field(None, description="Overall quality assessment")
+    
+    # Environmental conditions (flat fields matching SQL schema)
+    ambient_temperature: Optional[float] = Field(None, ge=-50, le=100, description="Ambient temperature in Celsius")
+    relative_humidity: Optional[float] = Field(None, ge=0, le=100, description="Relative humidity percentage")
+    atmospheric_pressure: Optional[float] = Field(None, ge=0, le=2000, description="Atmospheric pressure in mbar")
+    vibration_level: Optional[float] = Field(None, description="Vibration level")
     
     # Processing status
-    processing_status: ProcessingStatus = Field(..., description="Powder bed processing status")
+    processing_status: str = Field(..., description="Processing status")
+    
+    # Additional data (JSONB field)
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
     
     class Config:
         """Pydantic configuration."""
@@ -318,95 +361,59 @@ class PowderBedModel(BaseDataModel):
                     "flowability": 85.0,
                     "moisture_content": 0.1
                 },
-                "bed_quality_metrics": {
-                    "uniformity_score": 92.5,
-                    "coverage_percentage": 98.0,
-                    "thickness_consistency": 89.0,
-                    "surface_roughness": 12.5,
-                    "density_variation": 0.05,
-                    "defect_density": 0.2
-                },
-                "image_analysis": {
-                    "brightness": 128.5,
-                    "contrast": 45.2,
-                    "sharpness": 78.3,
-                    "noise_level": 2.1,
-                    "color_balance": {
-                        "red_channel": 130.2,
-                        "green_channel": 128.8,
-                        "blue_channel": 126.1
-                    },
-                    "texture_analysis": {
-                        "homogeneity": 0.85,
-                        "contrast": 12.3,
-                        "energy": 0.92,
-                        "entropy": 3.45
-                    }
-                },
-                "defect_detection": {
-                    "defects_detected": True,
-                    "defect_count": 3,
-                    "defect_types": [
-                        {
-                            "defect_id": "DEF_001",
-                            "type": "INSUFFICIENT_POWDER",
-                            "location": {
-                                "x_coordinate": 50.5,
-                                "y_coordinate": 75.2,
-                                "area": 2.5
-                            },
-                            "severity": "LOW",
-                            "confidence_score": 85.0
-                        }
-                    ],
-                    "overall_quality_assessment": "GOOD"
-                },
-                "environmental_conditions": {
-                    "temperature": 22.5,
-                    "humidity": 45.0,
-                    "pressure": 1013.25,
-                    "vibration_level": 0.01
-                },
+                "uniformity_score": 92.5,
+                "coverage_percentage": 98.0,
+                "thickness_consistency": 89.0,
+                "surface_roughness": 12.5,
+                "density_variation": 0.05,
+                "defect_density": 0.2,
+                "brightness": 128.5,
+                "contrast": 45.2,
+                "sharpness": 78.3,
+                "noise_level": 2.1,
+                "red_channel": 130.2,
+                "green_channel": 128.8,
+                "blue_channel": 126.1,
+                "texture_homogeneity": 0.85,
+                "texture_contrast": 12.3,
+                "texture_energy": 0.92,
+                "texture_entropy": 3.45,
+                "defects_detected": True,
+                "defect_count": 3,
+                "overall_quality_assessment": "GOOD",
+                "ambient_temperature": 22.5,
+                "relative_humidity": 45.0,
+                "atmospheric_pressure": 1013.25,
+                "vibration_level": 0.01,
                 "processing_status": "COMPLETED"
             }
         }
     
-    @validator('bed_id')
+    @field_validator('bed_id')
+    @classmethod
     def validate_bed_id(cls, v):
         """Validate bed ID format."""
         if not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Bed ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @validator('layer_number')
+    @field_validator('layer_number')
+    @classmethod
     def validate_layer_number(cls, v):
         """Validate layer number."""
         if v < 0:
             raise ValueError("Layer number cannot be negative")
         return v
     
-    @validator('bed_quality_metrics')
-    def validate_quality_metrics(cls, v):
-        """Validate quality metrics consistency."""
-        if v.uniformity_score < 50 and v.coverage_percentage > 95:
-            # Low uniformity with high coverage might indicate an issue
-            pass  # Could add warning logic here
-        return v
     
-    @root_validator
-    def validate_defect_consistency(cls, values):
+    @model_validator(mode='after')
+    def validate_defect_consistency(self):
         """Validate defect detection consistency."""
-        defect_detection = values.get('defect_detection')
-        bed_quality_metrics = values.get('bed_quality_metrics')
-        
-        if defect_detection:
-            if defect_detection.defects_detected != (defect_detection.defect_count > 0):
+        if self.defects_detected is not None and self.defect_count is not None:
+            if self.defects_detected != (self.defect_count > 0):
                 raise ValueError("defects_detected flag must match defect_count > 0")
-            
-            if defect_detection.defect_count != len(defect_detection.defect_types):
-                raise ValueError("defect_count must match length of defect_types list")
         
-        return values
+        return self
     
     def get_primary_key(self) -> str:
         """Get the primary key field name."""

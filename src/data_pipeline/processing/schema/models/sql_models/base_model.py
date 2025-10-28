@@ -7,7 +7,7 @@ This module provides the base Pydantic model class for all PBF-LB/M data models.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union, List
 from datetime import datetime
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 import uuid
 import json
 
@@ -41,7 +41,8 @@ class BaseDataModel(BaseModel, ABC):
             "example": {}
         }
     
-    @validator('created_at', 'updated_at', pre=True)
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
     def parse_datetime(cls, v):
         """Parse datetime strings to datetime objects."""
         if isinstance(v, str):
@@ -51,7 +52,8 @@ class BaseDataModel(BaseModel, ABC):
                 raise ValueError(f"Invalid datetime format: {v}")
         return v
     
-    @validator('metadata', pre=True)
+    @field_validator('metadata', mode='before')
+    @classmethod
     def parse_metadata(cls, v):
         """Parse metadata to dictionary."""
         if isinstance(v, str):
@@ -61,16 +63,12 @@ class BaseDataModel(BaseModel, ABC):
                 raise ValueError(f"Invalid JSON format for metadata: {v}")
         return v or {}
     
-    @root_validator
-    def validate_timestamps(cls, values):
+    @model_validator(mode='after')
+    def validate_timestamps(self):
         """Validate that updated_at is not before created_at."""
-        created_at = values.get('created_at')
-        updated_at = values.get('updated_at')
-        
-        if created_at and updated_at and updated_at < created_at:
+        if self.created_at and self.updated_at and self.updated_at < self.created_at:
             raise ValueError("updated_at cannot be before created_at")
-        
-        return values
+        return self
     
     def update_timestamp(self):
         """Update the updated_at timestamp."""

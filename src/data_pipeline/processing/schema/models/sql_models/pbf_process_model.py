@@ -6,7 +6,7 @@ This module defines the Pydantic model for PBF-LB/M process data.
 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import Field, validator, root_validator
+from pydantic import Field, field_validator, model_validator
 from enum import Enum
 
 from .base_model import BaseDataModel
@@ -42,10 +42,10 @@ class QualityMetrics(BaseDataModel):
 
 class PBFProcessModel(BaseDataModel):
     """
-    Pydantic model for PBF-LB/M process data.
+    Pydantic model for PBF-LB/M process data matching the SQL schema structure.
     
     This model represents the core process data for Powder Bed Fusion - Laser Beam/Metal
-    additive manufacturing, including process parameters, quality metrics, and metadata.
+    additive manufacturing with flat fields that match the PostgreSQL schema exactly.
     """
     
     # Primary key and identifiers
@@ -55,8 +55,10 @@ class PBFProcessModel(BaseDataModel):
     
     # Process timestamp
     timestamp: datetime = Field(..., description="Process timestamp in ISO format")
+    created_at: Optional[datetime] = Field(None, description="Record creation timestamp")
+    updated_at: Optional[datetime] = Field(None, description="Record last update timestamp")
     
-    # Process parameters
+    # Process parameters (flat fields matching SQL schema)
     layer_number: Optional[int] = Field(None, ge=0, le=10000, description="Current layer number being processed")
     temperature: float = Field(..., ge=0, le=2000, description="Process temperature in Celsius")
     pressure: float = Field(..., ge=0, le=1000, description="Chamber pressure in mbar")
@@ -66,16 +68,20 @@ class PBFProcessModel(BaseDataModel):
     hatch_spacing: Optional[float] = Field(None, ge=0.01, le=1.0, description="Hatch spacing in mm")
     exposure_time: Optional[float] = Field(None, ge=0, le=3600, description="Exposure time per layer in seconds")
     
-    # Material and environment
+    # Material and environment (flat fields matching SQL schema)
     atmosphere: Optional[AtmosphereType] = Field(None, description="Atmosphere type")
     powder_material: Optional[str] = Field(None, min_length=1, max_length=100, description="Powder material type")
     powder_batch_id: Optional[str] = Field(None, min_length=1, max_length=100, description="Powder batch identifier")
     
-    # Process parameters as key-value pairs
-    process_parameters: Dict[str, str] = Field(default_factory=dict, description="Additional process parameters as key-value pairs")
+    # Quality metrics (flat fields matching SQL schema)
+    density: Optional[float] = Field(None, ge=0, le=100, description="Part density percentage")
+    surface_roughness: Optional[float] = Field(None, ge=0, le=100, description="Surface roughness in micrometers")
+    dimensional_accuracy: Optional[float] = Field(None, ge=0, le=10, description="Dimensional accuracy in mm")
+    defect_count: Optional[int] = Field(None, ge=0, le=10000, description="Number of detected defects")
     
-    # Quality metrics
-    quality_metrics: Optional[QualityMetrics] = Field(None, description="Quality metrics for the process")
+    # Additional data (JSONB fields)
+    process_parameters: Optional[Dict[str, Any]] = Field(None, description="Additional process parameters as key-value pairs")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
     
     class Config:
         """Pydantic configuration."""
@@ -102,70 +108,68 @@ class PBFProcessModel(BaseDataModel):
                     "laser_spot_size": "0.1",
                     "scan_pattern": "zigzag"
                 },
-                "quality_metrics": {
-                    "density": 99.5,
-                    "surface_roughness": 8.2,
-                    "dimensional_accuracy": 0.05,
-                    "defect_count": 0
-                }
+                "density": 99.5,
+                "surface_roughness": 8.2,
+                "dimensional_accuracy": 0.05,
+                "defect_count": 0
             }
         }
     
-    @validator('process_id')
+    @field_validator('process_id')
+    @classmethod
     def validate_process_id(cls, v):
         """Validate process ID format."""
         if not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Process ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @validator('machine_id')
+    @field_validator('machine_id')
+    @classmethod
     def validate_machine_id(cls, v):
         """Validate machine ID format."""
         if not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Machine ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @validator('build_id')
+    @field_validator('build_id')
+    @classmethod
     def validate_build_id(cls, v):
         """Validate build ID format if provided."""
         if v is not None and not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Build ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @validator('powder_material')
+    @field_validator('powder_material')
+    @classmethod
     def validate_powder_material(cls, v):
         """Validate powder material format."""
         if v is not None and len(v.strip()) == 0:
             raise ValueError("Powder material cannot be empty")
         return v
     
-    @validator('powder_batch_id')
+    @field_validator('powder_batch_id')
+    @classmethod
     def validate_powder_batch_id(cls, v):
         """Validate powder batch ID format."""
         if v is not None and not v.replace('_', '').replace('-', '').isalnum():
             raise ValueError("Powder batch ID must contain only alphanumeric characters, underscores, and hyphens")
         return v
     
-    @root_validator
-    def validate_process_consistency(cls, values):
+    @model_validator(mode='after')
+    def validate_process_consistency(self):
         """Validate process parameter consistency."""
-        temperature = values.get('temperature')
-        pressure = values.get('pressure')
-        laser_power = values.get('laser_power')
-        scan_speed = values.get('scan_speed')
-        
         # Check for reasonable parameter combinations
-        if temperature and pressure:
-            if temperature > 1500 and pressure > 10:
+        if self.temperature and self.pressure:
+            if self.temperature > 1500 and self.pressure > 10:
                 # High temperature and high pressure might indicate an issue
                 pass  # Could add warning logic here
         
-        if laser_power and scan_speed:
-            if laser_power > 500 and scan_speed > 5000:
+        if self.laser_power and self.scan_speed:
+            if self.laser_power > 500 and self.scan_speed > 5000:
                 # Very high power and speed combination
                 pass  # Could add warning logic here
         
-        return values
+        return self
     
     def get_primary_key(self) -> str:
         """Get the primary key field name."""
@@ -182,32 +186,28 @@ class PBFProcessModel(BaseDataModel):
         Returns:
             Quality score between 0 and 100
         """
-        if not self.quality_metrics:
-            return 0.0
-        
-        metrics = self.quality_metrics
         score = 0.0
         factors = 0
         
-        if metrics.density is not None:
-            score += metrics.density
+        if self.density is not None:
+            score += self.density
             factors += 1
         
-        if metrics.surface_roughness is not None:
+        if self.surface_roughness is not None:
             # Lower surface roughness is better (invert the scale)
-            roughness_score = max(0, 100 - metrics.surface_roughness)
+            roughness_score = max(0, 100 - self.surface_roughness)
             score += roughness_score
             factors += 1
         
-        if metrics.dimensional_accuracy is not None:
+        if self.dimensional_accuracy is not None:
             # Lower dimensional accuracy is better (invert the scale)
-            accuracy_score = max(0, 100 - (metrics.dimensional_accuracy * 100))
+            accuracy_score = max(0, 100 - (self.dimensional_accuracy * 100))
             score += accuracy_score
             factors += 1
         
-        if metrics.defect_count is not None:
+        if self.defect_count is not None:
             # Lower defect count is better
-            defect_score = max(0, 100 - (metrics.defect_count * 10))
+            defect_score = max(0, 100 - (self.defect_count * 10))
             score += defect_score
             factors += 1
         
@@ -349,30 +349,36 @@ class PBFProcessModel(BaseDataModel):
     def _calculate_accuracy(self) -> float:
         """Calculate data accuracy score (0-1)."""
         # Check if quality metrics are reasonable
-        if not self.quality_metrics:
+        has_quality_data = any([
+            self.density is not None,
+            self.surface_roughness is not None,
+            self.dimensional_accuracy is not None,
+            self.defect_count is not None
+        ])
+        
+        if not has_quality_data:
             return 0.5  # Partial score if no quality metrics
         
-        metrics = self.quality_metrics
         accuracy_score = 1.0
         
         # Check density
-        if metrics.density is not None:
-            if metrics.density < 80 or metrics.density > 100:
+        if self.density is not None:
+            if self.density < 80 or self.density > 100:
                 accuracy_score -= 0.2
         
         # Check surface roughness
-        if metrics.surface_roughness is not None:
-            if metrics.surface_roughness < 0 or metrics.surface_roughness > 50:
+        if self.surface_roughness is not None:
+            if self.surface_roughness < 0 or self.surface_roughness > 50:
                 accuracy_score -= 0.2
         
         # Check dimensional accuracy
-        if metrics.dimensional_accuracy is not None:
-            if metrics.dimensional_accuracy < 0 or metrics.dimensional_accuracy > 1:
+        if self.dimensional_accuracy is not None:
+            if self.dimensional_accuracy < 0 or self.dimensional_accuracy > 1:
                 accuracy_score -= 0.2
         
         # Check defect count
-        if metrics.defect_count is not None:
-            if metrics.defect_count < 0 or metrics.defect_count > 1000:
+        if self.defect_count is not None:
+            if self.defect_count < 0 or self.defect_count > 1000:
                 accuracy_score -= 0.2
         
         return max(0.0, accuracy_score)

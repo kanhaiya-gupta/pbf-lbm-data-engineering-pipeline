@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Session Cache Schema",
+  "description": "Schema for caching user session data in Redis",
+  "type": "object",
+  "properties": {
+    "cache_key": {
+      "type": "string",
+      "description": "Redis cache key",
+      "pattern": "^user:[A-Za-z0-9_]+:session:[a-f0-9-]+$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache last update timestamp"
+    },
+    "ttl": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Time to live in seconds"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "expired", "invalid", "pending"],
+      "description": "Cache status"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cache version"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9-]{36}$",
+      "description": "Session identifier (UUID)"
+    },
+    "user_id": {
+      "type": "string",
+      "pattern": "^USER_[0-9]{6}$",
+      "description": "User identifier"
+    },
+    "session_status": {
+      "type": "string",
+      "enum": ["active", "expired", "terminated"],
+      "description": "Session status"
+    },
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 50,
+      "pattern": "^[A-Za-z0-9_]+$",
+      "description": "Username"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["admin", "operator", "engineer", "viewer", "maintenance"],
+      "description": "User role"
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["read", "write", "delete", "admin", "maintenance", "analytics", "reports"]
+      },
+      "description": "User permissions"
+    },
+    "ip_address": {
+      "type": "string",
+      "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+      "description": "Client IP address"
+    },
+    "user_agent": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Client user agent"
+    },
+    "login_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Login timestamp"
+    },
+    "last_activity": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last activity timestamp"
+    },
+    "preferences": {
+      "type": "object",
+      "description": "User preferences",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark", "auto"]
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "es", "fr", "de", "zh"]
+        },
+        "notifications": {
+          "type": "boolean"
+        },
+        "auto_refresh": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "active_processes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^PROC_[0-9]{8}$"
+      },
+      "description": "Active process IDs"
+    },
+    "favorite_machines": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^MACHINE_[0-9]{3}$"
+      },
+      "description": "Favorite machine IDs"
+    }
+  },
+  "required": [
+    "cache_key",
+    "session_id",
+    "user_id",
+    "session_status",
+    "username",
+    "role"
+  ],
+  "additionalProperties": false
+}

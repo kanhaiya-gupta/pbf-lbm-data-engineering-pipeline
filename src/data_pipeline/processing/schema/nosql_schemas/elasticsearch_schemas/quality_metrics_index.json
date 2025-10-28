@@ -1,0 +1,340 @@
+{
+  "index_name": "quality_metrics",
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "quality_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop", "snowball"]
+        }
+      }
+    },
+    "index": {
+      "max_result_window": 100000,
+      "refresh_interval": "30s"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "quality_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "process_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "build_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "measurement_type": {
+        "type": "keyword",
+        "index": true
+      },
+      "dimensional_metrics": {
+        "type": "object",
+        "properties": {
+          "length": {
+            "type": "float",
+            "index": true
+          },
+          "width": {
+            "type": "float",
+            "index": true
+          },
+          "height": {
+            "type": "float",
+            "index": true
+          },
+          "tolerance": {
+            "type": "float",
+            "index": true
+          },
+          "deviation": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "surface_quality": {
+        "type": "object",
+        "properties": {
+          "roughness_ra": {
+            "type": "float",
+            "index": true
+          },
+          "roughness_rz": {
+            "type": "float",
+            "index": true
+          },
+          "waviness": {
+            "type": "float",
+            "index": true
+          },
+          "porosity": {
+            "type": "float",
+            "index": true
+          },
+          "density": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "mechanical_properties": {
+        "type": "object",
+        "properties": {
+          "tensile_strength": {
+            "type": "float",
+            "index": true
+          },
+          "yield_strength": {
+            "type": "float",
+            "index": true
+          },
+          "hardness": {
+            "type": "float",
+            "index": true
+          },
+          "elastic_modulus": {
+            "type": "float",
+            "index": true
+          },
+          "fatigue_limit": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "defect_analysis": {
+        "type": "object",
+        "properties": {
+          "defect_count": {
+            "type": "integer",
+            "index": true
+          },
+          "defect_density": {
+            "type": "float",
+            "index": true
+          },
+          "defect_types": {
+            "type": "keyword",
+            "index": true
+          },
+          "critical_defects": {
+            "type": "integer",
+            "index": true
+          },
+          "defect_severity": {
+            "type": "keyword",
+            "index": true
+          }
+        }
+      },
+      "quality_scores": {
+        "type": "object",
+        "properties": {
+          "overall_score": {
+            "type": "float",
+            "index": true
+          },
+          "dimensional_score": {
+            "type": "float",
+            "index": true
+          },
+          "surface_score": {
+            "type": "float",
+            "index": true
+          },
+          "mechanical_score": {
+            "type": "float",
+            "index": true
+          },
+          "defect_score": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "measurement_conditions": {
+        "type": "object",
+        "properties": {
+          "temperature": {
+            "type": "float"
+          },
+          "humidity": {
+            "type": "float"
+          },
+          "measurement_equipment": {
+            "type": "keyword"
+          },
+          "operator_id": {
+            "type": "keyword"
+          },
+          "measurement_standard": {
+            "type": "keyword"
+          }
+        }
+      },
+      "material_properties": {
+        "type": "object",
+        "properties": {
+          "material_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "powder_batch": {
+            "type": "keyword",
+            "index": true
+          },
+          "heat_treatment": {
+            "type": "keyword"
+          },
+          "post_processing": {
+            "type": "keyword"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "measurement_date": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "created_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "updated_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "data_source": {
+            "type": "keyword"
+          },
+          "quality_standard": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  },
+  "aliases": {
+    "quality_metrics_current": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-7d"
+          }
+        }
+      }
+    },
+    "quality_metrics_archive": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "lt": "now-7d"
+          }
+        }
+      }
+    }
+  },
+  "index_templates": {
+    "quality_metrics_template": {
+      "index_patterns": ["quality_metrics_*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 2,
+          "number_of_replicas": 1
+        },
+        "mappings": {
+          "properties": {
+            "quality_id": {
+              "type": "keyword"
+            },
+            "process_id": {
+              "type": "keyword"
+            },
+            "timestamp": {
+              "type": "date"
+            },
+            "quality_scores": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  },
+  "search_templates": {
+    "quality_analysis": {
+      "source": {
+        "aggs": {
+          "material_quality": {
+            "terms": {
+              "field": "material_properties.material_type"
+            },
+            "aggs": {
+              "avg_overall_score": {
+                "avg": {
+                  "field": "quality_scores.overall_score"
+                }
+              },
+              "avg_density": {
+                "avg": {
+                  "field": "surface_quality.density"
+                }
+              }
+            }
+          },
+          "quality_trends": {
+            "date_histogram": {
+              "field": "timestamp",
+              "calendar_interval": "day"
+            },
+            "aggs": {
+              "avg_quality": {
+                "avg": {
+                  "field": "quality_scores.overall_score"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "defect_analysis": {
+      "source": {
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "range": {
+                  "defect_analysis.defect_count": {
+                    "gt": 0
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "sort": [
+          {
+            "defect_analysis.defect_count": {
+              "order": "desc"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -12,10 +12,7 @@ import logging
 from datetime import datetime
 
 from .extract import (
-    extract_pbf_process_data,
-    extract_powder_bed_data,
-    extract_from_ct_scanner,
-    extract_from_ispm_system
+    extract_from_data_lake
 )
 from .transform import (
     transform_pbf_process_data,
@@ -25,12 +22,17 @@ from .transform import (
     apply_business_rules
 )
 from .load import (
-    load_pbf_process_data,
-    load_ispm_monitoring_data,
     load_to_postgresql,
     load_to_s3,
     load_to_snowflake,
-    load_to_delta_lake
+    load_to_delta_lake,
+    load_to_mongodb,
+    load_to_cassandra,
+    load_to_redis,
+    load_to_elasticsearch,
+    load_to_neo4j,
+    load_to_clickhouse,
+    load_to_minio
 )
 
 logger = logging.getLogger(__name__)
@@ -252,17 +254,33 @@ class ETLOrchestrator:
             raise
     
     def _extract_data(self, data_type: str, source_config: Dict[str, Any]) -> DataFrame:
-        """Extract data based on data type"""
-        if data_type == "pbf_process":
-            return extract_pbf_process_data(self.spark, source_config)
-        elif data_type == "ispm_monitoring":
-            return extract_from_ispm_system(self.spark, source_config)
-        elif data_type == "ct_scan":
-            return extract_from_ct_scanner(self.spark, source_config)
-        elif data_type == "powder_bed":
-            return extract_powder_bed_data(self.spark, source_config)
-        else:
-            raise ValueError(f"Unsupported data type: {data_type}")
+        """
+        Extract data using the universal extract_from_data_lake method.
+        
+        This method now uses the world-class universal extraction method that handles
+        all data sources (databases, files, object storage, streaming, etc.).
+        
+        Args:
+            data_type: Type of data to process (pbf_process, ispm_monitoring, ct_scan, powder_bed)
+            source_config: Source configuration containing type and connection details
+            
+        Returns:
+            DataFrame containing the extracted data
+        """
+        try:
+            logger.info(f"Extracting {data_type} data using universal extractor")
+            
+            # Use the universal extraction method
+            return extract_from_data_lake(
+                spark=self.spark,
+                source_type=source_config.get("type", "kafka"),  # Default to kafka for streaming
+                source_config=source_config,
+                **source_config.get("extraction_params", {})  # Pass any additional parameters
+            )
+            
+        except Exception as e:
+            logger.error(f"Error extracting {data_type} data: {str(e)}")
+            raise
     
     def _transform_data(
         self, 
@@ -299,18 +317,17 @@ class ETLOrchestrator:
         df: DataFrame, 
         destination_config: Dict[str, Any]
     ) -> None:
-        """Load data based on data type"""
+        """Load data based on data type using routing functions"""
         if data_type == "pbf_process":
-            load_pbf_process_data(df, destination_config)
+            self.route_pbf_process_data(df, destination_config)
         elif data_type == "ispm_monitoring":
-            load_ispm_monitoring_data(df, destination_config)
+            self.route_ispm_monitoring_data(df, destination_config)
         elif data_type == "ct_scan":
             # CT scan data typically goes to MongoDB or S3
             destination_type = destination_config.get("type", "s3")
             if destination_type == "s3":
                 load_to_s3(df, destination_config.get("s3_path", ""))
             elif destination_type == "mongodb":
-                from .load import load_to_mongodb
                 load_to_mongodb(df, destination_config.get("mongodb_config", {}), 
                               destination_config.get("collection_name", "ct_scan_data"))
         elif data_type == "powder_bed":
@@ -320,7 +337,6 @@ class ETLOrchestrator:
                 load_to_postgresql(df, destination_config.get("connection_string", ""), 
                                  destination_config.get("table_name", "powder_bed_data"))
             elif destination_type == "redis":
-                from .load import load_to_redis
                 load_to_redis(df, destination_config.get("redis_config", {}), 
                             destination_config.get("key_prefix", "powder_bed"))
         else:
@@ -341,15 +357,30 @@ class ETLOrchestrator:
         return self._extract_data(data_type, source_config)
     
     def _extract_streaming_data(self, data_type: str, source_config: Dict[str, Any]) -> DataFrame:
-        """Extract streaming data"""
-        # For streaming, we typically use Kafka
-        from .extract import extract_from_kafka
+        """
+        Extract streaming data using the universal extract_from_data_lake method.
         
-        return extract_from_kafka(
-            spark=self.spark,
-            bootstrap_servers=source_config.get("bootstrap_servers", "localhost:9092"),
-            topic=source_config.get("topic", f"{data_type}_data")
-        )
+        Args:
+            data_type: Type of data to process
+            source_config: Source configuration
+            
+        Returns:
+            DataFrame containing the streaming data
+        """
+        try:
+            logger.info(f"Extracting streaming {data_type} data using universal extractor")
+            
+            # Use the universal extraction method for streaming
+            return extract_from_data_lake(
+                spark=self.spark,
+                source_type="kafka",  # Streaming typically uses Kafka
+                source_config=source_config,
+                **source_config.get("streaming_params", {})
+            )
+            
+        except Exception as e:
+            logger.error(f"Error extracting streaming {data_type} data: {str(e)}")
+            raise
     
     def _transform_streaming_data(
         self, 
@@ -406,6 +437,123 @@ class ETLOrchestrator:
         else:
             raise ValueError(f"Unsupported streaming destination type: {destination_type}")
     
+    def route_pbf_process_data(
+        self,
+        df: DataFrame,
+        destination_config: Dict[str, Any]
+    ) -> None:
+        """
+        Route PBF process data to specified destination based on configuration.
+        
+        This is orchestration logic that determines where to send PBF process data
+        based on the destination configuration.
+        
+        Args:
+            df: DataFrame containing PBF process data
+            destination_config: Destination configuration
+        """
+        try:
+            logger.info("Routing PBF process data to destination")
+            
+            destination_type = destination_config.get("type", "postgresql")
+            
+            if destination_type == "postgresql":
+                load_to_postgresql(
+                    df=df,
+                    connection_string=destination_config.get("connection_string", ""),
+                    table_name=destination_config.get("table_name", "pbf_process_data"),
+                    mode=destination_config.get("mode", "append")
+                )
+            elif destination_type == "s3":
+                load_to_s3(
+                    df=df,
+                    s3_path=destination_config.get("s3_path", ""),
+                    format=destination_config.get("format", "parquet"),
+                    mode=destination_config.get("mode", "append")
+                )
+            elif destination_type == "snowflake":
+                load_to_snowflake(
+                    df=df,
+                    snowflake_config=destination_config.get("snowflake_config", {}),
+                    table_name=destination_config.get("table_name", "pbf_process_data"),
+                    mode=destination_config.get("mode", "append")
+                )
+            elif destination_type == "delta_lake":
+                load_to_delta_lake(
+                    df=df,
+                    delta_path=destination_config.get("delta_path", ""),
+                    mode=destination_config.get("mode", "append")
+                )
+            elif destination_type == "mongodb":
+                load_to_mongodb(
+                    df=df,
+                    mongodb_config=destination_config.get("mongodb_config", {}),
+                    collection_name=destination_config.get("collection_name", "pbf_process_data"),
+                    mode=destination_config.get("mode", "append")
+                )
+            else:
+                raise ValueError(f"Unsupported destination type for PBF process data: {destination_type}")
+                
+        except Exception as e:
+            logger.error(f"Error routing PBF process data: {str(e)}")
+            raise
+
+    def route_ispm_monitoring_data(
+        self,
+        df: DataFrame,
+        destination_config: Dict[str, Any]
+    ) -> None:
+        """
+        Route ISPM monitoring data to specified destination based on configuration.
+        
+        This is orchestration logic that determines where to send ISPM monitoring data
+        based on the destination configuration.
+        
+        Args:
+            df: DataFrame containing ISPM monitoring data
+            destination_config: Destination configuration
+        """
+        try:
+            logger.info("Routing ISPM monitoring data to destination")
+            
+            destination_type = destination_config.get("type", "cassandra")
+            
+            if destination_type == "cassandra":
+                load_to_cassandra(
+                    df=df,
+                    cassandra_config=destination_config.get("cassandra_config", {}),
+                    keyspace=destination_config.get("keyspace", "lpbf_research"),
+                    table_name=destination_config.get("table_name", "ispm_monitoring_data"),
+                    mode=destination_config.get("mode", "append")
+                )
+            elif destination_type == "redis":
+                load_to_redis(
+                    df=df,
+                    redis_config=destination_config.get("redis_config", {}),
+                    key_prefix=destination_config.get("key_prefix", "ispm_monitoring"),
+                    options=destination_config.get("options", {})
+                )
+            elif destination_type == "postgresql":
+                load_to_postgresql(
+                    df=df,
+                    connection_string=destination_config.get("connection_string", ""),
+                    table_name=destination_config.get("table_name", "ispm_monitoring_data"),
+                    mode=destination_config.get("mode", "append")
+                )
+            elif destination_type == "elasticsearch":
+                load_to_elasticsearch(
+                    df=df,
+                    elasticsearch_config=destination_config.get("elasticsearch_config", {}),
+                    index_name=destination_config.get("index_name", "ispm_monitoring"),
+                    mode=destination_config.get("mode", "append")
+                )
+            else:
+                raise ValueError(f"Unsupported destination type for ISPM monitoring data: {destination_type}")
+                
+        except Exception as e:
+            logger.error(f"Error routing ISPM monitoring data: {str(e)}")
+            raise
+
     def get_job_history(self) -> List[Dict[str, Any]]:
         """Get ETL job history"""
         return self.job_history.copy()

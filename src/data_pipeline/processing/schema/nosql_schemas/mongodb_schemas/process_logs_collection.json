@@ -1,0 +1,230 @@
+{
+  "collection_name": "process_logs",
+  "description": "MongoDB collection for storing process logs, error reports, system logs, and user annotations",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["process_log", "user_annotation"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "build_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL build ID"
+      },
+      "part_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL part ID"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "log_level": {
+        "type": "string",
+        "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        "description": "Log level"
+      },
+      "log_source": {
+        "type": "string",
+        "description": "Source of the log (system, process, sensor, etc.)"
+      },
+      "log_message": {
+        "type": "string",
+        "description": "Log message content"
+      },
+      "error_code": {
+        "type": "string",
+        "description": "Error code if applicable"
+      },
+      "stack_trace": {
+        "type": "string",
+        "description": "Stack trace for errors"
+      },
+      "context_data": {
+        "type": "object",
+        "description": "Additional context data",
+        "additionalProperties": true
+      },
+      "related_errors": {
+        "type": "array",
+        "description": "Related error IDs",
+        "items": {"type": "string"}
+      },
+      "resolution_status": {
+        "type": "string",
+        "enum": ["pending", "in_progress", "resolved", "escalated", "closed"],
+        "description": "Error resolution status"
+      },
+      "user_id": {
+        "type": "string",
+        "description": "User who created the annotation (for user_annotation type)"
+      },
+      "annotation_type": {
+        "type": "string",
+        "enum": ["comment", "note", "highlight", "question", "issue", "suggestion"],
+        "description": "Type of annotation (for user_annotation type)"
+      },
+      "content": {
+        "type": "string",
+        "description": "Annotation content (for user_annotation type)"
+      },
+      "annotation_position": {
+        "type": "object",
+        "description": "Position/coordinates of annotation",
+        "properties": {
+          "x": {"type": "number"},
+          "y": {"type": "number"},
+          "z": {"type": "number"},
+          "layer": {"type": "integer"},
+          "timestamp": {"type": "date"}
+        }
+      },
+      "is_public": {
+        "type": "boolean",
+        "description": "Whether annotation is public (for user_annotation type)"
+      },
+      "is_resolved": {
+        "type": "boolean",
+        "description": "Whether annotation is resolved (for user_annotation type)"
+      },
+      "parent_annotation": {
+        "type": "string",
+        "description": "Parent annotation ID for replies (for user_annotation type)"
+      },
+      "attachments": {
+        "type": "array",
+        "description": "Attached file IDs (for user_annotation type)",
+        "items": {"type": "string"}
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "process_id"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "process_id_index",
+      "keys": {"process_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "document_type_index",
+      "keys": {"document_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "log_level_index",
+      "keys": {"log_level": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "log_source_index",
+      "keys": {"log_source": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "error_code_index",
+      "keys": {"error_code": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "resolution_status_index",
+      "keys": {"resolution_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "user_id_index",
+      "keys": {"user_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "annotation_type_index",
+      "keys": {"annotation_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_process_log_index",
+      "keys": {"process_id": 1, "log_level": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_user_annotation_index",
+      "keys": {"user_id": 1, "annotation_type": 1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "process_id"],
+        "properties": {
+          "document_type": {"enum": ["process_log", "user_annotation"]},
+          "process_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "log_level": {"enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]},
+          "resolution_status": {"enum": ["pending", "in_progress", "resolved", "escalated", "closed"]},
+          "annotation_type": {"enum": ["comment", "note", "highlight", "question", "issue", "suggestion"]}
+        }
+      }
+    }
+  }
+}

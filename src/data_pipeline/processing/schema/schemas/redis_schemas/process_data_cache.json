@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Process Data Cache Schema",
+  "description": "Schema for caching PBF process data in Redis",
+  "type": "object",
+  "properties": {
+    "cache_key": {
+      "type": "string",
+      "description": "Redis cache key",
+      "pattern": "^process:[A-Z0-9_]+$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache creation timestamp"
+    },
+    "updated_at": {
+      "type": "string", 
+      "format": "date-time",
+      "description": "Cache last update timestamp"
+    },
+    "ttl": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Time to live in seconds"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "expired", "invalid", "pending"],
+      "description": "Cache status"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cache version"
+    },
+    "process_id": {
+      "type": "string",
+      "pattern": "^PROC_[0-9]{8}$",
+      "description": "Process identifier"
+    },
+    "build_id": {
+      "type": "string",
+      "pattern": "^BUILD_[0-9]{6}$",
+      "description": "Build identifier"
+    },
+    "part_id": {
+      "type": "string",
+      "pattern": "^PART_[0-9]{6}$",
+      "description": "Part identifier"
+    },
+    "machine_id": {
+      "type": "string",
+      "pattern": "^MACHINE_[0-9]{3}$",
+      "description": "Machine identifier"
+    },
+    "process_status": {
+      "type": "string",
+      "enum": ["pending", "running", "completed", "failed", "cancelled", "paused"],
+      "description": "Process status"
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 3000,
+      "description": "Process temperature in Celsius"
+    },
+    "laser_power": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "Laser power in watts"
+    },
+    "scan_speed": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10000,
+      "description": "Scan speed in mm/s"
+    },
+    "layer_thickness": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 1.0,
+      "description": "Layer thickness in mm"
+    },
+    "density": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Part density"
+    },
+    "surface_roughness": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Surface roughness in μm"
+    },
+    "dimensional_accuracy": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Dimensional accuracy in %"
+    },
+    "operator": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Operator name"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Process notes"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 50
+      },
+      "maxItems": 10,
+      "description": "Process tags"
+    }
+  },
+  "required": [
+    "cache_key",
+    "process_id",
+    "build_id", 
+    "part_id",
+    "machine_id",
+    "process_status"
+  ],
+  "additionalProperties": false
+}

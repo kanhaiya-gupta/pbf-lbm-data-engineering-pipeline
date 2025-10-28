@@ -1,37 +1,55 @@
 """
-Storage Configuration
+Storage Configuration for PBF-LB/M Data Pipeline
 
-This module provides storage configuration for PBF-LB/M data storage.
-It handles S3, Snowflake, PostgreSQL, and Delta Lake configurations.
+This module provides storage configuration management with environment variable support,
+connection pooling, and production-ready settings for S3, Snowflake, and Delta Lake.
+
+Features:
+- Environment variable configuration
+- Connection pooling and timeout settings
+- SSL/TLS support for production
+- Health check configuration
+- Performance optimization settings
+- Lifecycle management for data retention
 """
 
 import os
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from typing import Optional, Dict, Any, List
+from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
-@dataclass
-class S3Config:
-    """S3 configuration for PBF-LB/M data lake storage"""
+class S3Config(BaseModel):
+    """S3 configuration model for PBF-LB/M data lake storage."""
     
     # Connection settings
-    endpoint_url: str = "http://localhost:9000"
-    aws_access_key_id: str = "minioadmin"
-    aws_secret_access_key: str = "minioadmin"
-    region_name: str = "us-east-1"
+    endpoint_url: str = Field(default="http://localhost:9000", description="S3 endpoint URL")
+    aws_access_key_id: str = Field(default="minioadmin", description="AWS access key ID")
+    aws_secret_access_key: str = Field(default="minioadmin", description="AWS secret access key")
+    region_name: str = Field(default="us-east-1", description="AWS region name")
+    
+    # Security settings
+    use_ssl: bool = Field(default=True, description="Use SSL/TLS for connections")
+    verify_ssl: bool = Field(default=True, description="Verify SSL certificates")
     
     # Bucket settings
-    bucket_name: str = "pbf-lbm-data-lake"
-    prefix: str = "lpbf-research/"
+    bucket_name: str = Field(default="pbf-lbm-data-lake", description="S3 bucket name")
+    prefix: str = Field(default="lpbf-research/", description="S3 object prefix")
     
     # Performance settings
-    multipart_threshold: int = 64 * 1024 * 1024  # 64MB
-    multipart_chunksize: int = 16 * 1024 * 1024  # 16MB
-    max_concurrency: int = 10
+    multipart_threshold: int = Field(default=67108864, description="Multipart upload threshold (64MB)")
+    multipart_chunksize: int = Field(default=16777216, description="Multipart chunk size (16MB)")
+    max_concurrency: int = Field(default=10, description="Maximum concurrent uploads")
+    max_connections: int = Field(default=50, description="Maximum connections to S3")
+    timeout: int = Field(default=30, description="Connection timeout in seconds")
+    retry_attempts: int = Field(default=3, description="Number of retry attempts")
     
     # Retention settings
-    retention_days: int = 365
-    lifecycle_rules: Dict[str, Any] = None
+    retention_days: int = Field(default=365, description="Default retention period in days")
+    lifecycle_rules: Optional[Dict[str, Any]] = Field(default=None, description="S3 lifecycle rules")
     
     def __post_init__(self):
         """Initialize default lifecycle rules if not provided"""
@@ -57,31 +75,36 @@ class S3Config:
             }
 
 
-@dataclass
-class SnowflakeConfig:
-    """Snowflake configuration for PBF-LB/M data warehouse"""
+class SnowflakeConfig(BaseModel):
+    """Snowflake configuration model for PBF-LB/M data warehouse."""
     
     # Connection settings
-    account: str = "your-account.snowflakecomputing.com"
-    user: str = "your-username"
-    password: str = "your-password"
-    warehouse: str = "COMPUTE_WH"
-    database: str = "LPBF_RESEARCH"
-    schema: str = "PUBLIC"
-    role: str = "ACCOUNTADMIN"
+    account: str = Field(default="your-account.snowflakecomputing.com", description="Snowflake account identifier")
+    user: str = Field(default="your-username", description="Snowflake username")
+    password: str = Field(default="your-password", description="Snowflake password")
+    warehouse: str = Field(default="COMPUTE_WH", description="Snowflake warehouse name")
+    database: str = Field(default="LPBF_RESEARCH", description="Snowflake database name")
+    schema_name: str = Field(default="PUBLIC", description="Snowflake schema name")
+    role: str = Field(default="ACCOUNTADMIN", description="Snowflake role")
+    
+    # Security settings
+    use_ssl: bool = Field(default=True, description="Use SSL/TLS for connections")
+    verify_ssl: bool = Field(default=True, description="Verify SSL certificates")
     
     # Performance settings
-    warehouse_size: str = "SMALL"
-    auto_suspend: int = 60
-    auto_resume: bool = True
+    warehouse_size: str = Field(default="SMALL", description="Warehouse size (X-SMALL, SMALL, MEDIUM, LARGE, X-LARGE)")
+    auto_suspend: int = Field(default=60, description="Auto-suspend timeout in seconds")
+    auto_resume: bool = Field(default=True, description="Auto-resume warehouse when needed")
+    max_connections: int = Field(default=50, description="Maximum connections to Snowflake")
+    timeout: int = Field(default=30, description="Connection timeout in seconds")
     
     # Query settings
-    query_timeout: int = 300
-    max_retries: int = 3
-    retry_delay: int = 5
+    query_timeout: int = Field(default=300, description="Query timeout in seconds")
+    max_retries: int = Field(default=3, description="Maximum retry attempts")
+    retry_delay: int = Field(default=5, description="Retry delay in seconds")
     
     # Data loading settings
-    copy_options: Dict[str, Any] = None
+    copy_options: Optional[Dict[str, Any]] = Field(default=None, description="Snowflake COPY options")
     
     def __post_init__(self):
         """Initialize default copy options if not provided"""
@@ -94,58 +117,30 @@ class SnowflakeConfig:
             }
 
 
-@dataclass
-class PostgresConfig:
-    """PostgreSQL configuration for PBF-LB/M operational storage"""
-    
-    # Connection settings
-    host: str = "localhost"
-    port: int = 5432
-    database: str = "lpbf_research"
-    username: str = "postgres"
-    password: str = "password"
-    
-    # Connection pool settings
-    pool_size: int = 10
-    max_overflow: int = 20
-    pool_timeout: int = 30
-    pool_recycle: int = 3600
-    
-    # Performance settings
-    statement_timeout: int = 300
-    query_timeout: int = 300
-    max_retries: int = 3
-    retry_delay: int = 5
-    
-    # Schema settings
-    default_schema: str = "public"
-    search_path: str = "public"
-    
-    def get_connection_string(self) -> str:
-        """Get PostgreSQL connection string"""
-        return f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
-
-
-@dataclass
-class DeltaLakeConfig:
-    """Delta Lake configuration for PBF-LB/M data lake"""
+class DeltaLakeConfig(BaseModel):
+    """Delta Lake configuration model for PBF-LB/M data lake."""
     
     # Storage settings
-    storage_path: str = "s3a://pbf-lbm-data-lake/delta/"
-    checkpoint_path: str = "s3a://pbf-lbm-data-lake/checkpoints/"
+    storage_path: str = Field(default="s3a://pbf-lbm-data-lake/delta/", description="Delta Lake storage path")
+    checkpoint_path: str = Field(default="s3a://pbf-lbm-data-lake/checkpoints/", description="Delta Lake checkpoint path")
     
     # Performance settings
-    auto_optimize: bool = True
-    optimize_interval: int = 24  # hours
-    z_order_columns: Dict[str, list] = None
+    auto_optimize: bool = Field(default=True, description="Enable automatic optimization")
+    optimize_interval: int = Field(default=24, description="Optimization interval in hours")
+    z_order_columns: Optional[Dict[str, List[str]]] = Field(default=None, description="Z-order columns for optimization")
     
     # Retention settings
-    retention_period: int = 30  # days
-    vacuum_interval: int = 7  # days
+    retention_period: int = Field(default=30, description="Data retention period in days")
+    vacuum_interval: int = Field(default=7, description="Vacuum interval in days")
     
     # Schema evolution
-    allow_schema_evolution: bool = True
-    merge_schema: bool = True
+    allow_schema_evolution: bool = Field(default=True, description="Allow schema evolution")
+    merge_schema: bool = Field(default=True, description="Merge schema on evolution")
+    
+    # Performance optimization
+    max_file_size: int = Field(default=134217728, description="Maximum file size (128MB)")
+    target_file_size: int = Field(default=67108864, description="Target file size (64MB)")
+    max_records_per_file: int = Field(default=1000000, description="Maximum records per file")
     
     def __post_init__(self):
         """Initialize default z-order columns if not provided"""
@@ -164,7 +159,6 @@ class StorageConfig:
     def __init__(self):
         self.s3_config = S3Config()
         self.snowflake_config = SnowflakeConfig()
-        self.postgres_config = PostgresConfig()
         self.delta_lake_config = DeltaLakeConfig()
         self._load_default_configurations()
     
@@ -175,9 +169,6 @@ class StorageConfig:
         
         # Default Snowflake configuration
         self.snowflake_config = SnowflakeConfig()
-        
-        # Default PostgreSQL configuration
-        self.postgres_config = PostgresConfig()
         
         # Default Delta Lake configuration
         self.delta_lake_config = DeltaLakeConfig()
@@ -197,15 +188,13 @@ class StorageConfig:
         config.snowflake_config.account = os.getenv("SNOWFLAKE_ACCOUNT", "your-account.snowflakecomputing.com")
         config.snowflake_config.user = os.getenv("SNOWFLAKE_USER", "your-username")
         config.snowflake_config.password = os.getenv("SNOWFLAKE_PASSWORD", "your-password")
-        config.snowflake_config.warehouse = os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
-        config.snowflake_config.database = os.getenv("SNOWFLAKE_DATABASE", "LPBF_RESEARCH")
+        config.snowflake_config.warehouse = os.getenv("SNOWFLAKE_WAREHOUSE", "PBF_WAREHOUSE")
+        config.snowflake_config.database = os.getenv("SNOWFLAKE_DATABASE", "PBF_ANALYTICS")
+        config.snowflake_config.schema_name = os.getenv("SNOWFLAKE_SCHEMA", "RAW")
+        config.snowflake_config.role = os.getenv("SNOWFLAKE_ROLE", "ACCOUNTADMIN")
+        config.snowflake_config.timeout = int(os.getenv("SNOWFLAKE_CONNECTION_TIMEOUT", "60"))
+        config.snowflake_config.query_timeout = int(os.getenv("SNOWFLAKE_QUERY_TIMEOUT", "300"))
         
-        # Update PostgreSQL configuration from environment
-        config.postgres_config.host = os.getenv("POSTGRES_HOST", "localhost")
-        config.postgres_config.port = int(os.getenv("POSTGRES_PORT", "5432"))
-        config.postgres_config.database = os.getenv("POSTGRES_DATABASE", "lpbf_research")
-        config.postgres_config.username = os.getenv("POSTGRES_USERNAME", "postgres")
-        config.postgres_config.password = os.getenv("POSTGRES_PASSWORD", "password")
         
         return config
     
@@ -217,9 +206,6 @@ class StorageConfig:
         """Get Snowflake configuration"""
         return self.snowflake_config
     
-    def get_postgres_config(self) -> PostgresConfig:
-        """Get PostgreSQL configuration"""
-        return self.postgres_config
     
     def get_delta_lake_config(self) -> DeltaLakeConfig:
         """Get Delta Lake configuration"""
@@ -238,15 +224,8 @@ class StorageConfig:
                 "account": self.snowflake_config.account,
                 "warehouse": self.snowflake_config.warehouse,
                 "database": self.snowflake_config.database,
-                "schema": self.snowflake_config.schema,
+                "schema": self.snowflake_config.schema_name,
                 "warehouse_size": self.snowflake_config.warehouse_size
-            },
-            "postgres": {
-                "host": self.postgres_config.host,
-                "port": self.postgres_config.port,
-                "database": self.postgres_config.database,
-                "pool_size": self.postgres_config.pool_size,
-                "max_overflow": self.postgres_config.max_overflow
             },
             "delta_lake": {
                 "storage_path": self.delta_lake_config.storage_path,
@@ -268,11 +247,6 @@ class StorageConfig:
             if hasattr(self.snowflake_config, key):
                 setattr(self.snowflake_config, key, value)
     
-    def update_postgres_config(self, **kwargs) -> None:
-        """Update PostgreSQL configuration"""
-        for key, value in kwargs.items():
-            if hasattr(self.postgres_config, key):
-                setattr(self.postgres_config, key, value)
     
     def update_delta_lake_config(self, **kwargs) -> None:
         """Update Delta Lake configuration"""
@@ -306,16 +280,6 @@ def get_s3_config() -> S3Config:
         S3Config: The S3 configuration
     """
     return get_storage_config().get_s3_config()
-
-
-def get_postgres_config() -> PostgresConfig:
-    """
-    Get PostgreSQL configuration from the global storage config.
-    
-    Returns:
-        PostgresConfig: The PostgreSQL configuration
-    """
-    return get_storage_config().get_postgres_config()
 
 
 def get_delta_lake_config() -> DeltaLakeConfig:
@@ -353,6 +317,84 @@ def reset_storage_config() -> None:
     """Reset the global storage configuration to None."""
     global _storage_config
     _storage_config = None
+
+
+
+
+def get_s3_config() -> S3Config:
+    """
+    Get S3 configuration from environment variables.
+    
+    Returns:
+        S3Config: S3 configuration with environment variable overrides
+    """
+    return S3Config(
+        endpoint_url=os.getenv("S3_ENDPOINT_URL", "http://localhost:9000"),
+        aws_access_key_id=os.getenv("S3_ACCESS_KEY_ID", "minioadmin"),
+        aws_secret_access_key=os.getenv("S3_SECRET_ACCESS_KEY", "minioadmin"),
+        region_name=os.getenv("S3_REGION_NAME", "us-east-1"),
+        use_ssl=os.getenv("S3_USE_SSL", "true").lower() == "true",
+        verify_ssl=os.getenv("S3_VERIFY_SSL", "true").lower() == "true",
+        bucket_name=os.getenv("S3_BUCKET_NAME", "pbf-lbm-data-lake"),
+        prefix=os.getenv("S3_PREFIX", "lpbf-research/"),
+        multipart_threshold=int(os.getenv("S3_MULTIPART_THRESHOLD", "67108864")),
+        multipart_chunksize=int(os.getenv("S3_MULTIPART_CHUNKSIZE", "16777216")),
+        max_concurrency=int(os.getenv("S3_MAX_CONCURRENCY", "10")),
+        max_connections=int(os.getenv("S3_MAX_CONNECTIONS", "50")),
+        timeout=int(os.getenv("S3_TIMEOUT", "30")),
+        retry_attempts=int(os.getenv("S3_RETRY_ATTEMPTS", "3")),
+        retention_days=int(os.getenv("S3_RETENTION_DAYS", "365"))
+    )
+
+
+def get_snowflake_config() -> SnowflakeConfig:
+    """
+    Get Snowflake configuration from environment variables.
+    
+    Returns:
+        SnowflakeConfig: Snowflake configuration with environment variable overrides
+    """
+    return SnowflakeConfig(
+        account=os.getenv("SNOWFLAKE_ACCOUNT", "your-account.snowflakecomputing.com"),
+        user=os.getenv("SNOWFLAKE_USER", "your-username"),
+        password=os.getenv("SNOWFLAKE_PASSWORD", "your-password"),
+        warehouse=os.getenv("SNOWFLAKE_WAREHOUSE", "PBF_WAREHOUSE"),
+        database=os.getenv("SNOWFLAKE_DATABASE", "PBF_ANALYTICS"),
+        schema_name=os.getenv("SNOWFLAKE_SCHEMA", "RAW"),
+        role=os.getenv("SNOWFLAKE_ROLE", "ACCOUNTADMIN"),
+        use_ssl=os.getenv("SNOWFLAKE_USE_SSL", "true").lower() == "true",
+        verify_ssl=os.getenv("SNOWFLAKE_VERIFY_SSL", "true").lower() == "true",
+        warehouse_size=os.getenv("SNOWFLAKE_WAREHOUSE_SIZE", "SMALL"),
+        auto_suspend=int(os.getenv("SNOWFLAKE_AUTO_SUSPEND", "60")),
+        auto_resume=os.getenv("SNOWFLAKE_AUTO_RESUME", "true").lower() == "true",
+        max_connections=int(os.getenv("SNOWFLAKE_MAX_CONNECTIONS", "50")),
+        timeout=int(os.getenv("SNOWFLAKE_CONNECTION_TIMEOUT", "60")),
+        query_timeout=int(os.getenv("SNOWFLAKE_QUERY_TIMEOUT", "300")),
+        max_retries=int(os.getenv("SNOWFLAKE_MAX_RETRIES", "3")),
+        retry_delay=int(os.getenv("SNOWFLAKE_RETRY_DELAY", "5"))
+    )
+
+
+def get_delta_lake_config() -> DeltaLakeConfig:
+    """
+    Get Delta Lake configuration from environment variables.
+    
+    Returns:
+        DeltaLakeConfig: Delta Lake configuration with environment variable overrides
+    """
+    return DeltaLakeConfig(
+        storage_path=os.getenv("DELTA_LAKE_STORAGE_PATH", "s3a://pbf-lbm-data-lake/delta/"),
+        checkpoint_path=os.getenv("DELTA_LAKE_CHECKPOINT_PATH", "s3a://pbf-lbm-data-lake/checkpoints/"),
+        auto_optimize=os.getenv("DELTA_LAKE_AUTO_OPTIMIZE", "true").lower() == "true",
+        optimize_interval=int(os.getenv("DELTA_LAKE_OPTIMIZE_INTERVAL", "24")),
+        retention_period=int(os.getenv("DELTA_LAKE_RETENTION_PERIOD", "30")),
+        vacuum_interval=int(os.getenv("DELTA_LAKE_VACUUM_INTERVAL", "7")),
+        allow_schema_evolution=os.getenv("DELTA_LAKE_ALLOW_SCHEMA_EVOLUTION", "true").lower() == "true",
+        merge_schema=os.getenv("DELTA_LAKE_MERGE_SCHEMA", "true").lower() == "true",
+        max_file_size=int(os.getenv("DELTA_LAKE_MAX_FILE_SIZE", "134217728")),
+        target_file_size=int(os.getenv("DELTA_LAKE_TARGET_FILE_SIZE", "67108864")),
+        max_records_per_file=int(os.getenv("DELTA_LAKE_MAX_RECORDS_PER_FILE", "1000000"))
+    )
 
 
 def load_storage_config(config_path: Optional[str] = None) -> StorageConfig:

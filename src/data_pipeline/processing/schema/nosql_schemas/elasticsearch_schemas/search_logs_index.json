@@ -1,0 +1,366 @@
+{
+  "index_name": "search_logs",
+  "settings": {
+    "number_of_shards": 2,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "search_log_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop"]
+        }
+      }
+    },
+    "index": {
+      "max_result_window": 100000,
+      "refresh_interval": "30s"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "log_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "user_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "session_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "search_query": {
+        "type": "text",
+        "analyzer": "search_log_analyzer",
+        "search_analyzer": "standard",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "search_context": {
+        "type": "object",
+        "properties": {
+          "search_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "search_filters": {
+            "type": "object",
+            "properties": {
+              "date_range": {
+                "type": "object",
+                "properties": {
+                  "start_date": {
+                    "type": "date",
+                    "format": "strict_date_optional_time||epoch_millis"
+                  },
+                  "end_date": {
+                    "type": "date",
+                    "format": "strict_date_optional_time||epoch_millis"
+                  }
+                }
+              },
+              "material_type": {
+                "type": "keyword"
+              },
+              "process_id": {
+                "type": "keyword"
+              },
+              "quality_range": {
+                "type": "object",
+                "properties": {
+                  "min_quality": {
+                    "type": "float"
+                  },
+                  "max_quality": {
+                    "type": "float"
+                  }
+                }
+              }
+            }
+          },
+          "search_intent": {
+            "type": "keyword",
+            "index": true
+          }
+        }
+      },
+      "search_results": {
+        "type": "object",
+        "properties": {
+          "total_hits": {
+            "type": "long",
+            "index": true
+          },
+          "returned_hits": {
+            "type": "integer",
+            "index": true
+          },
+          "search_time": {
+            "type": "long",
+            "index": true
+          },
+          "result_relevance": {
+            "type": "float",
+            "index": true
+          },
+          "result_categories": {
+            "type": "keyword",
+            "index": true
+          }
+        }
+      },
+      "user_interaction": {
+        "type": "object",
+        "properties": {
+          "clicked_results": {
+            "type": "integer",
+            "index": true
+          },
+          "clicked_positions": {
+            "type": "integer",
+            "index": true
+          },
+          "refinement_queries": {
+            "type": "integer",
+            "index": true
+          },
+          "session_duration": {
+            "type": "long",
+            "index": true
+          },
+          "satisfaction_score": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "performance_metrics": {
+        "type": "object",
+        "properties": {
+          "query_complexity": {
+            "type": "keyword",
+            "index": true
+          },
+          "index_used": {
+            "type": "keyword",
+            "index": true
+          },
+          "cache_hit": {
+            "type": "boolean",
+            "index": true
+          },
+          "aggregation_time": {
+            "type": "long"
+          },
+          "sorting_time": {
+            "type": "long"
+          }
+        }
+      },
+      "error_handling": {
+        "type": "object",
+        "properties": {
+          "has_errors": {
+            "type": "boolean",
+            "index": true
+          },
+          "error_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "error_message": {
+            "type": "text"
+          },
+          "error_severity": {
+            "type": "keyword",
+            "index": true
+          },
+          "retry_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "search_analytics": {
+        "type": "object",
+        "properties": {
+          "popular_queries": {
+            "type": "keyword",
+            "index": true
+          },
+          "search_patterns": {
+            "type": "keyword",
+            "index": true
+          },
+          "user_behavior": {
+            "type": "keyword",
+            "index": true
+          },
+          "conversion_rate": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "technical_details": {
+        "type": "object",
+        "properties": {
+          "client_ip": {
+            "type": "ip"
+          },
+          "user_agent": {
+            "type": "keyword"
+          },
+          "request_size": {
+            "type": "long"
+          },
+          "response_size": {
+            "type": "long"
+          },
+          "api_version": {
+            "type": "keyword"
+          },
+          "request_id": {
+            "type": "keyword"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "data_source": {
+            "type": "keyword"
+          },
+          "log_level": {
+            "type": "keyword",
+            "index": true
+          },
+          "retention_period": {
+            "type": "long"
+          }
+        }
+      }
+    }
+  },
+  "aliases": {
+    "search_logs_recent": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-24h"
+          }
+        }
+      }
+    },
+    "search_logs_archive": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "lt": "now-7d"
+          }
+        }
+      }
+    }
+  },
+  "index_templates": {
+    "search_logs_template": {
+      "index_patterns": ["search_logs_*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 1,
+          "number_of_replicas": 1
+        },
+        "mappings": {
+          "properties": {
+            "log_id": {
+              "type": "keyword"
+            },
+            "timestamp": {
+              "type": "date"
+            },
+            "user_id": {
+              "type": "keyword"
+            },
+            "search_query": {
+              "type": "text"
+            }
+          }
+        }
+      }
+    }
+  },
+  "search_templates": {
+    "search_analytics": {
+      "source": {
+        "aggs": {
+          "popular_queries": {
+            "terms": {
+              "field": "search_query.keyword",
+              "size": 10
+            }
+          },
+          "user_activity": {
+            "terms": {
+              "field": "user_id"
+            },
+            "aggs": {
+              "avg_search_time": {
+                "avg": {
+                  "field": "search_results.search_time"
+                }
+              }
+            }
+          },
+          "search_trends": {
+            "date_histogram": {
+              "field": "timestamp",
+              "calendar_interval": "1h"
+            },
+            "aggs": {
+              "avg_performance": {
+                "avg": {
+                  "field": "search_results.search_time"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "error_analysis": {
+      "source": {
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "error_handling.has_errors": true
+                }
+              }
+            ]
+          }
+        },
+        "aggs": {
+          "error_types": {
+            "terms": {
+              "field": "error_handling.error_type"
+            }
+          }
+        }
+      }
+    }
+  }
+}

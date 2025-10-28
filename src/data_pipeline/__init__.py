@@ -130,27 +130,28 @@ from .quality import (
     # TrendAnalyzer,
     # QualityDashboardGenerator
 )
-from .orchestration import (
-    # Airflow
-    PBFProcessDAG,
-    ISPMMonitoringDAG,
-    CTScanDAG,
-    PowderBedDAG,
-    DataQualityDAG,
-    DBTDAG,
-    AirflowClient,
-    SparkAirflowIntegration,
-    # Scheduling
-    JobScheduler,
-    DependencyManager,
-    ResourceAllocator,
-    PriorityManager,
-    # Monitoring
-    PipelineMonitor,
-    JobMonitor,
-    PerformanceMonitor,
-    AlertManager
-)
+# Temporarily deactivated orchestration imports to avoid Airflow initialization issues
+# from .orchestration import (
+#     # Airflow
+#     PBFProcessDAG,
+#     ISPMMonitoringDAG,
+#     CTScanDAG,
+#     PowderBedDAG,
+#     DataQualityDAG,
+#     DBTDAG,
+#     AirflowClient,
+#     SparkAirflowIntegration,
+#     # Scheduling
+#     JobScheduler,
+#     DependencyManager,
+#     ResourceAllocator,
+#     PriorityManager,
+#     # Monitoring
+#     PipelineMonitor,
+#     JobMonitor,
+#     PerformanceMonitor,
+#     AlertManager
+# )
 
 __version__ = "1.0.0"
 __author__ = "PBF-LB/M Data Pipeline Team"
@@ -265,23 +266,23 @@ __all__ = [
     "TrendAnalyzer",
     "QualityDashboardGenerator",
     
-    # Orchestration
-    "PBFProcessDAG",
-    "ISPMMonitoringDAG",
-    "CTScanDAG",
-    "PowderBedDAG",
-    "DataQualityDAG",
-    "DBTDAG",
-    "AirflowClient",
-    "SparkAirflowIntegration",
-    "JobScheduler",
-    "DependencyManager",
-    "ResourceAllocator",
-    "PriorityManager",
-    "PipelineMonitor",
-    "JobMonitor",
-    "PerformanceMonitor",
-    "AlertManager"
+    # Orchestration (temporarily deactivated)
+    # "PBFProcessDAG",
+    # "ISPMMonitoringDAG",
+    # "CTScanDAG",
+    # "PowderBedDAG",
+    # "DataQualityDAG",
+    # "DBTDAG",
+    # "AirflowClient",
+    # "SparkAirflowIntegration",
+    # "JobScheduler",
+    # "DependencyManager",
+    # "ResourceAllocator",
+    # "PriorityManager",
+    # "PipelineMonitor",
+    # "JobMonitor",
+    # "PerformanceMonitor",
+    # "AlertManager"
 ]
 
 # External Software Dependencies

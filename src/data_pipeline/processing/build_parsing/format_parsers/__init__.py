@@ -24,6 +24,14 @@ class SLMParser:
     def __init__(self):
         pass
 
+class CLIParser:
+    def __init__(self):
+        pass
+
+class ILTParser:
+    def __init__(self):
+        pass
+
 class GenericParser:
     def __init__(self):
         pass
@@ -33,5 +41,7 @@ __all__ = [
     "MTTParser", 
     "RealizerParser",
     "SLMParser",
+    "CLIParser",
+    "ILTParser",
     "GenericParser"
 ]

@@ -24,10 +24,42 @@ class DeltaLakeManager:
         Initialize Delta Lake manager.
         
         Args:
-            config: Optional Delta Lake configuration dictionary
+            config: Optional Delta Lake configuration dictionary or Pydantic model
         """
         self.config = config or get_delta_lake_config()
-        self.delta_table_path = self.config.get('delta_table_path', '/mnt/delta/pbf_lbm_data')
+        self._initialize_connection()
+    
+    def _initialize_connection(self) -> None:
+        """Initialize Delta Lake connection parameters."""
+        try:
+            # Handle both dictionary and Pydantic model configurations
+            if isinstance(self.config, dict):
+                self.storage_path = self.config.get('storage_path', 's3a://pbf-lbm-data-lake/delta/')
+                self.checkpoint_path = self.config.get('checkpoint_path', 's3a://pbf-lbm-data-lake/checkpoints/')
+                self.auto_optimize = self.config.get('auto_optimize', True)
+                self.optimize_interval = self.config.get('optimize_interval', 24)
+                self.retention_period = self.config.get('retention_period', 30)
+                self.vacuum_interval = self.config.get('vacuum_interval', 7)
+                self.allow_schema_evolution = self.config.get('allow_schema_evolution', True)
+                self.merge_schema = self.config.get('merge_schema', True)
+            else:
+                # Pydantic model
+                self.storage_path = self.config.storage_path
+                self.checkpoint_path = self.config.checkpoint_path
+                self.auto_optimize = self.config.auto_optimize
+                self.optimize_interval = self.config.optimize_interval
+                self.retention_period = self.config.retention_period
+                self.vacuum_interval = self.config.vacuum_interval
+                self.allow_schema_evolution = self.config.allow_schema_evolution
+                self.merge_schema = self.config.merge_schema
+            
+            self.delta_table_path = self.storage_path
+            
+            logger.info("Delta Lake connection parameters initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize Delta Lake connection parameters: {e}")
+            raise
         self.history_retention_days = self.config.get('history_retention_days', 30)
         self.optimize_write = self.config.get('optimize_write', True)
         self.spark_session = None

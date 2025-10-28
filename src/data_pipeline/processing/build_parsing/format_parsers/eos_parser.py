@@ -26,7 +26,7 @@ class EOSParser(BaseBuildParser):
     def __init__(self):
         """Initialize the EOS parser."""
         super().__init__()
-        self.supported_formats = ['.sli', '.cli']
+        self.supported_formats = ['.sli']  # CLI files have their own parser
         self.parser_name = "EOS Parser"
         
         # Check libSLM availability

@@ -1,0 +1,203 @@
+{
+  "collection_name": "process_images",
+  "description": "MongoDB collection for storing process images (powder bed, monitoring, quality control)",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["image"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "build_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL build ID"
+      },
+      "part_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL part ID"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Path to image file in GridFS"
+      },
+      "file_size": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "File size in bytes"
+      },
+      "file_hash": {
+        "type": "string",
+        "description": "File hash for integrity verification"
+      },
+      "file_status": {
+        "type": "string",
+        "enum": ["uploaded", "processing", "processed", "failed", "archived"],
+        "description": "File processing status"
+      },
+      "image_width": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Image width in pixels"
+      },
+      "image_height": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Image height in pixels"
+      },
+      "image_format": {
+        "type": "string",
+        "enum": ["JPEG", "PNG", "TIFF", "BMP", "WEBP", "DICOM", "RAW"],
+        "description": "Image format"
+      },
+      "image_quality": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "ultra"],
+        "description": "Image quality assessment"
+      },
+      "camera_settings": {
+        "type": "object",
+        "description": "Camera settings when image was taken",
+        "properties": {
+          "exposure": {"type": "string"},
+          "iso": {"type": "string"},
+          "aperture": {"type": "string"},
+          "focal_length": {"type": "string"}
+        }
+      },
+      "processing_status": {
+        "type": "string",
+        "enum": ["pending", "processing", "analyzed", "failed"],
+        "description": "Image processing status"
+      },
+      "analysis_results": {
+        "type": "object",
+        "description": "Image analysis results",
+        "properties": {
+          "defect_count": {"type": "integer", "minimum": 0},
+          "quality_score": {"type": "number", "minimum": 0, "maximum": 100},
+          "uniformity_score": {"type": "number", "minimum": 0, "maximum": 100},
+          "density_analysis": {"type": "object"}
+        }
+      },
+      "defects_detected": {
+        "type": "array",
+        "description": "Defects detected in image",
+        "items": {
+          "type": "object",
+          "properties": {
+            "defect_id": {"type": "string"},
+            "defect_type": {"type": "string"},
+            "coordinates": {"type": "object"},
+            "severity": {"type": "string", "enum": ["low", "medium", "high", "critical"]}
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "process_id"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "process_id_index",
+      "keys": {"process_id": 1},
+      "options": {"background": true
+      }
+    },
+    {
+      "name": "build_id_index",
+      "keys": {"build_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "document_type_index",
+      "keys": {"document_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "file_status_index",
+      "keys": {"file_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_process_time_index",
+      "keys": {"process_id": 1, "created_at": -1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "process_id"],
+        "properties": {
+          "document_type": {"enum": ["image"]},
+          "process_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "file_status": {"enum": ["uploaded", "processing", "processed", "failed", "archived"]}
+        }
+      }
+    }
+  }
+}

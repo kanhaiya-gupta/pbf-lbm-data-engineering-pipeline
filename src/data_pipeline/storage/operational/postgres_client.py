@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Dict, Any, Optional, List, Union
 from datetime import datetime
-from src.data_pipeline.config.storage_config import get_postgres_config
+from src.data_pipeline.config.postgres_config import get_postgres_config
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +36,27 @@ class PostgresClient:
             import psycopg2
             from psycopg2.extras import RealDictCursor
             
+            # Handle both dictionary and Pydantic config
+            if isinstance(self.config, dict):
+                host = self.config.get('host', 'localhost')
+                port = self.config.get('port', 5432)
+                database = self.config.get('database', 'lpbf_research')
+                user = self.config.get('user', 'postgres')
+                password = self.config.get('password', 'password')
+            else:
+                # Pydantic model
+                host = self.config.host
+                port = self.config.port
+                database = self.config.database
+                user = self.config.username
+                password = self.config.password
+            
             self.connection = psycopg2.connect(
-                host=self.config['host'],
-                port=self.config['port'],
-                database=self.config['database'],
-                user=self.config['user'],
-                password=self.config['password']
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password
             )
             
             self.cursor = self.connection.cursor(cursor_factory=RealDictCursor)
@@ -76,17 +91,31 @@ class PostgresClient:
             else:
                 self.cursor.execute(query)
             
-            # Fetch all results
-            rows = self.cursor.fetchall()
+            # Check if this is a DDL statement (CREATE, DROP, ALTER, etc.)
+            query_upper = query.strip().upper()
+            is_ddl = any(keyword in query_upper for keyword in ['CREATE', 'DROP', 'ALTER', 'INSERT', 'UPDATE', 'DELETE'])
             
-            # Convert to list of dictionaries
-            for row in rows:
-                results.append(dict(row))
-            
-            logger.info(f"Executed query, returned {len(results)} rows")
+            if is_ddl:
+                # DDL statements don't return results - this is expected
+                logger.debug(f"Executed DDL statement successfully")
+            else:
+                # Only fetch results for SELECT queries
+                try:
+                    rows = self.cursor.fetchall()
+                    # RealDictCursor already returns dictionaries
+                    results.extend(rows)
+                    logger.debug(f"Executed query, returned {len(results)} rows")
+                except Exception as fetch_error:
+                    # Some queries might not have results to fetch
+                    logger.debug(f"No results to fetch for query: {fetch_error}")
             
         except Exception as e:
             logger.error(f"Error executing PostgreSQL query: {e}")
+            # Rollback the transaction to allow subsequent queries
+            try:
+                self.connection.rollback()
+            except Exception as rollback_error:
+                logger.error(f"Error during rollback: {rollback_error}")
         
         return results
     
@@ -130,6 +159,44 @@ class PostgresClient:
                 pass
             
             logger.error(f"Error executing PostgreSQL transaction: {e}")
+            return False
+    
+    def commit(self) -> bool:
+        """
+        Commit the current transaction.
+        
+        Returns:
+            bool: True if commit successful, False otherwise
+        """
+        if not self.connection:
+            logger.error("PostgreSQL connection not initialized")
+            return False
+        
+        try:
+            self.connection.commit()
+            logger.info("Transaction committed successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error committing transaction: {e}")
+            return False
+    
+    def rollback(self) -> bool:
+        """
+        Rollback the current transaction.
+        
+        Returns:
+            bool: True if rollback successful, False otherwise
+        """
+        if not self.connection:
+            logger.error("PostgreSQL connection not initialized")
+            return False
+        
+        try:
+            self.connection.rollback()
+            logger.info("Transaction rolled back successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error rolling back transaction: {e}")
             return False
     
     def create_table(self, table_name: str, schema: str, if_not_exists: bool = True) -> bool:
@@ -211,6 +278,9 @@ class PostgresClient:
             
             # Execute batch insert
             self.cursor.executemany(query, values_list)
+            
+            # CRITICAL: Commit the transaction to persist the data
+            self.connection.commit()
             
             logger.info(f"Inserted {len(data)} rows into PostgreSQL table: {table_name}")
             return True
@@ -569,6 +639,183 @@ class PostgresClient:
             "ingestion_timestamp": datetime.now().isoformat()
         }
     
+    def load_data(
+        self,
+        df: Any,
+        table_name: str,
+        mode: str = "append",
+        batch_size: int = 1000,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Load Spark DataFrame data into PostgreSQL table.
+        
+        This method provides ETL pipeline integration for loading transformed
+        Spark DataFrames into PostgreSQL, following the ETL architecture.
+        
+        Args:
+            df: Spark DataFrame from transform modules
+            table_name: Target table name
+            mode: Write mode (append, overwrite, ignore, error)
+            batch_size: Batch size for processing
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Loading results and statistics
+        """
+        try:
+            logger.info(f"Loading Spark DataFrame into PostgreSQL table: {table_name}")
+            
+            # Initialize result tracking
+            result = {
+                "success": False,
+                "records_loaded": 0,
+                "records_processed": 0,
+                "errors": [],
+                "warnings": [],
+                "table_name": table_name,
+                "mode": mode,
+                "batch_size": batch_size
+            }
+            
+            # Convert Spark DataFrame to list of dictionaries
+            data_list = self._convert_spark_dataframe(df)
+            if not data_list:
+                result["warnings"].append("No data to load")
+                return result
+            
+            result["records_processed"] = len(data_list)
+            logger.info(f"Converted {len(data_list)} records from Spark DataFrame")
+            
+            # Handle different modes
+            if mode == "overwrite":
+                # Drop and recreate table (if table exists)
+                self.drop_table(table_name, if_exists=True)
+                logger.info(f"Dropped existing table: {table_name}")
+            
+            # Batch processing
+            total_loaded = 0
+            for i in range(0, len(data_list), batch_size):
+                batch = data_list[i:i + batch_size]
+                
+                try:
+                    # Insert batch using existing method
+                    success = self.insert_data(table_name, batch)
+                    if success:
+                        total_loaded += len(batch)
+                        logger.info(f"Loaded batch {i//batch_size + 1}: {len(batch)} records")
+                    else:
+                        result["errors"].append(f"Failed to load batch {i//batch_size + 1}")
+                        
+                except Exception as e:
+                    error_msg = f"Error loading batch {i//batch_size + 1}: {str(e)}"
+                    result["errors"].append(error_msg)
+                    logger.error(error_msg)
+            
+            # Update result
+            result["records_loaded"] = total_loaded
+            result["success"] = total_loaded > 0 and len(result["errors"]) == 0
+            
+            if result["success"]:
+                logger.info(f"Successfully loaded {total_loaded} records into {table_name}")
+            else:
+                logger.error(f"Failed to load data into {table_name}. Errors: {result['errors']}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in load_data for table {table_name}: {str(e)}")
+            return {
+                "success": False,
+                "records_loaded": 0,
+                "records_processed": 0,
+                "errors": [str(e)],
+                "warnings": [],
+                "table_name": table_name,
+                "mode": mode,
+                "batch_size": batch_size
+            }
+    
+    def _convert_spark_dataframe(self, df: Any) -> List[Dict[str, Any]]:
+        """
+        Convert Spark DataFrame to list of dictionaries for PostgreSQL insertion.
+        
+        Args:
+            df: Spark DataFrame from transform modules
+            
+        Returns:
+            List[Dict[str, Any]]: Converted data list
+        """
+        try:
+            if hasattr(df, 'collect'):
+                # Spark DataFrame - convert to list of dicts
+                rows = df.collect()
+                data_list = []
+                
+                for row in rows:
+                    # Convert Row to dictionary
+                    row_dict = row.asDict()
+                    
+                    # Handle Spark-specific data types
+                    processed_dict = self._process_spark_row(row_dict)
+                    data_list.append(processed_dict)
+                
+                return data_list
+                
+            elif isinstance(df, list):
+                # Already a list of dictionaries
+                return df
+                
+            elif isinstance(df, dict):
+                # Single dictionary
+                return [df]
+                
+            else:
+                logger.warning(f"Unsupported DataFrame type: {type(df)}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Error converting Spark DataFrame: {str(e)}")
+            return []
+    
+    def _process_spark_row(self, row_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process Spark Row data to PostgreSQL-compatible format.
+        
+        Args:
+            row_dict: Dictionary from Spark Row
+            
+        Returns:
+            Dict[str, Any]: Processed dictionary
+        """
+        try:
+            processed = {}
+            
+            for key, value in row_dict.items():
+                # Handle None values
+                if value is None:
+                    processed[key] = None
+                # Handle Spark-specific types
+                elif hasattr(value, 'isoformat'):
+                    # Datetime objects
+                    processed[key] = value
+                elif isinstance(value, (int, float, str, bool)):
+                    # Basic types
+                    processed[key] = value
+                elif hasattr(value, '__dict__'):
+                    # Complex objects - convert to JSON string
+                    import json
+                    processed[key] = json.dumps(value.__dict__, default=str)
+                else:
+                    # Fallback - convert to string
+                    processed[key] = str(value)
+            
+            return processed
+            
+        except Exception as e:
+            logger.error(f"Error processing Spark row: {str(e)}")
+            return row_dict  # Return original if processing fails
+
     def __enter__(self):
         """Context manager entry."""
         return self

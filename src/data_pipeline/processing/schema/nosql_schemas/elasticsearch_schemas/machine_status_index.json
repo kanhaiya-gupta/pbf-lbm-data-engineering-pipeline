@@ -1,0 +1,359 @@
+{
+  "index_name": "machine_status",
+  "settings": {
+    "number_of_shards": 2,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "machine_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop"]
+        }
+      }
+    },
+    "index": {
+      "max_result_window": 50000,
+      "refresh_interval": "10s"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "machine_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "status": {
+        "type": "keyword",
+        "index": true
+      },
+      "operational_state": {
+        "type": "object",
+        "properties": {
+          "current_state": {
+            "type": "keyword",
+            "index": true
+          },
+          "previous_state": {
+            "type": "keyword"
+          },
+          "state_duration": {
+            "type": "long"
+          },
+          "state_transitions": {
+            "type": "integer"
+          }
+        }
+      },
+      "system_health": {
+        "type": "object",
+        "properties": {
+          "overall_health": {
+            "type": "float",
+            "index": true
+          },
+          "cpu_usage": {
+            "type": "float",
+            "index": true
+          },
+          "memory_usage": {
+            "type": "float",
+            "index": true
+          },
+          "disk_usage": {
+            "type": "float",
+            "index": true
+          },
+          "network_status": {
+            "type": "keyword"
+          }
+        }
+      },
+      "laser_system": {
+        "type": "object",
+        "properties": {
+          "laser_power": {
+            "type": "float",
+            "index": true
+          },
+          "laser_temperature": {
+            "type": "float",
+            "index": true
+          },
+          "laser_status": {
+            "type": "keyword",
+            "index": true
+          },
+          "laser_hours": {
+            "type": "long"
+          },
+          "laser_wavelength": {
+            "type": "float"
+          }
+        }
+      },
+      "build_platform": {
+        "type": "object",
+        "properties": {
+          "platform_temperature": {
+            "type": "float",
+            "index": true
+          },
+          "platform_position": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "float"
+              },
+              "y": {
+                "type": "float"
+              },
+              "z": {
+                "type": "float"
+              }
+            }
+          },
+          "platform_status": {
+            "type": "keyword"
+          }
+        }
+      },
+      "powder_system": {
+        "type": "object",
+        "properties": {
+          "powder_level": {
+            "type": "float",
+            "index": true
+          },
+          "powder_temperature": {
+            "type": "float",
+            "index": true
+          },
+          "powder_flow_rate": {
+            "type": "float",
+            "index": true
+          },
+          "powder_status": {
+            "type": "keyword"
+          },
+          "powder_quality": {
+            "type": "keyword"
+          }
+        }
+      },
+      "environmental_conditions": {
+        "type": "object",
+        "properties": {
+          "chamber_temperature": {
+            "type": "float",
+            "index": true
+          },
+          "chamber_humidity": {
+            "type": "float",
+            "index": true
+          },
+          "oxygen_level": {
+            "type": "float",
+            "index": true
+          },
+          "pressure": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "alerts_and_warnings": {
+        "type": "object",
+        "properties": {
+          "active_alerts": {
+            "type": "integer",
+            "index": true
+          },
+          "alert_level": {
+            "type": "keyword",
+            "index": true
+          },
+          "alert_types": {
+            "type": "keyword",
+            "index": true
+          },
+          "last_maintenance": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "next_maintenance": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          }
+        }
+      },
+      "performance_metrics": {
+        "type": "object",
+        "properties": {
+          "uptime": {
+            "type": "long"
+          },
+          "downtime": {
+            "type": "long"
+          },
+          "efficiency": {
+            "type": "float",
+            "index": true
+          },
+          "throughput": {
+            "type": "float",
+            "index": true
+          },
+          "energy_consumption": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "maintenance_info": {
+        "type": "object",
+        "properties": {
+          "maintenance_due": {
+            "type": "boolean"
+          },
+          "maintenance_type": {
+            "type": "keyword"
+          },
+          "maintenance_interval": {
+            "type": "long"
+          },
+          "last_service_date": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "service_history": {
+            "type": "keyword"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "machine_model": {
+            "type": "keyword"
+          },
+          "serial_number": {
+            "type": "keyword"
+          },
+          "firmware_version": {
+            "type": "keyword"
+          },
+          "software_version": {
+            "type": "keyword"
+          },
+          "location": {
+            "type": "keyword"
+          },
+          "operator_id": {
+            "type": "keyword"
+          },
+          "created_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          }
+        }
+      }
+    }
+  },
+  "aliases": {
+    "machine_status_current": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-1h"
+          }
+        }
+      }
+    },
+    "machine_status_recent": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-24h"
+          }
+        }
+      }
+    }
+  },
+  "index_templates": {
+    "machine_status_template": {
+      "index_patterns": ["machine_status_*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 1,
+          "number_of_replicas": 1
+        },
+        "mappings": {
+          "properties": {
+            "machine_id": {
+              "type": "keyword"
+            },
+            "timestamp": {
+              "type": "date"
+            },
+            "status": {
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    }
+  },
+  "search_templates": {
+    "machine_health": {
+      "source": {
+        "aggs": {
+          "status_distribution": {
+            "terms": {
+              "field": "status"
+            }
+          },
+          "health_trends": {
+            "date_histogram": {
+              "field": "timestamp",
+              "calendar_interval": "1h"
+            },
+            "aggs": {
+              "avg_health": {
+                "avg": {
+                  "field": "system_health.overall_health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "maintenance_alerts": {
+      "source": {
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "maintenance_info.maintenance_due": true
+                }
+              }
+            ]
+          }
+        },
+        "sort": [
+          {
+            "maintenance_info.last_service_date": {
+              "order": "asc"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

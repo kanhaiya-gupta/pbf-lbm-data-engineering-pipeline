@@ -9,7 +9,7 @@ import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import pandas as pd
-from src.data_pipeline.config.storage_config import get_postgres_config
+from src.data_pipeline.config.postgres_config import get_postgres_config
 
 logger = logging.getLogger(__name__)
 

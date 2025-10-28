@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Machine Status Cache Schema",
+  "description": "Schema for caching machine status data in Redis",
+  "type": "object",
+  "properties": {
+    "cache_key": {
+      "type": "string",
+      "description": "Redis cache key",
+      "pattern": "^machine:[A-Z0-9_]+:status$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cache creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time", 
+      "description": "Cache last update timestamp"
+    },
+    "ttl": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Time to live in seconds"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "expired", "invalid", "pending"],
+      "description": "Cache status"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cache version"
+    },
+    "machine_id": {
+      "type": "string",
+      "pattern": "^MACHINE_[0-9]{3}$",
+      "description": "Machine identifier"
+    },
+    "machine_status": {
+      "type": "string",
+      "enum": ["idle", "running", "maintenance", "error", "offline"],
+      "description": "Machine status"
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": -50,
+      "maximum": 100,
+      "description": "Ambient temperature in Celsius"
+    },
+    "humidity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Humidity percentage"
+    },
+    "pressure": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 200000,
+      "description": "Atmospheric pressure in Pa"
+    },
+    "laser_status": {
+      "type": "string",
+      "enum": ["ready", "warming", "active", "error", "maintenance"],
+      "description": "Laser system status"
+    },
+    "build_platform_status": {
+      "type": "string",
+      "enum": ["ready", "moving", "heating", "error", "maintenance"],
+      "description": "Build platform status"
+    },
+    "powder_feeder_status": {
+      "type": "string",
+      "enum": ["ready", "feeding", "empty", "error", "maintenance"],
+      "description": "Powder feeder status"
+    },
+    "gas_system_status": {
+      "type": "string",
+      "enum": ["ready", "flowing", "low_pressure", "error", "maintenance"],
+      "description": "Gas system status"
+    },
+    "current_build_id": {
+      "type": "string",
+      "pattern": "^BUILD_[0-9]{6}$",
+      "description": "Current build identifier"
+    },
+    "total_operating_hours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total operating hours"
+    },
+    "maintenance_due": {
+      "type": "boolean",
+      "description": "Maintenance due flag"
+    },
+    "last_maintenance": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last maintenance date"
+    },
+    "next_maintenance": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Next maintenance date"
+    },
+    "operator": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Current operator"
+    }
+  },
+  "required": [
+    "cache_key",
+    "machine_id",
+    "machine_status"
+  ],
+  "additionalProperties": false
+}

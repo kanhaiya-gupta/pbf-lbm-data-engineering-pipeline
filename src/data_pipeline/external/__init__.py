@@ -35,6 +35,7 @@ slmsol = None
 mtt = None
 eos = None
 realizer = None
+cli = None
 
 # Check libSLM availability and import modules
 try:
@@ -49,13 +50,14 @@ try:
             import slm
             import translators
             # Check if translators has the expected modules
-            if hasattr(translators, 'mtt') and hasattr(translators, 'eos') and hasattr(translators, 'realizer') and hasattr(translators, 'slmsol'):
+            if hasattr(translators, 'mtt') and hasattr(translators, 'eos') and hasattr(translators, 'realizer') and hasattr(translators, 'slmsol') and hasattr(translators, 'cli'):
                 LIBSLM_AVAILABLE = True
                 # Import specific modules for direct use (use translators.* not libSLM.*)
                 slmsol = translators.slmsol
                 mtt = translators.mtt
                 eos = translators.eos
                 realizer = translators.realizer
+                cli = translators.cli
         except ImportError:
             # libSLM Python bindings not available
             pass
@@ -96,7 +98,7 @@ __all__ = [
 
 # Export libSLM modules if available
 if LIBSLM_AVAILABLE:
-    __all__.extend(["slmsol", "mtt", "eos", "realizer"])
+    __all__.extend(["slmsol", "mtt", "eos", "realizer", "cli"])
 
 # Log availability status
 import logging

@@ -1,0 +1,369 @@
+{
+  "index_name": "build_instructions",
+  "settings": {
+    "number_of_shards": 2,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "instruction_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop", "snowball"]
+        }
+      }
+    },
+    "index": {
+      "max_result_window": 100000,
+      "refresh_interval": "60s"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "instruction_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "build_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "process_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "instruction_type": {
+        "type": "keyword",
+        "index": true
+      },
+      "instruction_content": {
+        "type": "text",
+        "analyzer": "instruction_analyzer",
+        "search_analyzer": "standard",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "layer_instructions": {
+        "type": "object",
+        "properties": {
+          "layer_number": {
+            "type": "integer",
+            "index": true
+          },
+          "layer_thickness": {
+            "type": "float",
+            "index": true
+          },
+          "laser_parameters": {
+            "type": "object",
+            "properties": {
+              "laser_power": {
+                "type": "float",
+                "index": true
+              },
+              "scan_speed": {
+                "type": "float",
+                "index": true
+              },
+              "hatch_spacing": {
+                "type": "float",
+                "index": true
+              },
+              "exposure_time": {
+                "type": "float",
+                "index": true
+              }
+            }
+          },
+          "geometry_data": {
+            "type": "object",
+            "properties": {
+              "contour_paths": {
+                "type": "text"
+              },
+              "hatch_patterns": {
+                "type": "text"
+              },
+              "support_structures": {
+                "type": "text"
+              }
+            }
+          }
+        }
+      },
+      "material_requirements": {
+        "type": "object",
+        "properties": {
+          "material_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "powder_requirements": {
+            "type": "object",
+            "properties": {
+              "powder_type": {
+                "type": "keyword"
+              },
+              "powder_amount": {
+                "type": "float"
+              },
+              "powder_condition": {
+                "type": "keyword"
+              }
+            }
+          },
+          "build_plate_requirements": {
+            "type": "object",
+            "properties": {
+              "plate_material": {
+                "type": "keyword"
+              },
+              "plate_temperature": {
+                "type": "float"
+              },
+              "plate_preparation": {
+                "type": "text"
+              }
+            }
+          }
+        }
+      },
+      "quality_requirements": {
+        "type": "object",
+        "properties": {
+          "dimensional_tolerance": {
+            "type": "float",
+            "index": true
+          },
+          "surface_roughness": {
+            "type": "float",
+            "index": true
+          },
+          "density_requirement": {
+            "type": "float",
+            "index": true
+          },
+          "mechanical_properties": {
+            "type": "object",
+            "properties": {
+              "tensile_strength": {
+                "type": "float"
+              },
+              "yield_strength": {
+                "type": "float"
+              },
+              "hardness": {
+                "type": "float"
+              }
+            }
+          }
+        }
+      },
+      "process_parameters": {
+        "type": "object",
+        "properties": {
+          "build_temperature": {
+            "type": "float",
+            "index": true
+          },
+          "chamber_atmosphere": {
+            "type": "keyword"
+          },
+          "oxygen_level": {
+            "type": "float",
+            "index": true
+          },
+          "build_speed": {
+            "type": "float",
+            "index": true
+          },
+          "cooling_rate": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "support_structures": {
+        "type": "object",
+        "properties": {
+          "support_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "support_material": {
+            "type": "keyword"
+          },
+          "support_density": {
+            "type": "float",
+            "index": true
+          },
+          "support_removal": {
+            "type": "text"
+          }
+        }
+      },
+      "post_processing": {
+        "type": "object",
+        "properties": {
+          "heat_treatment": {
+            "type": "object",
+            "properties": {
+              "temperature": {
+                "type": "float"
+              },
+              "duration": {
+                "type": "float"
+              },
+              "atmosphere": {
+                "type": "keyword"
+              }
+            }
+          },
+          "surface_finishing": {
+            "type": "text"
+          },
+          "machining_operations": {
+            "type": "text"
+          },
+          "inspection_requirements": {
+            "type": "text"
+          }
+        }
+      },
+      "safety_requirements": {
+        "type": "object",
+        "properties": {
+          "safety_protocols": {
+            "type": "text"
+          },
+          "hazard_identification": {
+            "type": "text"
+          },
+          "protective_equipment": {
+            "type": "text"
+          },
+          "emergency_procedures": {
+            "type": "text"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "created_by": {
+            "type": "keyword"
+          },
+          "version": {
+            "type": "keyword"
+          },
+          "approval_status": {
+            "type": "keyword",
+            "index": true
+          },
+          "approval_date": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "created_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "updated_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          }
+        }
+      }
+    }
+  },
+  "aliases": {
+    "build_instructions_current": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-30d"
+          }
+        }
+      }
+    },
+    "build_instructions_approved": {
+      "filter": {
+        "term": {
+          "metadata.approval_status": "approved"
+        }
+      }
+    }
+  },
+  "index_templates": {
+    "build_instructions_template": {
+      "index_patterns": ["build_instructions_*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 1,
+          "number_of_replicas": 1
+        },
+        "mappings": {
+          "properties": {
+            "instruction_id": {
+              "type": "keyword"
+            },
+            "build_id": {
+              "type": "keyword"
+            },
+            "timestamp": {
+              "type": "date"
+            },
+            "instruction_content": {
+              "type": "text"
+            }
+          }
+        }
+      }
+    }
+  },
+  "search_templates": {
+    "instruction_search": {
+      "source": {
+        "query": {
+          "multi_match": {
+            "query": "{{search_term}}",
+            "fields": [
+              "instruction_content",
+              "layer_instructions.laser_parameters.*",
+              "material_requirements.*",
+              "quality_requirements.*"
+            ]
+          }
+        },
+        "highlight": {
+          "fields": {
+            "instruction_content": {}
+          }
+        }
+      }
+    },
+    "material_analysis": {
+      "source": {
+        "aggs": {
+          "material_types": {
+            "terms": {
+              "field": "material_requirements.material_type"
+            }
+          },
+          "quality_requirements": {
+            "stats": {
+              "field": "quality_requirements.dimensional_tolerance"
+            }
+          }
+        }
+      }
+    }
+  }
+}

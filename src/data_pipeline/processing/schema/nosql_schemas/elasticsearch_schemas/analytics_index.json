@@ -1,0 +1,414 @@
+{
+  "index_name": "analytics",
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "analytics_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop", "snowball"]
+        }
+      }
+    },
+    "index": {
+      "max_result_window": 100000,
+      "refresh_interval": "60s"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "analytics_id": {
+        "type": "keyword",
+        "index": true
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "analysis_type": {
+        "type": "keyword",
+        "index": true
+      },
+      "data_source": {
+        "type": "keyword",
+        "index": true
+      },
+      "performance_metrics": {
+        "type": "object",
+        "properties": {
+          "throughput": {
+            "type": "float",
+            "index": true
+          },
+          "efficiency": {
+            "type": "float",
+            "index": true
+          },
+          "utilization": {
+            "type": "float",
+            "index": true
+          },
+          "downtime": {
+            "type": "long",
+            "index": true
+          },
+          "uptime": {
+            "type": "long",
+            "index": true
+          }
+        }
+      },
+      "quality_analytics": {
+        "type": "object",
+        "properties": {
+          "defect_rate": {
+            "type": "float",
+            "index": true
+          },
+          "quality_score": {
+            "type": "float",
+            "index": true
+          },
+          "rework_rate": {
+            "type": "float",
+            "index": true
+          },
+          "scrap_rate": {
+            "type": "float",
+            "index": true
+          },
+          "first_pass_yield": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "cost_analytics": {
+        "type": "object",
+        "properties": {
+          "material_cost": {
+            "type": "float",
+            "index": true
+          },
+          "energy_cost": {
+            "type": "float",
+            "index": true
+          },
+          "labor_cost": {
+            "type": "float",
+            "index": true
+          },
+          "maintenance_cost": {
+            "type": "float",
+            "index": true
+          },
+          "total_cost": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "trend_analysis": {
+        "type": "object",
+        "properties": {
+          "trend_direction": {
+            "type": "keyword",
+            "index": true
+          },
+          "trend_magnitude": {
+            "type": "float",
+            "index": true
+          },
+          "trend_confidence": {
+            "type": "float",
+            "index": true
+          },
+          "seasonality": {
+            "type": "object",
+            "properties": {
+              "has_seasonality": {
+                "type": "boolean"
+              },
+              "seasonal_period": {
+                "type": "keyword"
+              },
+              "seasonal_strength": {
+                "type": "float"
+              }
+            }
+          }
+        }
+      },
+      "predictive_analytics": {
+        "type": "object",
+        "properties": {
+          "prediction_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "predicted_value": {
+            "type": "float",
+            "index": true
+          },
+          "confidence_interval": {
+            "type": "object",
+            "properties": {
+              "lower_bound": {
+                "type": "float"
+              },
+              "upper_bound": {
+                "type": "float"
+              }
+            }
+          },
+          "prediction_horizon": {
+            "type": "long"
+          },
+          "model_accuracy": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "anomaly_detection": {
+        "type": "object",
+        "properties": {
+          "anomaly_score": {
+            "type": "float",
+            "index": true
+          },
+          "anomaly_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "severity": {
+            "type": "keyword",
+            "index": true
+          },
+          "detection_method": {
+            "type": "keyword"
+          },
+          "affected_metrics": {
+            "type": "keyword",
+            "index": true
+          }
+        }
+      },
+      "comparative_analysis": {
+        "type": "object",
+        "properties": {
+          "baseline_period": {
+            "type": "object",
+            "properties": {
+              "start_date": {
+                "type": "date",
+                "format": "strict_date_optional_time||epoch_millis"
+              },
+              "end_date": {
+                "type": "date",
+                "format": "strict_date_optional_time||epoch_millis"
+              }
+            }
+          },
+          "comparison_period": {
+            "type": "object",
+            "properties": {
+              "start_date": {
+                "type": "date",
+                "format": "strict_date_optional_time||epoch_millis"
+              },
+              "end_date": {
+                "type": "date",
+                "format": "strict_date_optional_time||epoch_millis"
+              }
+            }
+          },
+          "performance_delta": {
+            "type": "object",
+            "properties": {
+              "throughput_change": {
+                "type": "float"
+              },
+              "quality_change": {
+                "type": "float"
+              },
+              "cost_change": {
+                "type": "float"
+              }
+            }
+          }
+        }
+      },
+      "kpi_metrics": {
+        "type": "object",
+        "properties": {
+          "kpi_name": {
+            "type": "keyword",
+            "index": true
+          },
+          "kpi_value": {
+            "type": "float",
+            "index": true
+          },
+          "kpi_target": {
+            "type": "float"
+          },
+          "kpi_variance": {
+            "type": "float"
+          },
+          "kpi_status": {
+            "type": "keyword",
+            "index": true
+          }
+        }
+      },
+      "reporting_metadata": {
+        "type": "object",
+        "properties": {
+          "report_type": {
+            "type": "keyword",
+            "index": true
+          },
+          "report_period": {
+            "type": "keyword"
+          },
+          "generated_by": {
+            "type": "keyword"
+          },
+          "report_frequency": {
+            "type": "keyword"
+          },
+          "data_quality_score": {
+            "type": "float",
+            "index": true
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "updated_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "data_freshness": {
+            "type": "long"
+          },
+          "processing_time": {
+            "type": "long"
+          },
+          "data_volume": {
+            "type": "long"
+          }
+        }
+      }
+    }
+  },
+  "aliases": {
+    "analytics_current": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "gte": "now-7d"
+          }
+        }
+      }
+    },
+    "analytics_historical": {
+      "filter": {
+        "range": {
+          "timestamp": {
+            "lt": "now-7d"
+          }
+        }
+      }
+    }
+  },
+  "index_templates": {
+    "analytics_template": {
+      "index_patterns": ["analytics_*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 2,
+          "number_of_replicas": 1
+        },
+        "mappings": {
+          "properties": {
+            "analytics_id": {
+              "type": "keyword"
+            },
+            "timestamp": {
+              "type": "date"
+            },
+            "analysis_type": {
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    }
+  },
+  "search_templates": {
+    "performance_dashboard": {
+      "source": {
+        "aggs": {
+          "kpi_summary": {
+            "terms": {
+              "field": "kpi_metrics.kpi_name"
+            },
+            "aggs": {
+              "avg_value": {
+                "avg": {
+                  "field": "kpi_metrics.kpi_value"
+                }
+              }
+            }
+          },
+          "trend_analysis": {
+            "date_histogram": {
+              "field": "timestamp",
+              "calendar_interval": "day"
+            },
+            "aggs": {
+              "avg_performance": {
+                "avg": {
+                  "field": "performance_metrics.efficiency"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "anomaly_detection": {
+      "source": {
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "range": {
+                  "anomaly_detection.anomaly_score": {
+                    "gte": 0.7
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "sort": [
+          {
+            "anomaly_detection.anomaly_score": {
+              "order": "desc"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

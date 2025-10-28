@@ -110,3 +110,6 @@ export AZURE_TENANT_ID=your_tenant_id
 export GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
 export GOOGLE_CLOUD_PROJECT=your_project_id
 ```
+
+
+

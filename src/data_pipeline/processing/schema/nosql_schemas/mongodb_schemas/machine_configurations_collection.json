@@ -1,0 +1,237 @@
+{
+  "collection_name": "machine_configurations",
+  "description": "MongoDB collection for storing machine configurations, setup files, and calibration data",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "objectId",
+        "description": "MongoDB ObjectId"
+      },
+      "document_type": {
+        "type": "string",
+        "enum": ["machine_config"],
+        "description": "Document type"
+      },
+      "document_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Unique document identifier"
+      },
+      "machine_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL machine ID"
+      },
+      "process_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+$",
+        "description": "Associated PostgreSQL process ID"
+      },
+      "config_type": {
+        "type": "string",
+        "enum": ["setup", "calibration", "maintenance", "safety", "quality_control"],
+        "description": "Type of configuration"
+      },
+      "config_version": {
+        "type": "string",
+        "description": "Configuration version"
+      },
+      "config_data": {
+        "type": "object",
+        "description": "Configuration data",
+        "properties": {
+          "laser_settings": {
+            "type": "object",
+            "properties": {
+              "power_calibration": {"type": "number"},
+              "spot_size": {"type": "number"},
+              "wavelength": {"type": "number"}
+            }
+          },
+          "temperature_settings": {
+            "type": "object",
+            "properties": {
+              "build_plate_temp": {"type": "number"},
+              "chamber_temp": {"type": "number"},
+              "powder_temp": {"type": "number"}
+            }
+          },
+          "atmosphere_settings": {
+            "type": "object",
+            "properties": {
+              "gas_type": {"type": "string"},
+              "flow_rate": {"type": "number"},
+              "pressure": {"type": "number"}
+            }
+          },
+          "safety_settings": {
+            "type": "object",
+            "properties": {
+              "emergency_stop": {"type": "boolean"},
+              "fire_suppression": {"type": "boolean"},
+              "gas_monitoring": {"type": "boolean"}
+            }
+          }
+        }
+      },
+      "is_active": {
+        "type": "boolean",
+        "description": "Whether configuration is active"
+      },
+      "applied_by": {
+        "type": "string",
+        "description": "User who applied the configuration"
+      },
+      "applied_at": {
+        "type": "date",
+        "description": "When configuration was applied"
+      },
+      "validation_status": {
+        "type": "string",
+        "enum": ["pending", "validating", "valid", "invalid", "warning"],
+        "description": "Configuration validation status"
+      },
+      "validation_errors": {
+        "type": "array",
+        "description": "Validation errors if any",
+        "items": {"type": "string"}
+      },
+      "config_file_path": {
+        "type": "string",
+        "description": "Path to configuration file in GridFS"
+      },
+      "config_file_size": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Configuration file size in bytes"
+      },
+      "config_file_hash": {
+        "type": "string",
+        "description": "Configuration file hash for integrity verification"
+      },
+      "dependencies": {
+        "type": "array",
+        "description": "Dependent configuration IDs",
+        "items": {"type": "string"}
+      },
+      "compatibility": {
+        "type": "object",
+        "description": "Machine compatibility information",
+        "properties": {
+          "machine_models": {"type": "array", "items": {"type": "string"}},
+          "firmware_versions": {"type": "array", "items": {"type": "string"}},
+          "software_versions": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "rollback_info": {
+        "type": "object",
+        "description": "Rollback information",
+        "properties": {
+          "previous_config_id": {"type": "string"},
+          "rollback_available": {"type": "boolean"},
+          "rollback_notes": {"type": "string"}
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Flexible document metadata",
+        "additionalProperties": true
+      },
+      "tags": {
+        "type": "array",
+        "description": "Searchable tags",
+        "items": {"type": "string"}
+      },
+      "relationships": {
+        "type": "object",
+        "description": "Document relationships",
+        "additionalProperties": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "created_at": {
+        "type": "date",
+        "description": "Document creation timestamp"
+      },
+      "updated_at": {
+        "type": "date",
+        "description": "Document last update timestamp"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Document version for optimistic locking"
+      }
+    },
+    "required": ["document_type", "document_id", "machine_id", "config_type", "config_version", "config_data"],
+    "additionalProperties": false
+  },
+  "indexes": [
+    {
+      "name": "machine_id_index",
+      "keys": {"machine_id": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "config_type_index",
+      "keys": {"config_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "config_version_index",
+      "keys": {"config_version": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "is_active_index",
+      "keys": {"is_active": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "applied_by_index",
+      "keys": {"applied_by": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "validation_status_index",
+      "keys": {"validation_status": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "tags_index",
+      "keys": {"tags": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "created_at_index",
+      "keys": {"created_at": -1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_machine_config_index",
+      "keys": {"machine_id": 1, "config_type": 1},
+      "options": {"background": true}
+    },
+    {
+      "name": "compound_active_config_index",
+      "keys": {"machine_id": 1, "is_active": 1},
+      "options": {"background": true}
+    }
+  ],
+  "validation_rules": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["document_type", "document_id", "machine_id", "config_type", "config_version", "config_data"],
+        "properties": {
+          "document_type": {"enum": ["machine_config"]},
+          "machine_id": {"bsonType": "string", "pattern": "^[A-Z0-9_]+$"},
+          "config_type": {"enum": ["setup", "calibration", "maintenance", "safety", "quality_control"]},
+          "validation_status": {"enum": ["pending", "validating", "valid", "invalid", "warning"]}
+        }
+      }
+    }
+  }
+}
