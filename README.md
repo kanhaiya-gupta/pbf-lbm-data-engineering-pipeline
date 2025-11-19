@@ -2,7 +2,7 @@
 
 > **Comprehensive Data Engineering Platform for Powder Bed Fusion - Laser Beam/Metal (PBF-LB/M) Additive Manufacturing Research**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Spark 3.4+](https://img.shields.io/badge/Spark-3.4+-orange.svg)](https://spark.apache.org/)
 [![Airflow 3.1+](https://img.shields.io/badge/Airflow-3.1+-green.svg)](https://airflow.apache.org/)
@@ -27,44 +27,70 @@ This project provides a complete data pipeline solution for PBF-LB/M research, e
 
 ```mermaid
 graph TB
-    subgraph "Data Sources"
-        A[ISPM Monitoring<br/>Real-time Sensors]
-        B[CT Scans<br/>3D Imaging Data]
-        C[Build Files<br/>.mtt, .sli, .cli]
-        D[Process Logs<br/>Machine Data]
-        E[CAD Models<br/>STL, STEP Files]
+    subgraph "📊 Data Sources"
+        ISPM[ISPM Sensors<br/>📡 Real-time]
+        CT[CT Scans<br/>🔬 Batch]
+        BUILD[Build Files<br/>🏗️ Batch]
+        CAD[CAD Models<br/>📐 Batch]
     end
-    
-    subgraph "Data Pipeline"
-        F[Ingestion<br/>Streaming, Batch, CDC]
-        G[Processing<br/>ETL, Analytics, Voxel]
-        H[Storage<br/>Multi-Model NoSQL]
-        I[Quality<br/>Validation, Monitoring]
-        J[Orchestration<br/>Airflow, Scheduling]
+
+    subgraph "💾 Data Lakes"
+        DATA_LAKE_LOCAL[Local Data Lake<br/>📦 Historical Data]
+        DATA_LAKE_CLOUD[Cloud Data Lake<br/>☁️ Historical Data]
     end
-    
-    subgraph "Advanced Features"
-        K[Build File Parsing<br/>libSLM/PySLM Integration]
-        L[Voxel Visualization<br/>3D Spatial Analysis]
-        M[Analytics Engine<br/>Sensitivity Analysis]
-        N[Virtual Environment<br/>Testing & Simulation]
+
+    subgraph "⚙️ Processing"
+        KAFKA[Kafka Streaming]
+        SPARK[Spark Processing]
+        AIRFLOW[Airflow Orchestration]
     end
+
+    subgraph "🏠 Local Storage"
+        POSTGRES[(PostgreSQL<br/>🗄️ Operational)]
+        MONGODB[(MongoDB<br/>🍃 Documents)]
+        REDIS[(Redis<br/>⚡ Cache)]
+        MINIO[(MinIO<br/>📦 Object Storage)]
+        CLICKHOUSE[(ClickHouse<br/>📊 Data Warehouse)]
+    end
+
+    subgraph "☁️ Cloud Storage"
+        SNOWFLAKE[(Snowflake<br/>❄️ Analytics)]
+        AWS_S3[(AWS S3<br/>☁️ Data Lake)]
+        BIGQUERY[(BigQuery<br/>🔍 Research)]
+    end
+
+    subgraph "🤖 ML & Research"
+        ML_TRAINING[ML Model Training]
+        ADVANCED_ANALYTICS[Advanced Analytics]
+        RESEARCH[Research Queries]
+        OPERATIONS[Daily Operations<br/>📊 Operational Work]
+    end
+
+    %% Data Flow
+    ISPM --> KAFKA --> SPARK
+    CT --> SPARK
+    BUILD --> SPARK
+    CAD --> SPARK
+    DATA_LAKE_LOCAL --> SPARK
+    DATA_LAKE_CLOUD --> SPARK
     
-    A --> F
-    B --> F
-    C --> F
-    D --> F
-    E --> F
-    
-    F --> G
-    G --> H
-    H --> I
-    I --> J
-    
-    G --> K
-    G --> L
-    G --> M
-    G --> N
+    SPARK --> POSTGRES
+    SPARK --> MONGODB
+    SPARK --> REDIS
+    SPARK --> CLICKHOUSE
+    SPARK --> SNOWFLAKE
+    SPARK --> MINIO
+
+    %% ML and Analytics Usage
+    POSTGRES --> OPERATIONS
+    MONGODB --> OPERATIONS
+    REDIS --> OPERATIONS
+    CLICKHOUSE --> ML_TRAINING
+    SNOWFLAKE --> ML_TRAINING
+    CLICKHOUSE --> ADVANCED_ANALYTICS
+    SNOWFLAKE --> ADVANCED_ANALYTICS
+    AWS_S3 --> RESEARCH
+    BIGQUERY --> RESEARCH
 ```
 
 ## 🔧 **Core Components**
@@ -141,14 +167,17 @@ graph TB
 
 ### **🗄️ Multi-Model Data Storage**
 
+*For detailed information on all data models, schemas, and relationships, see [Data Models Reference](docs/storage/data-models.md)*
+
 #### **🏠 Local Storage (On-Premises)**
-- **PostgreSQL**: Primary operational database, real-time data
-- **MongoDB**: Document storage for unstructured data, metadata
-- **Redis**: High-performance caching layer, session management
+- **PostgreSQL**: Primary operational database for daily operational work and real-time queries
+- **MongoDB**: Document storage for daily operational work, unstructured data, metadata
+- **Redis**: High-performance caching layer for daily operations, session management
 - **MinIO**: Local object storage (S3-compatible), raw data backup, development datasets
+- **ClickHouse**: Columnar data warehouse for analytics, time-series data, and ML training
 
 #### **☁️ Cloud Storage (AWS/Azure/GCP)**
-- **Snowflake**: Large-scale analytics, data warehousing, business intelligence
+- **Snowflake**: Large-scale analytics, data warehousing, ML training, business intelligence
 - **AWS S3**: Scalable data lake, long-term storage, data archiving
 - **BigQuery**: Ad-hoc queries, data exploration, research analytics
 - **MongoDB Atlas**: Managed document storage, global distribution
@@ -192,60 +221,22 @@ pbf-lbm-nosql-data-warehouse/
 
 ## 📊 **Data Flow & Storage Strategy**
 
-### **Where Your Data Goes**
+This platform implements a comprehensive data flow architecture where data from multiple sources (real-time sensors, batch files, and historical data lakes) flows through Apache Spark for transformation and is then distributed to optimized storage systems based on use case requirements.
 
-```mermaid
-graph TB
-    subgraph "📊 Data Sources"
-        ISPM[ISPM Sensors<br/>📡 Real-time]
-        CT[CT Scans<br/>🔬 Batch]
-        BUILD[Build Files<br/>🏗️ Batch]
-        CAD[CAD Models<br/>📐 Batch]
-    end
-
-    subgraph "⚙️ Processing"
-        KAFKA[Kafka Streaming]
-        SPARK[Spark Processing]
-        AIRFLOW[Airflow Orchestration]
-    end
-
-    subgraph "🏠 Local Storage"
-        POSTGRES[(PostgreSQL<br/>🗄️ Operational)]
-        MONGODB[(MongoDB<br/>🍃 Documents)]
-        REDIS[(Redis<br/>⚡ Cache)]
-        MINIO[(MinIO<br/>📦 Object Storage)]
-    end
-
-    subgraph "☁️ Cloud Storage"
-        SNOWFLAKE[(Snowflake<br/>❄️ Analytics)]
-        AWS_S3[(AWS S3<br/>☁️ Data Lake)]
-        BIGQUERY[(BigQuery<br/>🔍 Research)]
-    end
-
-    subgraph "🤖 ML & Research"
-        ML_TRAINING[ML Model Training]
-        ADVANCED_ANALYTICS[Advanced Analytics]
-        RESEARCH[Research Queries]
-    end
-
-    %% Data Flow
-    ISPM --> KAFKA --> POSTGRES
-    CT --> SPARK --> MONGODB
-    BUILD --> SPARK --> SNOWFLAKE
-    CAD --> SPARK --> MINIO
-
-    %% ML and Analytics Usage
-    POSTGRES --> ML_TRAINING
-    SNOWFLAKE --> ADVANCED_ANALYTICS
-    AWS_S3 --> RESEARCH
-    BIGQUERY --> RESEARCH
-```
+**Key Points:**
+- **Real-time streaming data** (ISPM sensors) flows through Kafka to Spark for processing
+- **Batch data** (CT scans, build files, CAD models) and **historical data lakes** are processed directly by Spark
+- **Spark performs transformations** and distributes data to multiple storage systems simultaneously
+- **Storage selection** is optimized based on data characteristics and usage patterns (operational vs. analytics vs. ML)
 
 ### **Data Storage Strategy**
 
-- **Real-time Data** → **Local Storage** (PostgreSQL, Redis) for immediate access
+- **Daily Operations** → **PostgreSQL, MongoDB, Redis** for operational work, real-time queries, and caching
+- **ML Training** → **ClickHouse & Snowflake** for model training and analytics workloads
+- **Analytics** → **ClickHouse & Snowflake** for advanced analytics and business intelligence
 - **Batch Data** → **Cloud Storage** (Snowflake, AWS S3) for analytics and research
-- **ML Training** → **Both Local & Cloud** for optimal performance and scalability
+- **Data Warehouse** → **ClickHouse** (Local) for columnar analytics and time-series data
+- **Data Lake Input** → **Historical data from Data Lakes** (separate from storage) can be ingested through Spark for batch processing, ML training, and analytics
 - **Research Data** → **Cloud Storage** for collaboration and sharing
 
 ## 🔧 **Installation & Setup**
@@ -364,6 +355,7 @@ We welcome contributions from the research community! Please see our [Contributi
 Comprehensive documentation is available in the `docs/` directory:
 
 - **[System Architecture](docs/architecture/system-overview.md)**: Complete system architecture and design principles
+- **[Data Models Reference](docs/storage/data-models.md)**: Complete reference for all data models, schemas, and relationships across SQL, NoSQL, and data warehouse systems
 - **[Build File Parser](docs/build-parsing/build-parser-readme.md)**: Advanced build file processing with libSLM/PySLM
 - **[🚀 Build File Editor](docs/build-parsing/build-file-editor-readme.md)**: Revolutionary tool for modifying build files and generating artificial artifacts
 - **[Sensitivity Analysis](docs/analytics/sensitivity-analysis.md)**: Comprehensive analytics and statistical analysis
@@ -380,7 +372,11 @@ See our [Project Roadmap](roadmaps/README.md) for planned features and developme
 
 ## 📄 **License**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**All Rights Reserved** - This project and its contents are proprietary. 
+
+**Permission Required:** You must obtain explicit written permission from the author before using, modifying, or distributing this software or any portion of it. Unauthorized use is prohibited.
+
+For licensing inquiries, please contact the project maintainer through the contact information provided below.
 
 ## 📞 **Contact**
 
