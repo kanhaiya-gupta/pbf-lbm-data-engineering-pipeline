@@ -51,6 +51,7 @@ graph TB
         REDIS[(Redis<br/>⚡ Cache)]
         MINIO[(MinIO<br/>📦 Object Storage)]
         CLICKHOUSE[(ClickHouse<br/>📊 Data Warehouse)]
+        ELASTICSEARCH[(Elasticsearch<br/>🔍 Search & Analytics)]
     end
 
     subgraph "☁️ Cloud Storage"
@@ -77,20 +78,37 @@ graph TB
     SPARK --> POSTGRES
     SPARK --> MONGODB
     SPARK --> REDIS
+    SPARK --> ELASTICSEARCH
     SPARK --> CLICKHOUSE
     SPARK --> SNOWFLAKE
     SPARK --> MINIO
 
     %% ML and Analytics Usage
-    POSTGRES --> OPERATIONS
-    MONGODB --> OPERATIONS
-    REDIS --> OPERATIONS
-    CLICKHOUSE --> ML_TRAINING
-    SNOWFLAKE --> ML_TRAINING
-    CLICKHOUSE --> ADVANCED_ANALYTICS
-    SNOWFLAKE --> ADVANCED_ANALYTICS
-    AWS_S3 --> RESEARCH
-    BIGQUERY --> RESEARCH
+    POSTGRES -->|Real-time Queries| OPERATIONS
+    MONGODB -->|Document Queries| OPERATIONS
+    REDIS -->|Cache Access| OPERATIONS
+    CLICKHOUSE -->|ML Models, Quality Prediction, Parameter Optimization| ML_TRAINING
+    SNOWFLAKE -->|ML Models, Quality Prediction, Parameter Optimization| ML_TRAINING
+    CLICKHOUSE -->|Sensitivity Analysis, Statistical Analysis, Process Analysis| ADVANCED_ANALYTICS
+    SNOWFLAKE -->|Sensitivity Analysis, Statistical Analysis, Process Analysis| ADVANCED_ANALYTICS
+    ELASTICSEARCH -->|Full-text Search, Log Analysis, Real-time Search| ADVANCED_ANALYTICS
+    AWS_S3 -->|Data Exploration| RESEARCH
+    BIGQUERY -->|Ad-hoc Queries| RESEARCH
+
+    %% Styling
+    classDef dataSource fill:#e1f5ff,stroke:#01579b,stroke-width:2px,color:#000
+    classDef dataLake fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef processing fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    classDef localStorage fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
+    classDef cloudStorage fill:#e0f2f1,stroke:#004d40,stroke-width:2px,color:#000
+    classDef mlResearch fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
+
+    class ISPM,CT,BUILD,CAD dataSource
+    class DATA_LAKE_LOCAL,DATA_LAKE_CLOUD dataLake
+    class KAFKA,SPARK,AIRFLOW processing
+    class POSTGRES,MONGODB,REDIS,MINIO,CLICKHOUSE,ELASTICSEARCH localStorage
+    class SNOWFLAKE,AWS_S3,BIGQUERY cloudStorage
+    class ML_TRAINING,ADVANCED_ANALYTICS,RESEARCH,OPERATIONS mlResearch
 ```
 
 ## 🔧 **Core Components**
@@ -175,6 +193,7 @@ graph TB
 - **Redis**: High-performance caching layer for daily operations, session management
 - **MinIO**: Local object storage (S3-compatible), raw data backup, development datasets
 - **ClickHouse**: Columnar data warehouse for analytics, time-series data, and ML training
+- **Elasticsearch**: Search and analytics engine for full-text search, log analysis, and real-time search capabilities
 
 #### **☁️ Cloud Storage (AWS/Azure/GCP)**
 - **Snowflake**: Large-scale analytics, data warehousing, ML training, business intelligence
@@ -187,6 +206,20 @@ graph TB
 - **Research Data**: Cloud storage for collaboration and sharing
 - **Analytics**: Data warehouse for complex queries and business intelligence
 - **Data Lake**: Raw data storage for exploration and experimentation
+
+### **ML & Research Activities**
+
+The data stored in **ClickHouse** and **Snowflake** is used for the following ML and analytics activities:
+
+**🤖 ML Model Training** (using ClickHouse & Snowflake):
+- **ML Models**: Random Forest, Neural Networks, Bayesian Analysis
+- **Quality Prediction**: Defect detection and quality forecasting models
+- **Parameter Optimization**: ML-driven process parameter tuning
+
+**📊 Advanced Analytics** (using ClickHouse & Snowflake):
+- **Sensitivity Analysis**: Sobol indices, Morris screening, design of experiments
+- **Statistical Analysis**: Multivariate analysis, time series, regression, nonparametric methods
+- **Process Analysis**: Sensor data analysis, process optimization, root cause analysis
 
 ### **Infrastructure**
 - **Docker**: Containerization
@@ -234,6 +267,7 @@ This platform implements a comprehensive data flow architecture where data from 
 - **Daily Operations** → **PostgreSQL, MongoDB, Redis** for operational work, real-time queries, and caching
 - **ML Training** → **ClickHouse & Snowflake** for model training and analytics workloads
 - **Analytics** → **ClickHouse & Snowflake** for advanced analytics and business intelligence
+- **Search & Analytics** → **Elasticsearch** for full-text search, log analysis, and real-time search capabilities
 - **Batch Data** → **Cloud Storage** (Snowflake, AWS S3) for analytics and research
 - **Data Warehouse** → **ClickHouse** (Local) for columnar analytics and time-series data
 - **Data Lake Input** → **Historical data from Data Lakes** (separate from storage) can be ingested through Spark for batch processing, ML training, and analytics
@@ -307,6 +341,90 @@ sequenceDiagram
 ## 🔬 **Research Applications**
 
 ### **🚀 Build File Editor - Game Changer**
+
+#### **⚡ Defect Generation & Process Modification Workflow**
+
+```mermaid
+flowchart TB
+    Start([Start: Load .slm Build File]) --> Parse[Build File Parser<br/>libSLM/PySLM]
+    Parse --> Extract[Extract Scan Points<br/>Coordinates, Parameters, Layers]
+    Extract --> Convert[Convert to JSON<br/>Structured Data Format]
+    
+    Convert --> Edit{Editing Mode}
+    
+    Edit -->|1. Precision Defect Introduction| Defect[Precision Defect Generator]
+    Edit -->|2. Process Parameter Manipulation| Param[Parameter Editor]
+    Edit -->|3. Controlled Quality Variation| Quality[Quality Variation Engine]
+    
+    Defect --> DefectSpec[Specify Spatial Coordinates<br/>x, y, z, radius]
+    DefectSpec --> DefectType{Defect Type}
+    DefectType -->|Porosity| Porosity[Generate Porosity<br/>Power Reduction<br/>Velocity Increase<br/>Exposure Reduction]
+    DefectType -->|Crack| Crack[Generate Crack<br/>Orientation, Length<br/>Power Modulation]
+    DefectType -->|Dimensional Deviation| DimDev[Generate Deviation<br/>Geometry Modification<br/>Layer Thickness Change]
+    
+    Param --> ParamSelect[Select Scan Points<br/>Individual or Region]
+    ParamSelect --> ParamMod[Modify Parameters]
+    ParamMod --> Power[Laser Power<br/>Granular Control]
+    ParamMod --> Speed[Scan Speed<br/>Point-by-Point]
+    ParamMod --> Exposure[Exposure Parameters<br/>Time, Energy Density]
+    
+    Quality --> QualityType{Quality Variation Type}
+    QualityType -->|Systematic Porosity| SysPorosity[Controlled Porosity Distribution<br/>Size, Density, Location]
+    QualityType -->|Systematic Cracks| SysCrack[Controlled Crack Patterns<br/>Network, Orientation]
+    QualityType -->|Dimensional Deviations| SysDim[Controlled Dimensional Changes<br/>Tolerance Variations]
+    
+    Porosity --> Validate
+    Crack --> Validate
+    DimDev --> Validate
+    Power --> Validate
+    Speed --> Validate
+    Exposure --> Validate
+    SysPorosity --> Validate
+    SysCrack --> Validate
+    SysDim --> Validate
+    
+    Validate[Quality Validator<br/>Check Parameter Ranges<br/>Machine Constraints<br/>Manufacturability]
+    Validate -->|Invalid| Refine[Refine Modifications]
+    Refine --> Edit
+    Validate -->|Valid| Merge[Merge All Modifications<br/>Apply to Scan Points]
+    
+    Merge --> JSONUpdate[Update JSON Structure<br/>Modified Parameters<br/>New Artifacts]
+    JSONUpdate --> Generate[Build File Generator<br/>Convert JSON → .slm]
+    Generate --> Output([Output: Modified .slm File])
+    
+    style Start fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    style Output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Defect fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Param fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Quality fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Validate fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+```
+
+#### **Core Capabilities**
+
+**1. ⚡ Precision Defect Introduction**
+- Advanced build file editing capabilities enabling controlled defect generation at specific spatial coordinates
+- Workflow: `.slm → JSON/Edit → .slm`
+- Features:
+  - Coordinate-based defect placement (x, y, z, radius)
+  - Multiple defect types (porosity, cracks, dimensional deviations)
+  - Parameter-controlled defect characteristics
+
+**2. ⚡ Process Parameter Manipulation**
+- Granular modification of laser power, scan speed, and exposure parameters at individual scan points
+- Features:
+  - Point-by-point laser power control
+  - Individual scan speed adjustment
+  - Per-point exposure parameter modification
+
+**3. ⚡ Controlled Quality Variation**
+- Systematic introduction of porosity, cracks, and dimensional deviations for research and validation purposes
+- Features:
+  - Systematic porosity introduction
+  - Controlled crack pattern generation
+  - Dimensional deviation control
+
+#### **Key Benefits**
 - **Artificial Artifact Generation**: Create controlled defects and features at any location
 - **Process Parameter Optimization**: Modify parameters for specific regions or entire builds
 - **Research Specimen Generation**: Create standardized test specimens for material research

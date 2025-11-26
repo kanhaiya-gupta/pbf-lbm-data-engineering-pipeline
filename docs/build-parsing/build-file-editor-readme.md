@@ -90,6 +90,95 @@ graph TB
     M --> F
 ```
 
+## ⚡ **Defect Generation & Process Modification Workflow**
+
+### **Complete Process Flowchart**
+
+```mermaid
+flowchart TB
+    Start([Start: Load .slm Build File]) --> Parse[Build File Parser<br/>libSLM/PySLM]
+    Parse --> Extract[Extract Scan Points<br/>Coordinates, Parameters, Layers]
+    Extract --> Convert[Convert to JSON<br/>Structured Data Format]
+    
+    Convert --> Edit{Editing Mode}
+    
+    Edit -->|1. Precision Defect Introduction| Defect[Precision Defect Generator]
+    Edit -->|2. Process Parameter Manipulation| Param[Parameter Editor]
+    Edit -->|3. Controlled Quality Variation| Quality[Quality Variation Engine]
+    
+    Defect --> DefectSpec[Specify Spatial Coordinates<br/>x, y, z, radius]
+    DefectSpec --> DefectType{Defect Type}
+    DefectType -->|Porosity| Porosity[Generate Porosity<br/>Power Reduction<br/>Velocity Increase<br/>Exposure Reduction]
+    DefectType -->|Crack| Crack[Generate Crack<br/>Orientation, Length<br/>Power Modulation]
+    DefectType -->|Dimensional Deviation| DimDev[Generate Deviation<br/>Geometry Modification<br/>Layer Thickness Change]
+    
+    Param --> ParamSelect[Select Scan Points<br/>Individual or Region]
+    ParamSelect --> ParamMod[Modify Parameters]
+    ParamMod --> Power[Laser Power<br/>Granular Control]
+    ParamMod --> Speed[Scan Speed<br/>Point-by-Point]
+    ParamMod --> Exposure[Exposure Parameters<br/>Time, Energy Density]
+    
+    Quality --> QualityType{Quality Variation Type}
+    QualityType -->|Systematic Porosity| SysPorosity[Controlled Porosity Distribution<br/>Size, Density, Location]
+    QualityType -->|Systematic Cracks| SysCrack[Controlled Crack Patterns<br/>Network, Orientation]
+    QualityType -->|Dimensional Deviations| SysDim[Controlled Dimensional Changes<br/>Tolerance Variations]
+    
+    Porosity --> Validate
+    Crack --> Validate
+    DimDev --> Validate
+    Power --> Validate
+    Speed --> Validate
+    Exposure --> Validate
+    SysPorosity --> Validate
+    SysCrack --> Validate
+    SysDim --> Validate
+    
+    Validate[Quality Validator<br/>Check Parameter Ranges<br/>Machine Constraints<br/>Manufacturability]
+    Validate -->|Invalid| Refine[Refine Modifications]
+    Refine --> Edit
+    Validate -->|Valid| Merge[Merge All Modifications<br/>Apply to Scan Points]
+    
+    Merge --> JSONUpdate[Update JSON Structure<br/>Modified Parameters<br/>New Artifacts]
+    JSONUpdate --> Generate[Build File Generator<br/>Convert JSON → .slm]
+    Generate --> Output([Output: Modified .slm File])
+    
+    style Start fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    style Output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Defect fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Param fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Quality fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Validate fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+```
+
+### **Key Capabilities Breakdown**
+
+#### **1. Precision Defect Introduction**
+- **Input**: Original .slm file
+- **Process**: .slm → JSON conversion → Spatial coordinate specification → Defect generation
+- **Output**: Modified .slm with controlled defects at precise locations
+- **Features**:
+  - Coordinate-based defect placement (x, y, z, radius)
+  - Multiple defect types (porosity, cracks, dimensional deviations)
+  - Parameter-controlled defect characteristics
+
+#### **2. Process Parameter Manipulation**
+- **Input**: JSON scan point data
+- **Process**: Individual scan point selection → Granular parameter modification
+- **Output**: Modified .slm with optimized parameters
+- **Features**:
+  - Point-by-point laser power control
+  - Individual scan speed adjustment
+  - Per-point exposure parameter modification
+
+#### **3. Controlled Quality Variation**
+- **Input**: Research requirements and quality specifications
+- **Process**: Systematic variation generation → Quality distribution application
+- **Output**: Modified .slm with controlled quality variations
+- **Features**:
+  - Systematic porosity introduction
+  - Controlled crack pattern generation
+  - Dimensional deviation control
+
 ## 🔧 **Technical Implementation**
 
 ### **Core Classes**
